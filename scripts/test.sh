@@ -117,6 +117,13 @@ pass "init: re-run guards work in both states"
 # ============================================================
 # 3) new-stage + new-spec scaffold correctly
 # ============================================================
+# Simulate the user replacing the REPLACE'd repo id in .repo-context.yaml
+# so we can verify the scaffold picks it up.
+sed_inplace_portable() {
+    if [ "$(uname)" = "Darwin" ]; then sed -i '' "$@"; else sed -i "$@"; fi
+}
+sed_inplace_portable 's|id: my-app|id: bragfile-test|' .repo-context.yaml
+
 just new-stage "Test Stage" >/dev/null
 STAGE_FILE="projects/PROJ-001-example-mvp/stages/STAGE-002-test-stage.md"
 assert_file "$STAGE_FILE"
@@ -125,6 +132,8 @@ today=$(date +%Y-%m-%d)
 assert_contains "$STAGE_FILE" "^created_at: ${today}\$" "stage.md created_at filled with today"
 # target_complete comment should still say YYYY-MM-DD (not substituted).
 assert_contains "$STAGE_FILE" "# optional: YYYY-MM-DD" "stage.md comment placeholder untouched"
+# repo.id should come from .repo-context.yaml, not the hardcoded default.
+assert_contains "$STAGE_FILE" "^  id: bragfile-test\$" "stage.md repo.id picks up from .repo-context.yaml"
 
 just new-spec "Test Spec" STAGE-002 >/dev/null
 SPEC_FILE="projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec.md"
@@ -132,6 +141,7 @@ assert_file "$SPEC_FILE"
 assert_contains "$SPEC_FILE" "id: SPEC-002" "spec ID set"
 assert_contains "$SPEC_FILE" "stage: STAGE-002" "spec parent stage set"
 assert_contains "$SPEC_FILE" "^  created_at: ${today}\$" "spec created_at filled"
+assert_contains "$SPEC_FILE" "^  id: bragfile-test\$" "spec.md repo.id picks up from .repo-context.yaml"
 
 # ============================================================
 # 4) advance-cycle preserves the cycle legend comment
@@ -151,10 +161,22 @@ assert_contains "$SPEC_FILE" "^  cycle: ship.*# frame \| design" \
 # ============================================================
 # 5) archive-spec: happy path + double-archive refusal
 # ============================================================
-just archive-spec SPEC-002 >/dev/null
+archive_out=$(just archive-spec SPEC-002 2>&1)
 ARCHIVED="projects/PROJ-001-example-mvp/specs/done/SPEC-002-test-spec.md"
 assert_file "$ARCHIVED"
 assert_no_file "$SPEC_FILE"
+# The stage-shipped message must be an observation, not a completion
+# claim — the stage's backlog may still list unwritten specs.
+if printf '%s\n' "$archive_out" | grep -qE "All specs for .* are shipped\."; then
+    fail "archive-spec prints false-positive 'All specs … are shipped' claim"
+else
+    pass "archive-spec does not claim stage completion"
+fi
+if printf '%s\n' "$archive_out" | grep -qE "No active specs remain for STAGE-002"; then
+    pass "archive-spec reports observation (no active specs remain)"
+else
+    fail "archive-spec missing expected 'No active specs remain' message"
+fi
 
 # Second archive must fail and must NOT create done/done/...
 assert_cmd_fails "double-archive of SPEC-002 fails" just archive-spec SPEC-002
