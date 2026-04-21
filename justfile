@@ -20,7 +20,14 @@ init:
     @echo ""
     @if [ -f AGENTS.md ]; then \
         echo "⚠  Already initialized (AGENTS.md exists at repo root)."; \
-        echo "   If you want to re-init, remove AGENTS.md first."; \
+        echo "   Init is one-shot: it consumes variants/ when it runs."; \
+        echo "   To start over, restore the repo from git or re-clone."; \
+        exit 1; \
+    fi
+    @if [ ! -d variants ]; then \
+        echo "⚠  variants/ directory is missing."; \
+        echo "   This repo was already initialized (or the template was"; \
+        echo "   modified). Restore from git or re-clone to re-init."; \
         exit 1; \
     fi
     @echo "Pick a variant:"
@@ -28,26 +35,26 @@ init:
     @echo "  2) claude-plus-agents  (Claude architects, separate agent implements)"
     @echo ""
     @printf "Enter 1 or 2: "
-    @read variant_choice; \
+    @read variant_choice && \
     if [ "$variant_choice" = "1" ]; then \
         VARIANT="claude-only"; \
     elif [ "$variant_choice" = "2" ]; then \
         VARIANT="claude-plus-agents"; \
     else \
         echo "Invalid choice: $variant_choice"; exit 1; \
-    fi; \
-    echo ""; \
-    echo "Scaffolding $VARIANT to repo root..."; \
-    cp -r variants/$VARIANT/. .; \
-    rm -rf variants/; \
-    echo "$VARIANT" > .variant; \
-    echo ""; \
-    echo "✓ Done. Your variant: $VARIANT"; \
-    echo ""; \
-    echo "Next steps:"; \
-    echo "  1. Open GETTING_STARTED.md"; \
-    echo "  2. Work through the PROJECT FRAME prompt in FIRST_SESSION_PROMPTS.md"; \
-    echo "  3. Commit the scaffolded repo:"; \
+    fi && \
+    echo "" && \
+    echo "Scaffolding $VARIANT to repo root..." && \
+    cp -r "variants/$VARIANT/." . && \
+    rm -rf variants/ && \
+    echo "$VARIANT" > .variant && \
+    echo "" && \
+    echo "✓ Done. Your variant: $VARIANT" && \
+    echo "" && \
+    echo "Next steps:" && \
+    echo "  1. Open GETTING_STARTED.md" && \
+    echo "  2. Work through the PROJECT FRAME prompt in FIRST_SESSION_PROMPTS.md" && \
+    echo "  3. Commit the scaffolded repo:" && \
     echo "       git add . && git commit -m 'chore: initialize spec-driven scaffold'"
 
 # List the available variants (useful before init)
