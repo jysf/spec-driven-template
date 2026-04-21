@@ -54,14 +54,18 @@ if [ -n "$STAGE_ID" ]; then
     fi
 fi
 
-# Check if this was the last active spec in the stage.
+# If this leaves no active specs under the stage, surface that as an
+# observation — NOT as a claim that the stage is complete. The stage's
+# `## Spec Backlog` may still list unwritten specs, and we can't
+# reliably read that list (it's manually maintained markdown).
 if [ -n "$STAGE_ID" ]; then
     REMAINING=$(find "$SPEC_DIR" -maxdepth 1 -name "SPEC-*.md" 2>/dev/null \
                 | xargs -I{} awk -v sid="$STAGE_ID" '/^---$/{f=!f; next} f && /^[[:space:]]+stage:/ && $2 == sid {print FILENAME; exit}' {} \
                 | wc -l | tr -d ' ')
     if [ "$REMAINING" = "0" ]; then
         echo ""
-        echo "${GREEN}All specs for ${STAGE_ID} are shipped.${RESET}"
-        echo "Consider running the Stage Ship prompt (Prompt 1c) in FIRST_SESSION_PROMPTS.md."
+        echo "${GREEN}No active specs remain for ${STAGE_ID}.${RESET}"
+        echo "If the stage's Spec Backlog is fully complete, run the Stage"
+        echo "Ship prompt (Prompt 1c) in FIRST_SESSION_PROMPTS.md."
     fi
 fi
