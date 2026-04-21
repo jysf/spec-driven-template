@@ -101,3 +101,10 @@ weekly-review:
 # Print the active project and variant
 info:
     @./scripts/info.sh
+
+# Run the template's end-to-end happy-path tests (uses a temp dir).
+# Intended for template maintainers, not end users. Works from the
+# pre-init template root only — after `just init` runs, variants/ is
+# gone and this test would fail at the first check.
+test:
+    @./scripts/test.sh
