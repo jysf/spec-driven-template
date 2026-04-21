@@ -17,7 +17,7 @@ project:
   id: PROJ-XXX
   stage: STAGE-XXX
 repo:
-  id: my-app
+  id: __REPO_ID__
 ---
 
 # HANDOFF-XXX: <Task Title — same as the spec's title>

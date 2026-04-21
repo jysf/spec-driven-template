@@ -9,7 +9,7 @@ project:
   target_ship: null                 # optional: YYYY-MM-DD
 
 repo:
-  id: my-app                        # must match .repo-context.yaml
+  id: __REPO_ID__                   # must match .repo-context.yaml
 
 created_at: YYYY-MM-DD
 shipped_at: null

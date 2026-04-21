@@ -15,7 +15,7 @@ project:
   id: PROJ-XXX
   stage: STAGE-XXX
 repo:
-  id: my-app
+  id: __REPO_ID__
 
 handoff:
   from_agent: claude-opus-4-7

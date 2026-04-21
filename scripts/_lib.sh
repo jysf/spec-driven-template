@@ -133,6 +133,28 @@ today() {
     date +%Y-%m-%d
 }
 
+# Read the repo's ID from .repo-context.yaml (metadata.repo.id).
+# Used by scaffold scripts to substitute the __REPO_ID__ placeholder
+# in templates. Falls back to "my-app" if the file or key is missing,
+# which matches the template default and avoids breaking scaffolding
+# on a freshly-cloned repo where the user hasn't replaced values yet.
+get_repo_id() {
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    if [ ! -f "$ctx" ]; then
+        echo "my-app"
+        return
+    fi
+    local id
+    id=$(awk '
+        /^metadata:/ { in_meta = 1; next }
+        /^[a-zA-Z]/ && in_meta { in_meta = 0 }
+        in_meta && /^  repo:/ { in_repo = 1; next }
+        in_meta && in_repo && /^  [a-zA-Z]/ { in_repo = 0 }
+        in_meta && in_repo && /^    id:/ { print $2; exit }
+    ' "$ctx")
+    echo "${id:-my-app}"
+}
+
 # Update a YAML front-matter scalar in a markdown file.
 # Usage: update_frontmatter_scalar path/to/file.md task.cycle verify
 # This is a deliberately simple awk-based updater for flat YAML. Requires

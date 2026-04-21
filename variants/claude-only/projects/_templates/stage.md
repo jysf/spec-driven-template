@@ -12,7 +12,7 @@ stage:
 project:
   id: PROJ-XXX                      # parent project
 repo:
-  id: my-app
+  id: __REPO_ID__
 
 created_at: __TODAY__
 shipped_at: null
