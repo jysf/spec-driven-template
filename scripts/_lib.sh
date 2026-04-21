@@ -108,11 +108,18 @@ slugify() {
         | sed -E 's/^-+|-+$//g'
 }
 
-# Find a spec file by ID. Searches all projects.
+# Find a spec file by ID. Searches all projects. Only returns active
+# specs — archived specs under specs/done/ are excluded so callers
+# like advance-cycle and archive-spec don't silently operate on an
+# already-shipped file.
+# Uses find's -not -path rather than a grep pipeline: grep returns 1
+# on no matches, which trips pipefail and would make this function
+# silently abort the caller under `set -e`.
 # Usage: find_spec SPEC-001
 find_spec() {
     local spec_id="$1"
-    find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*.md" 2>/dev/null | head -n1
+    find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*.md" \
+        -not -path '*/done/*' 2>/dev/null | head -n1
 }
 
 # Find a stage file by ID.
