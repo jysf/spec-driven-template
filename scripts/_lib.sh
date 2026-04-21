@@ -129,7 +129,10 @@ today() {
 # Update a YAML front-matter scalar in a markdown file.
 # Usage: update_frontmatter_scalar path/to/file.md task.cycle verify
 # This is a deliberately simple awk-based updater for flat YAML. Requires
-# the key to already exist in the front-matter.
+# the key to already exist in the front-matter. Preserves inline
+# comments (everything from the first '#' onward). Assumes the scalar
+# value itself contains no '#' — true for our front-matter (barewords
+# like `design`, `active`, etc).
 update_frontmatter_scalar() {
     local file="$1"
     local key="$2"        # e.g. task.cycle or handoff.status
@@ -140,7 +143,8 @@ update_frontmatter_scalar() {
     local leaf="${key##*.}"
 
     # awk script that walks the front-matter (between the first two ---
-    # delimiters) and replaces the target key's value.
+    # delimiters) and replaces the target key's value while preserving
+    # any trailing "# comment".
     awk -v top="$top" -v leaf="$leaf" -v val="$value" '
         BEGIN { in_fm = 0; fm_seen = 0; in_top = 0 }
         /^---$/ {
@@ -152,7 +156,15 @@ update_frontmatter_scalar() {
             if ($0 ~ "^" top ":") { in_top = 1; print; next }
             if ($0 ~ "^[a-zA-Z_]+:") { in_top = 0 }
             if (in_top && $0 ~ "^[[:space:]]+" leaf ":") {
-                sub(/:[[:space:]]*.*$/, ": " val)
+                colon_idx = index($0, ":")
+                prefix = substr($0, 1, colon_idx)
+                tail = substr($0, colon_idx + 1)
+                hash_idx = index(tail, "#")
+                if (hash_idx > 0) {
+                    $0 = prefix " " val "  " substr(tail, hash_idx)
+                } else {
+                    $0 = prefix " " val
+                }
             }
         }
         { print }
