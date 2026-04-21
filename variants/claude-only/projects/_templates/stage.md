@@ -14,7 +14,7 @@ project:
 repo:
   id: my-app
 
-created_at: YYYY-MM-DD
+created_at: __TODAY__
 shipped_at: null
 ---
 

@@ -21,7 +21,7 @@ repo:
 agents:
   architect: claude-opus-4-7
   implementer: claude-opus-4-7     # usually same Claude, different session
-  created_at: YYYY-MM-DD
+  created_at: __TODAY__
 
 references:
   decisions: []
