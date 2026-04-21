@@ -8,6 +8,30 @@ First polish of the scripts after v5 delivery. Focus was bug-fix only,
 exercised on macOS (the original build was tested on Ubuntu). No new
 features, no variant dedup, no prompt changes.
 
+### Fixed (follow-on, same-day — reported by downstream user building bragfile)
+
+- **`archive-spec` stage-shipped message no longer falsely claims
+  completion.** Archiving the last active spec under a stage used to
+  print "All specs for STAGE-X are shipped", which was a false
+  positive whenever the stage's Spec Backlog still listed unwritten
+  specs. Reworded to "No active specs remain for STAGE-X" — an
+  observation, not a completion claim. Stage completion judgment
+  stays with the user (and the Stage Ship prompt).
+  (`scripts/archive-spec.sh`)
+
+- **Scaffolded specs and stages now pick up the real repo ID.**
+  Every template hardcoded `id: my-app` in its `repo:` block;
+  `.repo-context.yaml` had a "REPLACE" comment but nothing read
+  that file. Even after the user updated `.repo-context.yaml`,
+  every new spec/stage still stamped `my-app`. Same fix pattern as
+  `__TODAY__`: templates use `__REPO_ID__`, `new-spec`/`new-stage`
+  substitute the value parsed from `.repo-context.yaml`
+  (`metadata.repo.id`), with `my-app` as the fallback so behavior
+  never regresses on a pristine clone.
+  (`scripts/_lib.sh`, `scripts/new-spec.sh`, `scripts/new-stage.sh`,
+   `variants/*/projects/_templates/*.md`,
+   `variants/*/decisions/_template.md`)
+
 ### Fixed
 
 - **`just init` no longer silently half-initializes on re-run.** The
