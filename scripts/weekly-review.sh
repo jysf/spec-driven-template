@@ -30,13 +30,20 @@ echo "- guidance/constraints.yaml"
 echo "- guidance/questions.yaml"
 echo ""
 
+# All file lists below are emitted as paths relative to the repo root
+# (the prompt tells Claude "paths relative to repo root"). This sed
+# expression strips the REPO_ROOT prefix from find output.
+rel_prefix="s|^${REPO_ROOT}/||"
+
 echo "## Decision files (across all projects)"
-find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | sort | sed 's|^|- |' || true
+find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | sort \
+    | sed "${rel_prefix}; s|^|- |" || true
 echo ""
 
 echo "## Active project files"
 echo "- projects/${ACTIVE_PROJECT}/brief.md"
-find "${ACTIVE_PROJECT_DIR}/stages" -name "STAGE-*.md" 2>/dev/null | sort | sed 's|^|- |' || true
+find "${ACTIVE_PROJECT_DIR}/stages" -name "STAGE-*.md" 2>/dev/null | sort \
+    | sed "${rel_prefix}; s|^|- |" || true
 echo ""
 
 echo "## Recently shipped specs in ${ACTIVE_PROJECT} (read Reflection sections)"
@@ -45,16 +52,21 @@ if [ -d "${ACTIVE_PROJECT_DIR}/specs/done" ]; then
     if [ "$(uname)" = "Darwin" ]; then
         find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" -print0 2>/dev/null \
             | xargs -0 stat -f "%m %N" 2>/dev/null \
-            | sort -rn | head -n 10 | awk '{ $1=""; print "- " substr($0, 2) }'
+            | sort -rn | head -n 10 \
+            | awk '{ $1=""; print substr($0, 2) }' \
+            | sed "${rel_prefix}; s|^|- |"
     else
         find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" -printf '%T@ %p\n' 2>/dev/null \
-            | sort -rn | head -n 10 | awk '{ $1=""; print "- " substr($0, 2) }'
+            | sort -rn | head -n 10 \
+            | awk '{ $1=""; print substr($0, 2) }' \
+            | sed "${rel_prefix}; s|^|- |"
     fi
 fi
 echo ""
 
 echo "## Currently active specs (not yet shipped)"
-find "${ACTIVE_PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*.md" 2>/dev/null | sort | sed 's|^|- |' || true
+find "${ACTIVE_PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*.md" 2>/dev/null | sort \
+    | sed "${rel_prefix}; s|^|- |" || true
 echo ""
 
 # --- Recent git activity (last 7 days) ---
