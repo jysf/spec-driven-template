@@ -16,7 +16,10 @@ shipped_at: null
 
 > **Note:** This is an example project included to show the format.
 > Delete this entire `PROJ-001-example-mvp/` folder once you've created
-> your own first project with `just new-project` (or manually).
+> your own first project. To create one, copy
+> `projects/_templates/project-brief.md` into
+> `projects/PROJ-NNN-<slug>/brief.md` and fill it in (Claude does this
+> during the PROJECT BRIEF step — see GETTING_STARTED.md).
 
 ## What This Project Is
 

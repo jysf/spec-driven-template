@@ -75,7 +75,7 @@ get_active_project() {
                 | sort | head -n1)
     fi
     if [ -z "$first" ]; then
-        die "No projects found in ./projects/. Create one with 'just new-project' (or check GETTING_STARTED.md)."
+        die "No projects found in ./projects/. Create one by copying projects/_templates/project-brief.md into projects/PROJ-NNN-<slug>/brief.md (see GETTING_STARTED.md)."
     fi
     basename "$first"
 }
