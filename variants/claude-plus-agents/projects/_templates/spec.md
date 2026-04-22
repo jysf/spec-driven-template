@@ -31,6 +31,18 @@ references:
 # value_contribution. For plumbing: "infrastructure enabling
 # STAGE-XXX's <capability>". Optional; null is acceptable.
 value_link: null
+
+# Self-reported AI cost per cycle. Each cycle (design, build, verify,
+# ship) appends one entry to sessions[]. Totals are computed at ship.
+# Null numeric fields are fine (e.g. claude.ai web sessions); reports
+# skip them in sums but count them in session_count. Examples of
+# interface: claude-code | claude-ai | api | ollama | other.
+cost:
+  sessions: []
+  totals:
+    tokens_total: 0
+    estimated_usd: 0
+    session_count: 0
 ---
 
 # SPEC-XXX: <Short Title>
