@@ -27,6 +27,11 @@ references:
   decisions: []
   constraints: []
   related_specs: []
+
+# One sentence on what this spec contributes to its stage's
+# value_contribution. For plumbing: "infrastructure enabling
+# STAGE-XXX's <capability>". Optional; null is acceptable.
+value_link: null
 ---
 
 # SPEC-XXX: <Short Title>

@@ -13,6 +13,15 @@ repo:
 
 created_at: YYYY-MM-DD
 shipped_at: null
+
+# Business value. Testable claim, not marketing copy.
+# "Users will love it" is not a thesis; "reducing month-2 churn by
+# making activation faster" is. Leave null only if genuinely unknown.
+value:
+  thesis: null
+  beneficiaries: []                 # 2-4 entries: users, team, function
+  success_signals: []               # 3-5 observable outcomes
+  risks_to_thesis: []               # 2-4 honest things that could make this wrong
 ---
 
 # PROJ-XXX: <Short Title — the wave of work>

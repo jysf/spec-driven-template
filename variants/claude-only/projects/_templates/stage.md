@@ -16,6 +16,14 @@ repo:
 
 created_at: __TODAY__
 shipped_at: null
+
+# What part of the project's value thesis this stage advances.
+# If you can't articulate value_contribution, the stage may be
+# infrastructure-only — acceptable but flag it.
+value_contribution:
+  advances: null                    # one sentence; which part of project.value.thesis
+  delivers: []                      # user-visible capabilities this stage delivers
+  explicitly_does_not: []           # what this stage is NOT trying to do
 ---
 
 # STAGE-XXX: <Short Title — the coherent outcome>
