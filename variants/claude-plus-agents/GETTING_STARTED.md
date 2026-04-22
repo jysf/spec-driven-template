@@ -93,11 +93,40 @@ the example `PROJ-001-example-mvp` project. Then come back.
 2. `just new-spec "logger module" STAGE-001`
 3. Copy **Prompt 2b: SPEC** from `FIRST_SESSION_PROMPTS.md`.
 4. Paste spec ID (what `just` just printed), title, stage ID.
-5. Claude writes the spec content AND creates the matching handoff file.
+5. Claude writes the spec content AND creates the matching handoff
+   file. Claude also writes `specs/prompts/SPEC-001-build.md` (the
+   prompt the implementer will read) and populates the
+   `SPEC-001-...-timeline.md` file that `just new-spec` scaffolded.
 6. Review the spec. Tight acceptance criteria? Concrete failing tests?
 7. Review the handoff. Does its "Context the Receiving Agent Needs"
    section have everything the implementer needs?
-8. Commit: `git commit -am "design: SPEC-001 ready for build"`.
+8. Review the timeline. Does it show `[x] design` and `[ ] build`,
+   referencing the build prompt file?
+9. Commit: `git commit -am "design: SPEC-001 ready for build"`.
+
+### What the timeline looks like
+
+The timeline is a dumb markdown file. Both humans and agents read it
+to know what's next. Status markers: `[ ]` not started, `[~]` in
+progress, `[x]` complete, `[?]` blocked (human/external unblock
+needed — one-line reason). After design completes, yours will look
+roughly like:
+
+```
+# SPEC-001 timeline
+
+## Instructions
+
+- [x] **design** — completed 2026-04-22
+- [ ] **build** — prompt: `prompts/SPEC-001-build.md`
+- [ ] **verify** — prompt: pending (waiting on build)
+- [ ] **ship** — prompt: pending (waiting on verify)
+```
+
+Each executor flips the marker when they start (`[~]`) and again
+when they finish (`[x]` with PR/cost/date) or hit a real blocker
+(`[?]`). No tooling enforces this; the discipline lives in the
+prompts.
 
 ---
 

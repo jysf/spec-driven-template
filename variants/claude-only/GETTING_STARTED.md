@@ -81,10 +81,39 @@ Explore. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
 1. `just new-spec "logger module" STAGE-001`
 2. Copy **Prompt 2b: SPEC**.
 3. Claude writes the spec content, including the `## Implementation Context`
-   section with everything the build session needs.
+   section with everything the build session needs. It also writes
+   `specs/prompts/SPEC-001-build.md` (the prompt the build session
+   will read) and populates the `SPEC-001-...-timeline.md` file that
+   `just new-spec` scaffolded alongside the spec.
 4. Review. Does the Implementation Context list every decision and
-   constraint the build session (future you) needs?
+   constraint the build session (future you) needs? Does the timeline
+   show `[x] design` and `[ ] build`, referencing the build prompt
+   file?
 5. Commit.
+
+### What the timeline looks like
+
+The timeline is a dumb markdown file. Both humans and agents read it
+to know what's next. Status markers: `[ ]` not started, `[~]` in
+progress, `[x]` complete, `[?]` blocked (human/external unblock
+needed — one-line reason). After design completes, yours will look
+roughly like:
+
+```
+# SPEC-001 timeline
+
+## Instructions
+
+- [x] **design** — completed 2026-04-22
+- [ ] **build** — prompt: `prompts/SPEC-001-build.md`
+- [ ] **verify** — prompt: pending (waiting on build)
+- [ ] **ship** — prompt: pending (waiting on verify)
+```
+
+Each executor flips the marker when they start (`[~]`) and again
+when they finish (`[x]` with PR/cost/date) or hit a real blocker
+(`[?]`). No tooling enforces this; the discipline lives in the
+prompts.
 
 ---
 
