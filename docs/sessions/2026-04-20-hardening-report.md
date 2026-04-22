@@ -265,8 +265,9 @@ for the full sequence. Quick map:
 - `variants/*/decisions/_template.md` — __REPO_ID__ placeholder.
 - `variants/*/projects/PROJ-001-example-mvp/brief.md` — removed
   phantom `just new-project` reference.
-- `CHANGELOG.md`, `KNOWN_LIMITATIONS.md`, `SESSION_REPORT.md` (this
-  file) — new docs.
+- `CHANGELOG.md`, `KNOWN_LIMITATIONS.md`, and this session report
+  (originally at the repo root as `SESSION_REPORT.md`; moved to
+  `docs/sessions/` in a later session) — new docs.
 
 Initial commits in scope: `df74e57` (delivered template) and `2d9d49f`
 (on-boarding doc) were not modified.
