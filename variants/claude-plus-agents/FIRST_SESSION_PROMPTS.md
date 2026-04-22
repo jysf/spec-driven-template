@@ -389,6 +389,26 @@ report cost, null fields + a notes line.
     recorded_at: <YYYY-MM-DD>
     notes: <one line if unusual, else null>
 
+Scaffold the cycle timeline. Write the build prompt to
+  projects/<active-project>/specs/prompts/SPEC-NNN-build.md
+Base it on Prompt 3 below with SPEC-NNN, HANDOFF-NNN, and paths
+substituted. The implementer will read this file (alongside the
+handoff) to run the cycle.
+
+Then replace the placeholder block in
+  projects/<active-project>/specs/SPEC-NNN-<slug>-timeline.md
+with:
+
+  ## Instructions
+
+  - [x] **design** — completed <YYYY-MM-DD>
+  - [ ] **build** — prompt: `prompts/SPEC-NNN-build.md`
+  - [ ] **verify** — prompt: pending (waiting on build)
+  - [ ] **ship** — prompt: pending (waiting on verify)
+
+Markers: `[ ]` not started · `[~]` in progress · `[x]` complete
+· `[?]` blocked (one-line reason, needs human or external unblock).
+
 Stop and let me review before I hand off to the implementer.
 ```
 
@@ -414,6 +434,14 @@ Read files in order, before writing code:
 5. Every decision listed in the handoff's references.
 6. /guidance/constraints.yaml — constraints for paths you'll touch.
 7. /projects/<active-project>/specs/SPEC-NNN-<slug>.md — the spec.
+
+Before coding, mark the build cycle `[~]` in
+  projects/<active-project>/specs/SPEC-NNN-<slug>-timeline.md
+so anyone checking can see this cycle is live. If you hit something
+that needs architect judgment or an external unblock (constraint
+unclear, dependency missing, scope drift), change it to `[?]` with
+a one-line reason and stop. `[?]` is NOT a dumping ground for "I
+don't know what to do" — ask first if unsure.
 
 Implement:
 - Make the failing tests pass.
@@ -445,6 +473,9 @@ When done:
 5. Open PR from feat/spec-NNN-<slug>.
 6. PR description references: project ID, stage ID, spec ID, handoff
    ID, decisions used, constraints checked, new DEC-* files.
+7. Mark build `[x]` in the timeline with PR number, cost, and date:
+     - [x] **build** — prompt: `prompts/SPEC-NNN-build.md`
+            PR #NNN, $X.XX, completed <YYYY-MM-DD>
 ```
 
 ---
@@ -457,6 +488,9 @@ When done:
 
 ```
 Cycle: verify. Implementer completed SPEC-NNN.
+
+Before reading, mark verify `[~]` in
+  projects/<active-project>/specs/SPEC-NNN-<slug>-timeline.md
 
 Review the PR: [REPLACE: paste PR link or full diff]
 
@@ -497,6 +531,17 @@ Output exactly ONE of:
 
 ❌ REJECTED because [fundamental reason].
    Recommended: [revise spec | split | revisit design].
+
+If ✅ APPROVED: write the ship prompt to
+  projects/<active-project>/specs/prompts/SPEC-NNN-ship.md
+(base on Prompt 5 below with IDs/paths substituted), then mark
+verify `[x]` in the timeline with the approved SHA, and add the
+ship line referencing `prompts/SPEC-NNN-ship.md`.
+
+If ⚠ or ❌: leave verify `[~]` if the implementer needs to rework
+in the same cycle, or mark `[?]` with a one-line reason if architect
+judgment is required (e.g. "acceptance criteria ambiguous, re-design
+needed").
 ```
 
 ---
@@ -528,6 +573,9 @@ Append as a "## Reflection" block at the bottom of the spec:
 3. Is there a follow-up spec I should write before I forget?
    [REPLACE: your answer — if yes, one-line summary]
 
+Before starting, mark ship `[~]` in
+  projects/<active-project>/specs/SPEC-NNN-<slug>-timeline.md
+
 After I paste answers:
 - Format as ## Reflection block in the spec
 - Append a ship cost session entry to `cost.sessions` (same format
@@ -540,8 +588,9 @@ After I paste answers:
     numeric fields)
   If any session had nulls, that's fine — reports will show
   "partial cost data available" rather than missing.
+- Mark ship `[x]` in the timeline with merge date + total cost.
 - Run: just advance-cycle SPEC-NNN ship
-- Run: just archive-spec SPEC-NNN
+- Run: just archive-spec SPEC-NNN  (also moves timeline into done/)
 - If I mentioned a template/constraint/decision update, propose the
   specific edit.
 - If I mentioned a follow-up spec, add to the stage's backlog.
