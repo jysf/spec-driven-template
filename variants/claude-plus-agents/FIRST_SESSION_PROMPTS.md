@@ -373,6 +373,22 @@ Finally, run `just advance-cycle SPEC-NNN build` (or update
 task.cycle to "build" manually) and update the stage's Spec Backlog
 section to reflect the new spec ID.
 
+Before you stop, append a design cost session entry to
+`cost.sessions`. If you're in Claude Code, run `/cost` first and
+use its numbers. On Claude.ai web, set `interface: claude-ai` and
+null the numeric fields (or best-guess). If your agent doesn't
+report cost, null fields + a notes line.
+
+  - cycle: design
+    agent: <your model, e.g. claude-opus-4-7>
+    interface: <claude-code | claude-ai | api | ollama | other>
+    tokens_input: <from usage if known, else null>
+    tokens_output: <same>
+    estimated_usd: <best available, or null>
+    duration_minutes: <estimate>
+    recorded_at: <YYYY-MM-DD>
+    notes: <one line if unusual, else null>
+
 Stop and let me review before I hand off to the implementer.
 ```
 
@@ -410,9 +426,24 @@ When done:
 1. Fill in the handoff's "Completion" section INCLUDING the three
    implementer reflection questions. Not optional.
 2. Update handoff.status → "completed".
-3. Run: just advance-cycle SPEC-NNN verify
-4. Open PR from feat/spec-NNN-<slug>.
-5. PR description references: project ID, stage ID, spec ID, handoff
+3. Append a build cost session entry to the spec's `cost.sessions`:
+
+     - cycle: build
+       agent: <your model>
+       interface: <claude-code | claude-ai | api | ollama | other>
+       tokens_input: <best available>
+       tokens_output: <best available>
+       estimated_usd: <best available>
+       duration_minutes: <estimate>
+       recorded_at: <YYYY-MM-DD>
+       notes: <one line if rework or unusual, else null>
+
+   In Claude Code: run `/cost`, use its numbers. API: use the
+   `usage` object. Claude.ai web: best-guess. Agent that doesn't
+   report: null fields + `notes: "agent does not report cost"`.
+4. Run: just advance-cycle SPEC-NNN verify
+5. Open PR from feat/spec-NNN-<slug>.
+6. PR description references: project ID, stage ID, spec ID, handoff
    ID, decisions used, constraints checked, new DEC-* files.
 ```
 
@@ -447,6 +478,13 @@ Flag:
 - Mailed-in reflection ("nothing was unclear" is suspicious)
 - Any decisions referenced at confidence < 0.6 (yellow flag)
 - Follow-up specs this PR implies
+- **Missing cost data:** `cost.sessions` lacks entries for prior
+  cycles (design, build). Flag so missing agents can fill in
+  retroactively. Do not block the PR for this.
+
+Before returning your verdict, append your own verify cost session
+entry to the spec's `cost.sessions` (same format as Design, but
+`cycle: verify`).
 
 Output exactly ONE of:
 
@@ -492,6 +530,16 @@ Append as a "## Reflection" block at the bottom of the spec:
 
 After I paste answers:
 - Format as ## Reflection block in the spec
+- Append a ship cost session entry to `cost.sessions` (same format
+  as Design, `cycle: ship`).
+- Compute `cost.totals` from the session entries:
+  * `tokens_total` = sum(tokens_input + tokens_output) across
+    sessions, skipping nulls
+  * `estimated_usd` = sum(estimated_usd) skipping nulls
+  * `session_count` = len(sessions) (include sessions with null
+    numeric fields)
+  If any session had nulls, that's fine — reports will show
+  "partial cost data available" rather than missing.
 - Run: just advance-cycle SPEC-NNN ship
 - Run: just archive-spec SPEC-NNN
 - If I mentioned a template/constraint/decision update, propose the
@@ -558,6 +606,11 @@ Produce a short report covering:
     active specs. Specs without `value_link` aren't a problem per
     se, but a trend toward never populating them means the thesis
     isn't driving spec selection.
+
+11. Cost review — aggregate `cost.totals.estimated_usd` across
+    specs shipped this week. Outliers? Patterns (design-heavy vs
+    build-heavy)? Specs missing cost data entirely? The last one
+    is an agent-discipline signal worth flagging.
 
 Tight report. Actionable in 10 minutes.
 ```
