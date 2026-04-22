@@ -2,6 +2,78 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-04-22 — Instruction timeline convention (v5.3)
+
+A small convention, not a mechanism. Every spec gets a peer
+markdown timeline file tracking cycle instructions with status
+markers. The architect writes cycle prompts to files instead of
+leaving them in chat. Executors (build agent, verify reviewer,
+shipper) read the prompt file and update the timeline as they go.
+No dispatch commands, no MCP servers, no file watchers — just
+markdown and discipline.
+
+### Added
+
+- **Timeline file per spec.** Lives at
+  `projects/*/specs/SPEC-NNN-<slug>-timeline.md`. Four status
+  markers: `[ ]` not started, `[~]` in progress, `[x]` complete,
+  `[?]` blocked (with a one-line reason — needs human or external
+  unblock; NOT a "I don't know what to do" dumping ground).
+  Scaffolded alongside the spec by `just new-spec`, from
+  `projects/_templates/timeline.md` (new, in both variants).
+
+- **Per-project prompts directory** at
+  `projects/*/specs/prompts/`. Architect writes the next cycle's
+  prompt here (`SPEC-NNN-build.md`, `SPEC-NNN-ship.md`); executors
+  read from here. Created lazily by `new-spec`.
+
+- **AGENTS.md §9 Instruction Timeline** in both variants.
+  Documents all four markers with the onboarding's discipline
+  wording. Downstream sections renumbered; cross-references in
+  both variants updated.
+
+- **Example artifacts for SPEC-001** in both variants:
+  `SPEC-001-example-project-logger-timeline.md` with `[x] design`
+  completed and `[ ]` placeholders for build/verify/ship;
+  `prompts/SPEC-001-design.md` (retrospective of the design
+  prompt) and `prompts/SPEC-001-build.md` (forward-looking build
+  prompt). Makes the convention concrete for anyone cloning fresh.
+
+- **14 new test assertions** (57 → 71 total). Covers: timeline
+  scaffold at the expected path, legend documents all four
+  markers, `prompts/` directory exists, AGENTS.md section present,
+  AGENTS.md documents all four markers, archive-spec co-moves the
+  timeline into done/.
+
+### Changed
+
+- **`scripts/new-spec.sh`** scaffolds the timeline file + an empty
+  `prompts/` directory in addition to the spec.
+
+- **`scripts/archive-spec.sh`** co-archives the spec's timeline
+  file into `done/`, keeping history paired.
+
+- **`scripts/_lib.sh`:** `find_spec` now excludes `*-timeline.md`
+  (the timeline filename shares the `SPEC-NNN-*` prefix with the
+  spec, so the naive glob matched both). New helper
+  `find_spec_timeline` locates the paired timeline by ID.
+
+- **Both variants' `FIRST_SESSION_PROMPTS.md`** gain timeline
+  instructions across four prompts:
+  - 2b (Design): write `prompts/SPEC-NNN-build.md`; replace the
+    timeline placeholder with `[x] design` + `[ ]` for later cycles.
+  - 3 (Build): mark `[~]` before coding; mark `[x]` with PR/cost/
+    date when done; `[?]` only for real blockers needing judgment.
+  - 4 (Verify): mark `[~]` before reading; on APPROVED, write
+    `prompts/SPEC-NNN-ship.md` and mark verify `[x]` with the SHA.
+  - 5 (Ship): mark `[~]` at start; `[x]` with merge date and cost
+    before archive.
+
+- **Both variants' `GETTING_STARTED.md`** gain a short paragraph
+  + example timeline block in Step 6 (First Spec) explaining the
+  convention and reinforcing that the timeline is a dumb markdown
+  file with no enforcement.
+
 ## 2026-04-21 — Reports, cost tracking, business value (v5.2)
 
 Three bundled features that are tightly coupled: reports need value
