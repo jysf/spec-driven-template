@@ -94,6 +94,15 @@ archive-spec SPEC_ID:
 weekly-review:
     @./scripts/weekly-review.sh
 
+# Generate today's daily report under reports/daily/YYYY-MM-DD.md
+report-daily:
+    @./scripts/report_daily.sh
+
+# Generate this week's weekly report under reports/weekly/YYYY-WNN.md.
+# Pass a YYYY-MM-DD to report on the ISO week containing that date.
+report-weekly DATE="":
+    @./scripts/report_weekly.sh "{{DATE}}"
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------
