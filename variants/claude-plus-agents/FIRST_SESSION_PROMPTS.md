@@ -95,6 +95,12 @@ Your task:
    - Scope (in/out)
    - Stage Plan (2-5 stages, ordered, one-line summary each)
    - Dependencies
+   - `value:` block in front-matter: thesis (one sentence,
+     testable claim), beneficiaries (2-4), success_signals (3-5
+     observable outcomes), risks_to_thesis (2-4 honest things
+     that could make the thesis wrong). Be specific. "Users
+     will love it" is not a thesis; "reducing month-2 churn by
+     making activation faster" is.
 
 5. If there's an example project folder
    (projects/PROJ-001-example-mvp/), propose deleting it.
@@ -142,6 +148,13 @@ Your task:
    - Proposed Spec Backlog (3-8 specs, ordered, each with S/M/L)
    - Design Notes (patterns across specs)
    - Dependencies
+   - `value_contribution:` block in front-matter: advances
+     (which part of the project's value.thesis this stage
+     advances), delivers (user-visible capabilities when done),
+     explicitly_does_not (what this stage is NOT trying to do —
+     those are other stages' jobs). If you can't articulate
+     value_contribution, the stage may be infrastructure-only —
+     acceptable but flag it.
 
 3. Flag any backlog entry that looks like complexity L — these should
    be split before building.
@@ -174,19 +187,23 @@ Your task:
 1. Check the stage's "Success Criteria" against what actually shipped.
    Did we deliver the outcome?
 
-2. Summarize in 3 sentences:
+2. Review shipped specs against the stage's `value_contribution`.
+   Flag any spec whose `value_link` didn't actually deliver what it
+   claimed.
+
+3. Summarize in 3 sentences:
    - Built vs planned
    - Took longer or easier than expected
    - Emergent integration behavior
 
-3. Propose answers for the stage-level reflection fields (## Stage-Level
+4. Propose answers for the stage-level reflection fields (## Stage-Level
    Reflection section in the stage file).
 
-4. Flag follow-up work: should any of it become a new stage in the
+5. Flag follow-up work: should any of it become a new stage in the
    current project? A spec in the NEXT stage? Deferred to a future
    project?
 
-5. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
+6. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
    template based on patterns across shipped specs.
 
 I'll review your proposals and write them into the stage file myself.
@@ -215,22 +232,26 @@ Your task:
 1. Check the project's "Success Criteria" against what actually
    shipped. Did the wave of work deliver its intended outcome?
 
-2. Summarize in 3-5 sentences:
+2. Cross-check shipped stages' `value_contribution` against the
+   project's `value.thesis`. Did the thesis hold? Would you refine
+   it based on what shipped?
+
+3. Summarize in 3-5 sentences:
    - Scope evolution (what changed between brief and reality)
    - Stages that went smoothly vs painfully
    - Any major decisions that were superseded mid-project
 
-3. Propose answers for the project-level reflection (## Project-Level
+4. Propose answers for the project-level reflection (## Project-Level
    Reflection section in the brief).
 
-4. Identify deferred work: what came up during this project that
+5. Identify deferred work: what came up during this project that
    should become input to the NEXT project's frame?
 
-5. Recommend: should the active project folder be marked shipped
+6. Recommend: should the active project folder be marked shipped
    (status: shipped) and a new project started, or is there more
    work that should extend into a "PROJ-NNN phase 2"?
 
-6. Propose updates to /AGENTS.md, /guidance/*, or templates.
+7. Propose updates to /AGENTS.md, /guidance/*, or templates.
 
 I'll review and write the proposals into the brief.
 ```
@@ -336,6 +357,12 @@ When writing the spec:
 - List applicable decisions and constraints in front-matter references.
 - If you make NEW decisions while writing, emit
   /decisions/DEC-NNN-<slug>.md files for each.
+- Populate `value_link:` at the bottom of front-matter. One
+  sentence on what this spec contributes to its stage's
+  value_contribution. If the spec is infrastructure with no
+  direct user-visible contribution, write "infrastructure
+  enabling STAGE-XXX's <capability>". Leave null only if
+  genuinely unknown.
 
 Then create the handoff file at
 /projects/<active-project>/handoffs/HANDOFF-NNN-<slug>.md pointing
@@ -526,6 +553,11 @@ Produce a short report covering:
 
 9. Project health — is the active project still well-scoped?
    Scope creep? Time to declare done and start PROJ-NN+1?
+
+10. Value linkage — report on `value_link` population rate across
+    active specs. Specs without `value_link` aren't a problem per
+    se, but a trend toward never populating them means the thesis
+    isn't driving spec selection.
 
 Tight report. Actionable in 10 minutes.
 ```

@@ -93,6 +93,12 @@ Your task:
    - Scope (in/out)
    - Stage Plan (2-5 stages)
    - Dependencies
+   - `value:` block in front-matter: thesis (one sentence,
+     testable claim), beneficiaries (2-4), success_signals (3-5
+     observable outcomes), risks_to_thesis (2-4 honest things
+     that could make the thesis wrong). Be specific. "Users
+     will love it" is not a thesis; "reducing month-2 churn by
+     making activation faster" is.
 
 5. If the example project folder still exists
    (projects/PROJ-001-example-mvp/), propose deleting it.
@@ -138,6 +144,13 @@ Your task:
    - Proposed Spec Backlog (3-8 specs, S/M/L)
    - Design Notes
    - Dependencies
+   - `value_contribution:` block in front-matter: advances
+     (which part of the project's value.thesis this stage
+     advances), delivers (user-visible capabilities when done),
+     explicitly_does_not (what this stage is NOT trying to do —
+     those are other stages' jobs). If you can't articulate
+     value_contribution, the stage may be infrastructure-only —
+     acceptable but flag it.
 
 3. Flag any complexity-L entries.
 
@@ -165,14 +178,18 @@ Your task:
 
 1. Check Success Criteria against what shipped. Did we deliver?
 
-2. Summarize in 3 sentences: built vs planned, speed, emergent behavior.
+2. Review shipped specs against the stage's `value_contribution`.
+   Flag any spec whose `value_link` didn't actually deliver what it
+   claimed.
 
-3. Propose answers for ## Stage-Level Reflection.
+3. Summarize in 3 sentences: built vs planned, speed, emergent behavior.
 
-4. Flag follow-up: new stage here? spec in next stage? defer to future
+4. Propose answers for ## Stage-Level Reflection.
+
+5. Flag follow-up: new stage here? spec in next stage? defer to future
    project?
 
-5. Propose updates to /AGENTS.md, /guidance/*, or templates.
+6. Propose updates to /AGENTS.md, /guidance/*, or templates.
 
 I'll review and write proposals into the stage file.
 ```
@@ -198,17 +215,21 @@ Your task:
 
 1. Check project Success Criteria. Did the wave of work deliver?
 
-2. Summarize in 3-5 sentences: scope evolution, smooth vs painful
+2. Cross-check shipped stages' `value_contribution` against the
+   project's `value.thesis`. Did the thesis hold? Would you refine
+   it based on what shipped?
+
+3. Summarize in 3-5 sentences: scope evolution, smooth vs painful
    stages, major superseded decisions.
 
-3. Propose answers for ## Project-Level Reflection in brief.md.
+4. Propose answers for ## Project-Level Reflection in brief.md.
 
-4. Identify deferred work for the next project's frame.
+5. Identify deferred work for the next project's frame.
 
-5. Recommend: mark project shipped and start PROJ-NN+1, or
+6. Recommend: mark project shipped and start PROJ-NN+1, or
    extend into "phase 2"?
 
-6. Propose updates to /AGENTS.md, /guidance/*, or templates.
+7. Propose updates to /AGENTS.md, /guidance/*, or templates.
 
 I'll review and write into the brief.
 ```
@@ -305,6 +326,12 @@ When writing:
   * Prior related work (shipped specs + PRs)
   * Out of scope for this spec
 - Emit new /decisions/DEC-*.md files for new decisions made here.
+- Populate `value_link:` at the bottom of front-matter. One
+  sentence on what this spec contributes to its stage's
+  value_contribution. If the spec is infrastructure with no
+  direct user-visible contribution, write "infrastructure
+  enabling STAGE-XXX's <capability>". Leave null only if
+  genuinely unknown.
 
 Then: `just advance-cycle SPEC-NNN build` (or update front-matter
 manually) and update stage's Spec Backlog.
@@ -480,6 +507,11 @@ Produce a short report:
 10. Session hygiene — any signs build and verify happen in same
     session? (Build reflections saying "nothing was unclear" is
     the telltale.) Flag and recommend strict discipline.
+
+11. Value linkage — report on `value_link` population rate across
+    active specs. Specs without `value_link` aren't a problem per
+    se, but a trend toward never populating them means the thesis
+    isn't driving spec selection.
 
 Tight report. Actionable in 10 min.
 ```
