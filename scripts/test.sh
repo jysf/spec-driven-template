@@ -211,6 +211,110 @@ just status >/dev/null 2>&1 || fail "just status exited non-zero after archive"
 pass "status: clean exit after archive"
 
 # ============================================================
+# 8) v5.2 value/cost blocks exist in scaffolded specs
+# ============================================================
+# Scaffold a fresh spec (SPEC-002 is archived; create a fresh one in
+# the stage we still have) to verify the v5.2 shape lands correctly.
+just new-spec "Second Test Spec" STAGE-002 >/dev/null
+SPEC_V52="projects/PROJ-001-example-mvp/specs/SPEC-003-second-test-spec.md"
+assert_file "$SPEC_V52"
+assert_contains "$SPEC_V52" "^value_link: null\$" "spec scaffold has value_link: null"
+assert_contains "$SPEC_V52" "^cost:\$" "spec scaffold has cost: block header"
+assert_contains "$SPEC_V52" "^  sessions: \[\]" "cost.sessions is empty list by default"
+assert_contains "$SPEC_V52" "^    tokens_total: 0" "cost.totals.tokens_total is 0"
+assert_contains "$SPEC_V52" "^    session_count: 0" "cost.totals.session_count is 0"
+
+# ============================================================
+# 9) v5.2 value blocks in brief and stage templates are exposed in
+#    the scaffolded copies (example brief still ships pre-v5.2)
+# ============================================================
+# The template's project-brief and stage markdowns should carry the
+# v5.2 blocks — confirm by scaffolding a new stage and inspecting.
+just new-stage "V52 Test Stage" >/dev/null
+STAGE_V52_PATH=$(ls projects/PROJ-001-example-mvp/stages/STAGE-00*-v52-test-stage.md 2>/dev/null | head -n1 || true)
+if [ -n "$STAGE_V52_PATH" ]; then
+    assert_file "$STAGE_V52_PATH"
+    assert_contains "$STAGE_V52_PATH" "^value_contribution:\$" "new stage has value_contribution: block"
+    assert_contains "$STAGE_V52_PATH" "^  advances: null" "value_contribution.advances starts null"
+    assert_contains "$STAGE_V52_PATH" "^  delivers: \[\]" "value_contribution.delivers starts []"
+else
+    fail "new-stage did not produce the expected scaffold file"
+fi
+
+# ============================================================
+# 10) AGENTS.md (post-init, claude-only) has Business Value and
+#     Cost Tracking sections
+# ============================================================
+assert_contains "AGENTS.md" "^## 3\\. Business Value" "AGENTS.md has Business Value section"
+assert_contains "AGENTS.md" "^## 4\\. Cost Tracking Discipline" "AGENTS.md has Cost Tracking section"
+
+# ============================================================
+# 11) just report-daily writes a file and prints output
+# ============================================================
+daily_out=$(just report-daily 2>&1)
+daily_file="reports/daily/$(date +%Y-%m-%d).md"
+assert_file "$daily_file"
+# Output should start with the header
+if printf '%s\n' "$daily_out" | grep -q "^# Daily report — "; then
+    pass "report-daily prints header to stdout"
+else
+    fail "report-daily did not print expected header"
+fi
+# Sections present in the written file
+assert_contains "$daily_file" "^## Snapshot\$" "daily report has Snapshot section"
+assert_contains "$daily_file" "^## Value\$" "daily report has Value section"
+assert_contains "$daily_file" "^## Cost activity\$" "daily report has Cost activity section"
+assert_contains "$daily_file" "^## Flags\$" "daily report has Flags section"
+# Graceful fallback on pre-v5.2 example brief (no value.thesis)
+assert_contains "$daily_file" "Project thesis:.*not set" \
+    "daily report handles missing project thesis gracefully"
+
+# Re-run overwrites (not append)
+lines_before=$(wc -l < "$daily_file" | tr -d ' ')
+just report-daily >/dev/null 2>&1
+lines_after=$(wc -l < "$daily_file" | tr -d ' ')
+assert_eq "$lines_after" "$lines_before" "report-daily re-run overwrites, doesn't grow the file"
+
+# ============================================================
+# 12) just report-weekly writes a file and degrades gracefully
+# ============================================================
+just report-weekly >/dev/null 2>&1
+# Determine the expected ISO week filename in the same way the
+# script does, so macOS/Linux branches agree with the test.
+if [ "$(uname)" = "Darwin" ]; then
+    iso_week=$(date -j -f "%Y-%m-%d" "$(date +%Y-%m-%d)" +"%G-W%V")
+else
+    iso_week=$(date -d "$(date +%Y-%m-%d)" +"%G-W%V")
+fi
+weekly_file="reports/weekly/${iso_week}.md"
+assert_file "$weekly_file"
+assert_contains "$weekly_file" "^## Summary\$" "weekly report has Summary section"
+assert_contains "$weekly_file" "^## Value advancement\$" "weekly report has Value advancement section"
+assert_contains "$weekly_file" "^## Shipped this week\$" "weekly report has Shipped this week section"
+assert_contains "$weekly_file" "^## Cost breakdown\$" "weekly report has Cost breakdown section"
+# No specs shipped this week in the scratch flow except SPEC-002
+# (just-archived today). So the table shouldn't be empty.
+if grep -q "SPEC-002" "$weekly_file"; then
+    pass "weekly report includes freshly-archived SPEC-002"
+else
+    fail "weekly report missing freshly-archived SPEC-002"
+fi
+
+# ============================================================
+# 13) Reports tolerate a spec without cost/value_link blocks
+# ============================================================
+# The example spec SPEC-001-example-project-logger ships in the
+# template pre-v5.2, so it has no cost or value_link. Both reports
+# must still run without error — they did above. Add an explicit
+# assertion that the daily report surfaces "no cost data yet" when
+# the active spec has no cost.sessions entries at all.
+if grep -q "no cost data yet" "$daily_file" || grep -q "Specs with no cost data" "$daily_file"; then
+    pass "daily report flags pre-v5.2 specs as missing cost data"
+else
+    fail "daily report did not flag specs without cost data"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
