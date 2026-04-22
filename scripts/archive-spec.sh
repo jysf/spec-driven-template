@@ -40,6 +40,16 @@ TARGET="${DONE_DIR}/${SPEC_BASENAME}"
 mv "$SPEC_FILE" "$TARGET"
 success "Archived: ${SPEC_FILE} → ${TARGET}"
 
+# Co-archive the timeline file if one exists. The timeline is an
+# artifact of this spec's cycle history and belongs next to the spec
+# it describes.
+TIMELINE_FILE=$(find_spec_timeline "$SPEC_ID")
+if [ -n "$TIMELINE_FILE" ]; then
+    TIMELINE_TARGET="${DONE_DIR}/$(basename "$TIMELINE_FILE")"
+    mv "$TIMELINE_FILE" "$TIMELINE_TARGET"
+    success "Archived timeline: ${TIMELINE_FILE} → ${TIMELINE_TARGET}"
+fi
+
 # Try to update the parent stage's backlog.
 # Get the stage ID from the spec's front-matter (project.stage field).
 STAGE_ID=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+stage:/{print $2; exit}' "$TARGET" 2>/dev/null || echo "")

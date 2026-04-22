@@ -74,10 +74,40 @@ sed_inplace "s|<Short Title>|${TITLE}|g" "$SPEC_FILE"
 sed_inplace "s|__TODAY__|$(today)|g" "$SPEC_FILE"
 sed_inplace "s|__REPO_ID__|${REPO_ID}|g" "$SPEC_FILE"
 
+# Scaffold the timeline file alongside the spec. Architect appends
+# cycle lines as it designs them; executors update status markers.
+TIMELINE_TEMPLATE="${REPO_ROOT}/projects/_templates/timeline.md"
+TIMELINE_FILE="${PROJECT_DIR}/specs/${SPEC_ID}-${SLUG}-timeline.md"
+if [ -f "$TIMELINE_TEMPLATE" ]; then
+    cp "$TIMELINE_TEMPLATE" "$TIMELINE_FILE"
+    sed_inplace "s|SPEC-XXX|${SPEC_ID}|g" "$TIMELINE_FILE"
+else
+    # Fallback: inline minimal timeline so new-spec never hard-fails on
+    # a freshly-cloned repo whose _templates/ is incomplete.
+    cat > "$TIMELINE_FILE" <<EOF
+# ${SPEC_ID} timeline
+
+Status markers: \`[ ]\` not started · \`[~]\` in progress · \`[x]\` complete · \`[?]\` blocked.
+
+## Instructions
+
+_(Timeline will be populated as the architect writes each cycle's prompt.)_
+EOF
+fi
+
+# Ensure prompts/ exists as a sibling to the spec file. The architect
+# writes one prompt file per dispatched cycle here.
+PROMPTS_DIR="${PROJECT_DIR}/specs/prompts"
+mkdir -p "$PROMPTS_DIR"
+[ -f "${PROMPTS_DIR}/.gitkeep" ] || touch "${PROMPTS_DIR}/.gitkeep"
+
 success "Created ${SPEC_FILE}"
+success "Created ${TIMELINE_FILE}"
 echo ""
 echo "Next steps:"
 echo "  1. Fill in the spec with Claude (use Prompt 2b: SPEC from FIRST_SESSION_PROMPTS.md)"
 echo "  2. Update the stage's backlog in ${STAGE_FILE}"
-echo "  3. When ready for build, run:"
+echo "  3. Architect will write cycle prompts to ${PROMPTS_DIR#$REPO_ROOT/}/"
+echo "     and append lines to the timeline as cycles are designed."
+echo "  4. When ready for build, run:"
 echo "       just advance-cycle ${SPEC_ID} build"

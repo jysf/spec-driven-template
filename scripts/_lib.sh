@@ -111,7 +111,9 @@ slugify() {
 # Find a spec file by ID. Searches all projects. Only returns active
 # specs — archived specs under specs/done/ are excluded so callers
 # like advance-cycle and archive-spec don't silently operate on an
-# already-shipped file.
+# already-shipped file. Also excludes `*-timeline.md` so the v5.3
+# timeline artifact (which shares the SPEC-NNN-* prefix) doesn't
+# masquerade as the spec.
 # Uses find's -not -path rather than a grep pipeline: grep returns 1
 # on no matches, which trips pipefail and would make this function
 # silently abort the caller under `set -e`.
@@ -119,6 +121,15 @@ slugify() {
 find_spec() {
     local spec_id="$1"
     find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*.md" \
+        -not -name '*-timeline.md' \
+        -not -path '*/done/*' 2>/dev/null | head -n1
+}
+
+# Find the timeline file paired with a spec. Returns empty if none.
+# Usage: find_spec_timeline SPEC-001
+find_spec_timeline() {
+    local spec_id="$1"
+    find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*-timeline.md" \
         -not -path '*/done/*' 2>/dev/null | head -n1
 }
 
