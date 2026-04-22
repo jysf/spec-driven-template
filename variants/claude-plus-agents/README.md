@@ -27,7 +27,19 @@ just new-spec "title" STAGE-001    # Scaffold a new spec
 just advance-cycle SPEC-001 verify # Update a spec's cycle
 just archive-spec SPEC-001         # Move a shipped spec to done/
 just weekly-review                 # Print the weekly review prompt
+just report-daily                  # Generate today's daily report
+just report-weekly                 # Generate this week's weekly report
 ```
+
+## Reports
+
+`just report-daily` and `just report-weekly` generate quantitative
+snapshots under `reports/daily/` and `reports/weekly/` from spec
+front-matter and git log. Daily reports show specs by cycle, value
+thesis, cost activity today, and flags. Weekly reports aggregate
+ships, cycle times, cost by cycle and interface, and value
+advancement. Reports are stand-alone artifacts — re-running
+overwrites, so they're always a current snapshot.
 
 ## The app itself
 
