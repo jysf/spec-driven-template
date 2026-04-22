@@ -47,7 +47,53 @@ binds PROJ-002 as well.
 
 ---
 
-## 3. Tech Stack
+## 3. Business Value
+
+Value structure exists at project and stage levels; specs link lightly.
+
+**Project `value:` block** states the thesis — a testable claim about
+what this wave of work delivers. Beneficiaries, success signals, and
+risks to the thesis make it falsifiable, not marketing copy.
+
+**Stage `value_contribution:` block** states what this coherent chunk
+of work advances, what capabilities it delivers, and what it
+explicitly doesn't try to do. Helps avoid stages that seem valuable
+but don't contribute to the project thesis.
+
+**Spec `value_link:`** is a one-sentence reference back to the
+stage's value. Infrastructure specs may have
+`value_link: "infrastructure enabling X"`. Optional but encouraged —
+it surfaces specs that don't trace back to the thesis.
+
+Reports (`just report-daily`, `just report-weekly`) aggregate these
+signals: which stages advanced the thesis, which specs most directly
+delivered it, and where value traceability broke down.
+
+---
+
+## 4. Cost Tracking Discipline
+
+Every cycle on a spec appends a session entry to the spec's
+`cost.sessions` list. Agents self-report so reports can aggregate AI
+spend over time.
+
+- **Claude Code:** run `/cost` at the end of your session.
+- **API calls:** use the `usage` object in the API response.
+- **Claude.ai web:** estimate based on session length. Set
+  `interface: claude-ai` so reports can distinguish estimates.
+- **Third-party agents** (Ollama, Kilo, Factory, etc.): use whatever
+  cost mechanism the agent provides. If none, enter null numeric
+  values with a note.
+
+Verify cycle flags specs missing cost entries for prior cycles (does
+not block the PR — visibility only). Ship cycle computes `cost.totals`
+from the session entries.
+
+Reports aggregate cost by cycle, by interface, by spec, and by stage.
+
+---
+
+## 5. Tech Stack
 
 Replace with your actual stack. Be specific about versions.
 
@@ -62,7 +108,7 @@ Replace with your actual stack. Be specific about versions.
 
 ---
 
-## 4. Commands (exact)
+## 6. Commands (exact)
 
 These are the APP's commands. For template/workflow commands, see `justfile`.
 
@@ -78,7 +124,7 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 
 ---
 
-## 5. Directory Structure
+## 7. Directory Structure
 
 ```
 /
@@ -96,6 +142,8 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 │   ├── constraints.yaml
 │   └── questions.yaml
 ├── decisions/                         # Repo-level DEC-* (across all projects)
+├── feedback/                          # Downstream user feedback captures
+├── reports/                           # Daily + weekly report outputs
 ├── projects/                          # Waves of work
 │   ├── _templates/                    # Shared templates
 │   │   ├── spec.md
@@ -112,7 +160,7 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 
 ---
 
-## 6. Cycle Model
+## 8. Cycle Model
 
 Every spec moves through five cycles. **Cycles are tags, not gates**.
 
@@ -142,7 +190,7 @@ Project and stage lifecycles are lighter:
 
 ---
 
-## 7. Cross-Reference Rules
+## 9. Cross-Reference Rules
 
 Every spec has these relationships, encoded in front-matter:
 - `project.id` → the project it belongs to
@@ -154,7 +202,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 8. Coding Conventions
+## 10. Coding Conventions
 
 - **Naming:** [REPLACE]
 - **File organization:** [REPLACE]
@@ -166,7 +214,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 9. Testing Conventions
+## 11. Testing Conventions
 
 - Every new function gets at least one test.
 - Test file naming: [REPLACE]
@@ -176,7 +224,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 10. Git and PR Conventions
+## 12. Git and PR Conventions
 
 - **Branch:** `feat/spec-NNN-<slug>`, etc.
 - **One spec per branch, one PR per branch.**
@@ -189,13 +237,13 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 11. Domain Glossary
+## 13. Domain Glossary
 
 - **[REPLACE: Term]** — [REPLACE: Definition]
 
 ---
 
-## 12. Cycle-Specific Rules
+## 14. Cycle-Specific Rules
 
 ### During **build**
 
@@ -210,9 +258,10 @@ Before writing code:
 
 When done:
 1. Fill in spec's `## Build Completion` (including reflection).
-2. `just advance-cycle SPEC-NNN verify`.
-3. Create `DEC-*` files for non-trivial build decisions.
-4. Open PR.
+2. Append a build cost session entry to `cost.sessions`.
+3. `just advance-cycle SPEC-NNN verify`.
+4. Create `DEC-*` files for non-trivial build decisions.
+5. Open PR.
 
 ### During **verify**
 
@@ -220,19 +269,23 @@ Start **another new Claude session**. Do not reuse build session.
 
 Check: acceptance criteria met? tests pass? no decision drift? no
 constraint violations? non-trivial choices have DEC-*? build reflection
-answered honestly?
+answered honestly? `cost.sessions` has entries for prior cycles
+(flag if missing, don't block)?
+
+Append a verify cost session entry to `cost.sessions`.
 
 Output: ✅ APPROVED / ⚠ PUNCH LIST / ❌ REJECTED.
 
 ### During **ship**
 
-Append `## Reflection` to spec. Three answers. Then
+Append `## Reflection` to spec. Three answers. Append a ship cost
+session entry, then compute `cost.totals`. Then
 `just archive-spec SPEC-NNN`. If stage backlog is complete, run the
 Stage Ship prompt.
 
 ---
 
-## 13. Session Hygiene (claude-only specific)
+## 15. Session Hygiene (claude-only specific)
 
 Because one agent plays multiple roles, context contamination is a real
 risk. Four habits keep it at bay:
@@ -243,11 +296,11 @@ risk. Four habits keep it at bay:
    is the source of truth.
 3. **Weekly review is non-optional.** Without a second agent pushing
    back, drift compounds silently. Run `just weekly-review`.
-4. **Honest confidence values on decisions.** See Section 14.
+4. **Honest confidence values on decisions.** See Section 16.
 
 ---
 
-## 14. Confidence Discipline
+## 16. Confidence Discipline
 
 Decisions have an `insight.confidence` field (0.0–1.0). Honest values drive:
 
@@ -261,7 +314,7 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 
 ---
 
-## 15. Pointers
+## 17. Pointers
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
@@ -269,6 +322,8 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 - Projects: `/projects/`
 - Templates: `/projects/_templates/`
 - Architecture: `/docs/architecture.md`
+- Feedback: `/feedback/`
+- Reports: `/reports/` (daily, weekly)
 - Phase prompts: `/FIRST_SESSION_PROMPTS.md`
 - First walkthrough: `/GETTING_STARTED.md`
 - Daily commands: run `just --list`
