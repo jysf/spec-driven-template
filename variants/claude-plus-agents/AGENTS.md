@@ -197,7 +197,44 @@ its spec backlog is complete AND the stage-level reflection is written.
 
 ---
 
-## 9. Cross-Reference Rules
+## 9. Instruction Timeline
+
+Every spec has a timeline file at
+`projects/*/specs/SPEC-NNN-<slug>-timeline.md` listing cycle
+instructions in order with status markers.
+
+Status markers:
+
+- `[ ]` not started — no one has picked this up yet
+- `[~]` in progress — an executor is currently running this
+- `[x]` complete — cycle finished; see the prompt file for what was run
+- `[?]` blocked — needs a human decision or external unblock before
+  proceeding. Include a one-line reason after the marker.
+
+Cycle prompts live at `projects/*/specs/prompts/SPEC-NNN-<cycle>.md`.
+The architect writes them; executors (the implementer agent for
+build, Claude again for verify) read and run them.
+
+**Discipline for executors:**
+
+- When you start a cycle, mark it `[~]`.
+- When you finish, mark it `[x]` with a one-line result (PR number,
+  cost, completion date).
+- If you hit a real blocker — constraint ambiguous, dependency
+  missing, verify surfaced something needing architect judgment —
+  mark `[?]` with a one-line reason. Do NOT use `[?]` as a "I don't
+  know what to do" dumping ground. Blocked means the next move
+  requires someone else; everything else is in-progress or a
+  question to resolve in the current session.
+
+This is a convention, not a mechanism. No tooling enforces it; the
+discipline lives in the prompt set. Skip it and nothing breaks, but
+you lose the history artifact and the next executor has to hunt for
+the right prompt.
+
+---
+
+## 10. Cross-Reference Rules
 
 Every spec has these relationships, encoded in front-matter:
 
@@ -212,7 +249,7 @@ spec. DECs are stable repo-level records; specs come and go.
 
 ---
 
-## 10. Coding Conventions
+## 11. Coding Conventions
 
 - **Naming:** [REPLACE]
 - **File organization:** [REPLACE]
@@ -224,7 +261,7 @@ spec. DECs are stable repo-level records; specs come and go.
 
 ---
 
-## 11. Testing Conventions
+## 12. Testing Conventions
 
 - Every new function gets at least one test.
 - Test file naming: [REPLACE]
@@ -236,7 +273,7 @@ spec. DECs are stable repo-level records; specs come and go.
 
 ---
 
-## 12. Git and PR Conventions
+## 13. Git and PR Conventions
 
 - **Branch:** `feat/spec-NNN-<slug>`, `fix/spec-NNN-<slug>`, `chore/<slug>`
 - **One spec per branch, one PR per branch.**
@@ -252,13 +289,13 @@ spec. DECs are stable repo-level records; specs come and go.
 
 ---
 
-## 13. Domain Glossary
+## 14. Domain Glossary
 
 - **[REPLACE: Term]** — [REPLACE: Definition]
 
 ---
 
-## 14. Cycle-Specific Agent Rules
+## 15. Cycle-Specific Agent Rules
 
 ### During **build** (implementer reads this)
 
@@ -274,7 +311,7 @@ When done:
 2. Update `handoff.status` → `completed`; update spec's `task.cycle` → `verify`.
 3. Append a build cost session entry to the spec's `cost.sessions`.
 4. Create `DEC-*` files for non-trivial implementer decisions.
-5. Open PR following Section 12.
+5. Open PR following Section 13.
 
 Shortcut: `just advance-cycle SPEC-NNN verify`.
 
@@ -310,7 +347,7 @@ Then:
 
 ---
 
-## 15. Confidence Discipline
+## 16. Confidence Discipline
 
 Decisions in `/decisions/` have an `insight.confidence` field (0.0–1.0).
 Honest values matter — they drive these behaviors:
@@ -329,7 +366,7 @@ should land between 0.7 and 0.95.
 
 ---
 
-## 16. Pointers
+## 17. Pointers
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
@@ -339,6 +376,8 @@ should land between 0.7 and 0.95.
 - What we're building (architecture): `/docs/architecture.md`
 - Feedback: `/feedback/`
 - Reports: `/reports/` (daily, weekly)
+- Timelines: `/projects/*/specs/SPEC-NNN-*-timeline.md` (per-spec)
+- Cycle prompts: `/projects/*/specs/prompts/`
 - Phase prompts: `/FIRST_SESSION_PROMPTS.md`
 - First walkthrough: `/GETTING_STARTED.md`
 - Daily commands: run `just --list`

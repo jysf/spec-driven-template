@@ -190,7 +190,43 @@ Project and stage lifecycles are lighter:
 
 ---
 
-## 9. Cross-Reference Rules
+## 9. Instruction Timeline
+
+Every spec has a timeline file at
+`projects/*/specs/SPEC-NNN-<slug>-timeline.md` listing cycle
+instructions in order with status markers.
+
+Status markers:
+
+- `[ ]` not started — no one has picked this up yet
+- `[~]` in progress — an executor is currently running this
+- `[x]` complete — cycle finished; see the prompt file for what was run
+- `[?]` blocked — needs a human decision or external unblock before
+  proceeding. Include a one-line reason after the marker.
+
+Cycle prompts live at `projects/*/specs/prompts/SPEC-NNN-<cycle>.md`.
+The architect writes them; executors read and run them.
+
+**Discipline for executors:**
+
+- When you start a cycle, mark it `[~]`.
+- When you finish, mark it `[x]` with a one-line result (PR number,
+  cost, completion date).
+- If you hit a real blocker — constraint ambiguous, dependency
+  missing, verify surfaced something needing architect judgment —
+  mark `[?]` with a one-line reason. Do NOT use `[?]` as a "I don't
+  know what to do" dumping ground. Blocked means the next move
+  requires someone else; everything else is in-progress or a
+  question to resolve in the current session.
+
+This is a convention, not a mechanism. No tooling enforces it; the
+discipline lives in the prompt set. Skip it and nothing breaks, but
+you lose the history artifact and the next executor has to hunt for
+the right prompt.
+
+---
+
+## 10. Cross-Reference Rules
 
 Every spec has these relationships, encoded in front-matter:
 - `project.id` → the project it belongs to
@@ -202,7 +238,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 10. Coding Conventions
+## 11. Coding Conventions
 
 - **Naming:** [REPLACE]
 - **File organization:** [REPLACE]
@@ -214,7 +250,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 11. Testing Conventions
+## 12. Testing Conventions
 
 - Every new function gets at least one test.
 - Test file naming: [REPLACE]
@@ -224,7 +260,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 12. Git and PR Conventions
+## 13. Git and PR Conventions
 
 - **Branch:** `feat/spec-NNN-<slug>`, etc.
 - **One spec per branch, one PR per branch.**
@@ -237,13 +273,13 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ---
 
-## 13. Domain Glossary
+## 14. Domain Glossary
 
 - **[REPLACE: Term]** — [REPLACE: Definition]
 
 ---
 
-## 14. Cycle-Specific Rules
+## 15. Cycle-Specific Rules
 
 ### During **build**
 
@@ -285,7 +321,7 @@ Stage Ship prompt.
 
 ---
 
-## 15. Session Hygiene (claude-only specific)
+## 16. Session Hygiene (claude-only specific)
 
 Because one agent plays multiple roles, context contamination is a real
 risk. Four habits keep it at bay:
@@ -296,11 +332,11 @@ risk. Four habits keep it at bay:
    is the source of truth.
 3. **Weekly review is non-optional.** Without a second agent pushing
    back, drift compounds silently. Run `just weekly-review`.
-4. **Honest confidence values on decisions.** See Section 16.
+4. **Honest confidence values on decisions.** See Section 17.
 
 ---
 
-## 16. Confidence Discipline
+## 17. Confidence Discipline
 
 Decisions have an `insight.confidence` field (0.0–1.0). Honest values drive:
 
@@ -314,7 +350,7 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 
 ---
 
-## 17. Pointers
+## 18. Pointers
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
@@ -324,6 +360,8 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 - Architecture: `/docs/architecture.md`
 - Feedback: `/feedback/`
 - Reports: `/reports/` (daily, weekly)
+- Timelines: `/projects/*/specs/SPEC-NNN-*-timeline.md` (per-spec)
+- Cycle prompts: `/projects/*/specs/prompts/`
 - Phase prompts: `/FIRST_SESSION_PROMPTS.md`
 - First walkthrough: `/GETTING_STARTED.md`
 - Daily commands: run `just --list`
