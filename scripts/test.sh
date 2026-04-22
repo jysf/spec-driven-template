@@ -315,6 +315,50 @@ else
 fi
 
 # ============================================================
+# 14) v5.3 instruction-timeline convention
+# ============================================================
+# SPEC-003 was scaffolded in §8; new-spec should have created a
+# timeline file alongside it, substituting the SPEC ID into the
+# template's SPEC-XXX placeholder.
+TIMELINE_V53="projects/PROJ-001-example-mvp/specs/SPEC-003-second-test-spec-timeline.md"
+assert_file "$TIMELINE_V53"
+assert_contains "$TIMELINE_V53" "^# SPEC-003 timeline\$" "timeline header names the spec"
+assert_contains "$TIMELINE_V53" '\[ \].*not started' "timeline legend documents [ ] not started"
+assert_contains "$TIMELINE_V53" '\[~\].*in progress' "timeline legend documents [~] in progress"
+assert_contains "$TIMELINE_V53" '\[x\].*complete' "timeline legend documents [x] complete"
+assert_contains "$TIMELINE_V53" '\[\?\].*blocked' "timeline legend documents [?] blocked"
+
+# prompts/ directory should exist as a peer to the spec files so
+# the architect's first cycle-prompt write lands in a ready place.
+if [ -d "projects/PROJ-001-example-mvp/specs/prompts" ]; then
+    pass "prompts/ directory created alongside specs"
+else
+    fail "prompts/ directory missing after new-spec"
+fi
+
+# AGENTS.md (post-init, claude-only) has the Instruction Timeline
+# section and documents all four markers. If the legend drifts the
+# convention erodes, so each marker gets its own assertion.
+assert_contains "AGENTS.md" "^## 9\\. Instruction Timeline\$" \
+    "AGENTS.md has Instruction Timeline section"
+assert_contains "AGENTS.md" '`\[ \]` not started' \
+    "AGENTS.md documents [ ] not-started marker"
+assert_contains "AGENTS.md" '`\[~\]` in progress' \
+    "AGENTS.md documents [~] in-progress marker"
+assert_contains "AGENTS.md" '`\[x\]` complete' \
+    "AGENTS.md documents [x] complete marker"
+assert_contains "AGENTS.md" '`\[\?\]` blocked' \
+    "AGENTS.md documents [?] blocked marker"
+
+# archive-spec should co-move the timeline file into done/, keeping
+# the spec and its cycle history paired. SPEC-002 was archived in §5;
+# verify its timeline (if one ever existed — SPEC-002 was scaffolded
+# by new-spec in this test, so it got one) is also in done/.
+ARCHIVED_TIMELINE="projects/PROJ-001-example-mvp/specs/done/SPEC-002-test-spec-timeline.md"
+assert_file "$ARCHIVED_TIMELINE"
+assert_no_file "projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec-timeline.md"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
