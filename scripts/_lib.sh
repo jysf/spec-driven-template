@@ -155,6 +155,223 @@ get_repo_id() {
     echo "${id:-my-app}"
 }
 
+# ---------------------------------------------------------------------
+# Report helpers — parse value and cost metadata from front-matter
+# and do portable date math. Keep pure bash + awk + date; no yq.
+# ---------------------------------------------------------------------
+
+# Find all specs under a project (active AND archived under done/).
+# find_spec excludes done/ on purpose; reports need both.
+# Usage: find_all_specs projects/PROJ-001-foo
+find_all_specs() {
+    local project_dir="$1"
+    find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null
+}
+
+# Extract a spec's cycle from front-matter.
+# Usage: get_spec_cycle path/to/spec.md
+get_spec_cycle() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^[[:space:]]+cycle:/ { print $2; exit }
+    ' "$file"
+}
+
+# Sum tokens (input + output) across cost.sessions[] entries.
+# Null fields are skipped; prints an integer (0 if empty/missing).
+# Session-scalar fields live at 6-space indent; totals (which also
+# has tokens_total) lives at 4-space indent, so the indent match
+# disambiguates.
+sum_cost_tokens_for_spec() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  sessions:/ { in_sessions = 1; next }
+        in_cost && in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /^      tokens_input:/ {
+            v = $2; if (v ~ /^[0-9]+$/) total += v
+        }
+        in_sessions && /^      tokens_output:/ {
+            v = $2; if (v ~ /^[0-9]+$/) total += v
+        }
+        END { print total+0 }
+    ' "$file"
+}
+
+# Sum estimated_usd across cost.sessions[] entries. Null skipped.
+# Prints a float with 2 decimal places.
+sum_cost_usd_for_spec() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  sessions:/ { in_sessions = 1; next }
+        in_cost && in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /^      estimated_usd:/ {
+            v = $2; if (v ~ /^[0-9]+(\.[0-9]+)?$/) total += v
+        }
+        END { printf "%.2f\n", total+0 }
+    ' "$file"
+}
+
+# Count cost sessions whose recorded_at matches a given date.
+# Usage: sessions_recorded_on path/to/spec.md 2026-04-21
+sessions_recorded_on() {
+    local file="$1"
+    local date="$2"
+    awk -v d="$date" '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  sessions:/ { in_sessions = 1; next }
+        in_cost && in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /^      recorded_at:/ {
+            if ($2 == d) count++
+        }
+        END { print count+0 }
+    ' "$file"
+}
+
+# Count cost sessions total (regardless of date). Null-safe.
+count_cost_sessions() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  sessions:/ { in_sessions = 1; next }
+        in_cost && in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /^    - cycle:/ { count++ }
+        END { print count+0 }
+    ' "$file"
+}
+
+# Extract value_link from a spec's front-matter. Empty string if null
+# or missing.
+extract_value_link() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^value_link:/ {
+            v = $0
+            sub(/^value_link:[[:space:]]*/, "", v)
+            # Strip surrounding quotes if present
+            sub(/^"/, "", v); sub(/"$/, "", v)
+            sub(/^'\''/, "", v); sub(/'\''$/, "", v)
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$file"
+}
+
+# Extract value.thesis from a project brief. Empty string if null or
+# missing. Usage: get_project_thesis projects/PROJ-001-foo
+get_project_thesis() {
+    local dir="$1"
+    local brief="${dir}/brief.md"
+    [ -f "$brief" ] || return
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^value:/ { in_val = 1; next }
+        in_val && /^[a-zA-Z_]/ { in_val = 0 }
+        in_val && /^  thesis:/ {
+            v = $0
+            sub(/^  thesis:[[:space:]]*/, "", v)
+            sub(/^"/, "", v); sub(/"$/, "", v)
+            sub(/^'\''/, "", v); sub(/'\''$/, "", v)
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$brief"
+}
+
+# Extract value_contribution.advances from a stage file. Empty if null
+# or missing. Usage: get_stage_value_contribution path/to/STAGE-001.md
+get_stage_value_contribution() {
+    local file="$1"
+    [ -f "$file" ] || return
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^value_contribution:/ { in_vc = 1; next }
+        in_vc && /^[a-zA-Z_]/ { in_vc = 0 }
+        in_vc && /^  advances:/ {
+            v = $0
+            sub(/^  advances:[[:space:]]*/, "", v)
+            sub(/^"/, "", v); sub(/"$/, "", v)
+            sub(/^'\''/, "", v); sub(/'\''$/, "", v)
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$file"
+}
+
+# Portable date math: print the date N days ago in YYYY-MM-DD.
+# macOS uses BSD date (-v), Linux uses GNU date (-d).
+days_ago() {
+    local n="$1"
+    if [ "$(uname)" = "Darwin" ]; then
+        date -v -"${n}"d +%Y-%m-%d
+    else
+        date -d "${n} days ago" +%Y-%m-%d
+    fi
+}
+
+# Print the ISO 8601 week identifier (YYYY-WNN) for a given date.
+# Uses %G-W%V so year rollover at the week boundary is handled
+# correctly. Usage: iso_week_number 2026-04-21  →  2026-W17
+iso_week_number() {
+    local d="$1"
+    if [ "$(uname)" = "Darwin" ]; then
+        date -j -f "%Y-%m-%d" "$d" +"%G-W%V"
+    else
+        date -d "$d" +"%G-W%V"
+    fi
+}
+
+# Print the Monday (start) and Sunday (end) of the ISO week
+# containing the given date. Two lines: start, end.
+iso_week_bounds() {
+    local d="$1"
+    if [ "$(uname)" = "Darwin" ]; then
+        # BSD date: find weekday (1=Mon..7=Sun), compute offsets.
+        local dow
+        dow=$(date -j -f "%Y-%m-%d" "$d" +"%u")
+        local back=$((dow - 1))
+        local forward=$((7 - dow))
+        date -j -v -"${back}"d -f "%Y-%m-%d" "$d" +%Y-%m-%d
+        date -j -v +"${forward}"d -f "%Y-%m-%d" "$d" +%Y-%m-%d
+    else
+        local dow
+        dow=$(date -d "$d" +"%u")
+        local back=$((dow - 1))
+        local forward=$((7 - dow))
+        date -d "$d - ${back} days" +%Y-%m-%d
+        date -d "$d + ${forward} days" +%Y-%m-%d
+    fi
+}
+
+# Spec mtime as YYYY-MM-DD (portable).
+spec_mtime_date() {
+    local file="$1"
+    if [ "$(uname)" = "Darwin" ]; then
+        date -r "$(stat -f %m "$file")" +%Y-%m-%d
+    else
+        date -d "@$(stat -c %Y "$file")" +%Y-%m-%d
+    fi
+}
+
 # Update a YAML front-matter scalar in a markdown file.
 # Usage: update_frontmatter_scalar path/to/file.md task.cycle verify
 # This is a deliberately simple awk-based updater for flat YAML. Requires
