@@ -111,6 +111,12 @@ daily-status-report:
         { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
         echo "✓ Wrote reports/daily/$D-status.md"
 
+# Spec-grained "what's next?" view: in-flight specs in the active
+# stage, un-promoted bullets in the active stage's backlog, and
+# counts in upcoming stages. Pass --all to widen scope.
+backlog *FLAGS:
+    @./scripts/backlog.sh {{FLAGS}}
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------
