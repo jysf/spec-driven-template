@@ -29,6 +29,7 @@ just archive-spec SPEC-001         # Move a shipped spec to done/
 just weekly-review                 # Print the weekly review prompt
 just report-daily                  # Generate today's daily report
 just report-weekly                 # Generate this week's weekly report
+just daily-status-report           # Snapshot `just status` to reports/daily/<date>-status.md
 ```
 
 ## Reports

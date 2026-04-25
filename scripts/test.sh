@@ -359,6 +359,15 @@ assert_file "$ARCHIVED_TIMELINE"
 assert_no_file "projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec-timeline.md"
 
 # ============================================================
+# 15) just daily-status-report writes reports/daily/<date>-status.md
+# ============================================================
+just daily-status-report >/dev/null 2>&1
+status_snap="reports/daily/$(date +%Y-%m-%d)-status.md"
+assert_file "$status_snap"
+assert_contains "$status_snap" "^# Daily status - $(date +%Y-%m-%d)\$" \
+    "daily-status-report header names the date"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

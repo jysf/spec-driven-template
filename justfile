@@ -103,6 +103,14 @@ report-daily:
 report-weekly DATE="":
     @./scripts/report_weekly.sh "{{DATE}}"
 
+# Capture today's `just status` output to reports/daily/YYYY-MM-DD-status.md.
+# Lighter than report-daily — a snapshot of current state with no curation.
+daily-status-report:
+    @mkdir -p reports/daily
+    @D="$(date +%Y-%m-%d)"; \
+        { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
+        echo "✓ Wrote reports/daily/$D-status.md"
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------

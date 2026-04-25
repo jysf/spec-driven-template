@@ -2,6 +2,25 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-04-25 — Daily status snapshot command (v5.3.1)
+
+Small follow-up. Mirrors a `just daily-status-report` command from a
+downstream project (bragfile000) — a thin wrapper that captures
+`just status` output to a dated markdown file, distinct from v5.2's
+heavier `report-daily`.
+
+### Added
+
+- **`just daily-status-report`** — writes
+  `reports/daily/YYYY-MM-DD-status.md` with the current `status.sh`
+  output. Lighter than `report-daily`: no curation, no front-matter
+  scraping, no git log. Co-located with `report-daily` under
+  `reports/daily/`; the `-status.md` suffix distinguishes the two
+  artifacts when both run on the same day.
+- README mention in both variants' command list.
+- Two new test assertions (71 → 73 total): file written at expected
+  path, header carries today's date.
+
 ## 2026-04-22 — Instruction timeline convention (v5.3)
 
 A small convention, not a mechanism. Every spec gets a peer
