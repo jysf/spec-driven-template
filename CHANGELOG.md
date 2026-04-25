@@ -2,6 +2,66 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-04-25 — Backlog and roadmap views (v5.4)
+
+Two read-only views over existing data, answering different
+questions at different grains. Together with `just status`, they
+form a small "what's the state of work?" trio.
+
+### Added
+
+- **`just backlog`** — spec-grained "what's next" view. Surfaces
+  three things `just status` deliberately doesn't: in-flight specs
+  (cycle ≠ archived) in the active stage, un-promoted "(not yet
+  written)" bullets in the active stage's `## Spec Backlog`, and
+  counts of un-promoted bullets in upcoming stages. `--all`
+  widens scope across stages. Read-only — no front-matter writes.
+  Optional complexity tag (`[S]/[M]/[L]`) parsed if present in a
+  backlog line; omitted otherwise. (`scripts/backlog.sh`)
+
+- **`just roadmap`** — stage-grained "where is this project going"
+  view. One row per stage with status (shipped / cancelled /
+  active / upcoming), date range from existing front-matter
+  (`created_at` → `shipped_at` for shipped/active, `target:
+  target_complete` for upcoming), and spec counts for active and
+  upcoming stages. Active stage row is bolded. (`scripts/roadmap.sh`)
+
+- **`_lib.sh` helpers** for stage front-matter parsing:
+  `get_active_stage_file` (lifted from inline use in
+  `report_daily.sh`), `get_stage_status`, `get_stage_target`,
+  `get_stage_created_at`, `get_stage_shipped_at`. Pure bash + awk;
+  null-safe.
+
+- **Both READMEs** mention the two new commands in the
+  common-commands block.
+
+- **7 new test assertions** (73 → 80 total): backlog header
+  prints, surfaces un-promoted bullets, lists in-flight specs,
+  `--all` exits cleanly; roadmap header prints, renders active
+  stage with bucket, shows correct spec counts.
+
+### Changed
+
+- **`scripts/report_daily.sh`** uses the shared
+  `get_active_stage_file` helper instead of an inline copy. No
+  behavior change.
+
+- **Both variants' Prompt 1d (Stage Ship)** gain one numbered step
+  instructing the architect to flip `stage.status` to `shipped`
+  and set `shipped_at` when wrapping up a stage. This keeps the
+  new roadmap accurate without auto-modifying frontmatter from
+  `archive-spec.sh` (which `KNOWN_LIMITATIONS.md` explicitly
+  documents as deliberate).
+
+### Design notes preserved
+
+- No "accepted" state between bullet and spec. Running `just
+  new-spec` is the acceptance.
+- Backlog and roadmap stay separate views — one is spec-grained,
+  the other stage-grained. Don't merge them.
+- No existing front-matter renamed. Roadmap reads what's already
+  there (`created_at`, `shipped_at`, `target_complete`).
+
 ## 2026-04-25 — Daily status snapshot command (v5.3.1)
 
 Small follow-up. Mirrors a `just daily-status-report` command from a

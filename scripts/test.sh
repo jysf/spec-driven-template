@@ -368,6 +368,60 @@ assert_contains "$status_snap" "^# Daily status - $(date +%Y-%m-%d)\$" \
     "daily-status-report header names the date"
 
 # ============================================================
+# 16) just backlog (spec-grained "what's next" view)
+# ============================================================
+backlog_out=$(just backlog 2>&1)
+if printf '%s\n' "$backlog_out" | grep -q "^Backlog for "; then
+    pass "backlog prints header for active project"
+else
+    fail "backlog header missing"
+fi
+# Active stage's un-promoted bullets in the example project should
+# include the four "(not yet written)" entries from STAGE-001 (the
+# example project ships these). Surface at least one to confirm
+# parsing works.
+if printf '%s\n' "$backlog_out" | grep -qE "Typed error classes|Env-var loader|Health check"; then
+    pass "backlog surfaces un-promoted bullets from active stage"
+else
+    fail "backlog did not surface un-promoted bullets"
+fi
+# In-flight section should mention SPEC-001 (the example spec is in
+# design cycle in the example project).
+if printf '%s\n' "$backlog_out" | grep -q "SPEC-001"; then
+    pass "backlog lists in-flight specs"
+else
+    fail "backlog missing in-flight spec"
+fi
+
+# --all flag should not error out and should still produce output.
+just backlog --all >/dev/null 2>&1 || fail "backlog --all exited non-zero"
+pass "backlog --all exits cleanly"
+
+# ============================================================
+# 17) just roadmap (stage-grained view)
+# ============================================================
+roadmap_out=$(just roadmap 2>&1)
+if printf '%s\n' "$roadmap_out" | grep -q "^Roadmap for "; then
+    pass "roadmap prints header for active project"
+else
+    fail "roadmap header missing"
+fi
+# STAGE-001 should appear with its date range. The example ships
+# with status: active, so we expect the active bucket.
+if printf '%s\n' "$roadmap_out" | grep -qE "STAGE-001-foundational-infra.*active"; then
+    pass "roadmap renders the active stage with bucket"
+else
+    fail "roadmap did not render active stage correctly"
+fi
+# Spec counts should appear for the active row (1 in flight, 4 backlog
+# from the example project).
+if printf '%s\n' "$roadmap_out" | grep -qE "1 in flight, 4 backlog"; then
+    pass "roadmap shows correct spec counts for active stage"
+else
+    fail "roadmap spec counts wrong or missing"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
