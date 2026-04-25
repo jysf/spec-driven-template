@@ -199,11 +199,16 @@ Your task:
 4. Propose answers for the stage-level reflection fields (## Stage-Level
    Reflection section in the stage file).
 
-5. Flag follow-up work: should any of it become a new stage in the
+5. Set the stage front-matter to reflect shipping:
+   - `stage.status: shipped`
+   - `shipped_at: <YYYY-MM-DD>` (today)
+   This is how `just roadmap` will render this stage as completed.
+
+6. Flag follow-up work: should any of it become a new stage in the
    current project? A spec in the NEXT stage? Deferred to a future
    project?
 
-6. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
+7. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
    template based on patterns across shipped specs.
 
 I'll review your proposals and write them into the stage file myself.

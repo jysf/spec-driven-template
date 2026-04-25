@@ -186,10 +186,15 @@ Your task:
 
 4. Propose answers for ## Stage-Level Reflection.
 
-5. Flag follow-up: new stage here? spec in next stage? defer to future
+5. Set the stage front-matter to reflect shipping:
+   - `stage.status: shipped`
+   - `shipped_at: <YYYY-MM-DD>` (today)
+   This is how `just roadmap` will render this stage as completed.
+
+6. Flag follow-up: new stage here? spec in next stage? defer to future
    project?
 
-6. Propose updates to /AGENTS.md, /guidance/*, or templates.
+7. Propose updates to /AGENTS.md, /guidance/*, or templates.
 
 I'll review and write proposals into the stage file.
 ```
