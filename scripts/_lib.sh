@@ -139,6 +139,80 @@ find_stage() {
     find "${REPO_ROOT}/projects" -type f -name "${stage_id}-*.md" 2>/dev/null | head -n1
 }
 
+# Find the "active" stage file for a given project. Heuristic: first
+# stage with status: active, falling back to the lexically-first
+# stage. Used by backlog and report_daily so they agree on what "the
+# active stage" means.
+# Usage: get_active_stage_file projects/PROJ-001-foo
+get_active_stage_file() {
+    local project_dir="$1"
+    local stages_dir="${project_dir}/stages"
+    [ -d "$stages_dir" ] || return
+    local s status
+    for s in "${stages_dir}"/STAGE-*.md; do
+        [ -f "$s" ] || continue
+        status=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+status:/{print $2; exit}' "$s" 2>/dev/null || echo "")
+        if [ "$status" = "active" ]; then echo "$s"; return; fi
+    done
+    for s in "${stages_dir}"/STAGE-*.md; do
+        [ -f "$s" ] || continue
+        echo "$s"; return
+    done
+}
+
+# Read a stage file's status: field. Empty string if missing.
+get_stage_status() {
+    local file="$1"
+    [ -f "$file" ] || return
+    awk '/^---$/{f=!f; next} f && /^[[:space:]]+status:/{print $2; exit}' "$file" 2>/dev/null || echo ""
+}
+
+# Read a stage file's target_complete: field. Empty if null/missing.
+get_stage_target() {
+    local file="$1"
+    [ -f "$file" ] || return
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^[[:space:]]+target_complete:/ {
+            v = $2
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$file"
+}
+
+# Read a stage file's top-level created_at field. Used as a proxy
+# for "started_on" in the roadmap.
+get_stage_created_at() {
+    local file="$1"
+    [ -f "$file" ] || return
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^created_at:/ {
+            v = $2
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$file"
+}
+
+# Read a stage file's top-level shipped_at field. Empty if null.
+get_stage_shipped_at() {
+    local file="$1"
+    [ -f "$file" ] || return
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^shipped_at:/ {
+            v = $2
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$file"
+}
+
 # Today's date in YYYY-MM-DD format.
 today() {
     date +%Y-%m-%d

@@ -24,22 +24,7 @@ ACTIVE_DIR="${REPO_ROOT}/projects/${ACTIVE_PROJECT}"
 STAGES_DIR="${ACTIVE_DIR}/stages"
 SPECS_DIR="${ACTIVE_DIR}/specs"
 
-# Prefer a stage with status: active; fall back to the first stage.
-find_active_stage_file() {
-    [ -d "$STAGES_DIR" ] || return
-    local s status
-    for s in "${STAGES_DIR}"/STAGE-*.md; do
-        [ -f "$s" ] || continue
-        status=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+status:/{print $2; exit}' "$s" 2>/dev/null || echo "")
-        if [ "$status" = "active" ]; then echo "$s"; return; fi
-    done
-    for s in "${STAGES_DIR}"/STAGE-*.md; do
-        [ -f "$s" ] || continue
-        echo "$s"; return
-    done
-}
-
-ACTIVE_STAGE_FILE=$(find_active_stage_file || true)
+ACTIVE_STAGE_FILE=$(get_active_stage_file "$ACTIVE_DIR" || true)
 ACTIVE_STAGE_ID=""
 ACTIVE_STAGE_NAME=""
 if [ -n "$ACTIVE_STAGE_FILE" ]; then
