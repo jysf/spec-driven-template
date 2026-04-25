@@ -117,6 +117,12 @@ daily-status-report:
 backlog *FLAGS:
     @./scripts/backlog.sh {{FLAGS}}
 
+# Stage-grained "where is this project going" view: one row per
+# stage in the active project with status, date range, and (for
+# active/upcoming) spec counts.
+roadmap:
+    @./scripts/roadmap.sh
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------
