@@ -88,6 +88,15 @@ Run `just --list` to see everything. The main ones:
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just weekly-review` | Load recent activity and print the Weekly Review prompt |
 
+## Documentation
+
+- [docs/USAGE.md](docs/USAGE.md) — the daily loop in depth: project → stage → spec → cycle, the read-only views, decisions and guardrails.
+- [PROJECTS.md](PROJECTS.md) — real projects built with this template.
+- [docs/blog/](docs/blog/) — posts on the what, why, and what got built (drafts).
+- [SECURITY.md](SECURITY.md) — trust model, secret hygiene, reporting.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — design principles and the dev loop, if you want to extend the template.
+- `GETTING_STARTED.md` + `FIRST_SESSION_PROMPTS.md` — created by `just init` for your first project.
+
 ## What ContextCore concepts this template uses
 
 This template is philosophically aligned with [ContextCore](https://github.com/neil-the-nowledgeable/contextcore) — the same vocabulary (`task.*`, `insight.*`, `guidance.*`, `handoff.*`, `project.*`), the same artifact model, the same forward-compatibility to OTel-based observability. But it requires no infrastructure — everything is markdown files until (and only if) you graduate to the full ContextCore stack.

@@ -2,7 +2,28 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
-## 2026-06-02 — Security: escape titles in template substitution (v5.8)
+## 2026-06-02 — Project docs: usage, security, contributing, blog (v5.9)
+
+Documentation only — no script or behavior changes.
+
+### Added
+
+- **`SECURITY.md`** — threat model (local tooling + the agentic trust
+  model where agents read repo files and run `just`), what's been
+  hardened, accepted low-severity items, and how to report a vuln.
+- **`CONTRIBUTING.md`** — the non-negotiable design principles
+  (zero-dependency, bash 3.2, portable shell, escape user input, variant
+  parity) and the `just test` dev loop.
+- **`PROJECTS.md`** — real projects built with the template (bragfile,
+  rspeed) and a note that the template's own history lives in the
+  CHANGELOG/git, not in self-specs.
+- **`docs/USAGE.md`** — a deeper end-to-end walkthrough than the README:
+  the full project → stage → spec → cycle loop with exact commands, the
+  four read-only views, and decisions/guardrails.
+- **`docs/blog/`** — an index plus three drafted posts (the repo-is-the-
+  app philosophy, dogfooding bragfile, zero-dependency tooling) sourced
+  from the project history; marked draft for editing into voice.
+- README gains a Documentation section linking all of the above.
 
 ### Fixed
 
