@@ -108,6 +108,24 @@ slugify() {
         | sed -E 's/^-+|-+$//g'
 }
 
+# Escape a string for safe use as the REPLACEMENT half of a
+# `sed "s|...|REPLACEMENT|"` command. Escapes backslash, the `|`
+# delimiter, and `&` (sed's whole-match reference). Pure bash
+# parameter expansion — no sed-escaping-sed, portable to bash 3.2.
+#
+# Always run user-controlled text (e.g. a spec/stage title) through
+# this before substituting it into a template. Without it, a title
+# containing `|` could close the s-command early and a trailing `e`
+# would reach GNU sed's execute flag — i.e. command injection. The
+# escaped output still renders to the original characters in the file.
+sed_escape_replacement() {
+    local s="$1"
+    s=${s//\\/\\\\}   # backslash first, so we don't double-escape below
+    s=${s//|/\\|}     # the s-command delimiter
+    s=${s//&/\\&}     # sed's "insert whole match" reference
+    printf '%s' "$s"
+}
+
 # Find a spec file by ID. Searches all projects. Only returns active
 # specs — archived specs under specs/done/ are excluded so callers
 # like advance-cycle and archive-spec don't silently operate on an

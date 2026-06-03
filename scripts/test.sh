@@ -422,6 +422,30 @@ else
 fi
 
 # ============================================================
+# security: titles with sed metachars are escaped, not injected
+# ============================================================
+INJECT_MARKER="/tmp/spec-driven-template-inject-$$"
+rm -f "$INJECT_MARKER"
+NASTY_TITLE="Pwn|e touch ${INJECT_MARKER} & a\\b"
+if just new-stage "$NASTY_TITLE" >/dev/null 2>&1; then
+    pass "new-stage accepts a title containing sed metacharacters"
+else
+    fail "new-stage failed on a title with sed metacharacters (should escape, not break)"
+fi
+if [ -e "$INJECT_MARKER" ]; then
+    fail "SECURITY: sed injection — marker file was created from a hostile title"
+    rm -f "$INJECT_MARKER"
+else
+    pass "no command injection from a hostile title"
+fi
+NASTY_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*pwn* 2>/dev/null | head -n1 || true)
+if [ -n "$NASTY_STAGE" ] && grep -qF 'Pwn|e touch' "$NASTY_STAGE"; then
+    pass "hostile title is rendered verbatim in the generated file"
+else
+    fail "hostile title was not rendered verbatim"
+fi
+
+# ============================================================
 # specs-by-stage: flat ledger across scopes
 # ============================================================
 sbs_all=$(just specs-by-stage 2>&1)

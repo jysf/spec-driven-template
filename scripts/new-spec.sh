@@ -65,14 +65,19 @@ sed_inplace() {
     fi
 }
 
-REPO_ID=$(get_repo_id)
+# Escape user-controlled values before substituting them into the
+# template (see sed_escape_replacement in _lib.sh). The ID/date values
+# are tool-generated or validated, but escaping is harmless and keeps
+# the substitutions uniform.
+TITLE_ESC=$(sed_escape_replacement "$TITLE")
+REPO_ID_ESC=$(sed_escape_replacement "$(get_repo_id)")
 
 sed_inplace "s|SPEC-XXX|${SPEC_ID}|g" "$SPEC_FILE"
 sed_inplace "s|STAGE-XXX|${STAGE_ID}|g" "$SPEC_FILE"
 sed_inplace "s|PROJ-XXX|${PROJECT_ID}|g" "$SPEC_FILE"
-sed_inplace "s|<Short Title>|${TITLE}|g" "$SPEC_FILE"
+sed_inplace "s|<Short Title>|${TITLE_ESC}|g" "$SPEC_FILE"
 sed_inplace "s|__TODAY__|$(today)|g" "$SPEC_FILE"
-sed_inplace "s|__REPO_ID__|${REPO_ID}|g" "$SPEC_FILE"
+sed_inplace "s|__REPO_ID__|${REPO_ID_ESC}|g" "$SPEC_FILE"
 
 # Scaffold the timeline file alongside the spec. Architect appends
 # cycle lines as it designs them; executors update status markers.

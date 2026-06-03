@@ -2,6 +2,28 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-02 — Security: escape titles in template substitution (v5.8)
+
+### Fixed
+
+- **sed-injection hardening in `new-spec` / `new-stage`.** User-supplied
+  titles (and the repo id) were substituted into templates via
+  `sed "s|<Short Title>|${TITLE}|"` with no escaping. A title containing
+  the `|` delimiter could close the s-command early, and a trailing `e`
+  would reach GNU sed's execute flag — i.e. command injection. Not
+  reachable as shipped (the placeholder sits on a `#`-prefixed markdown
+  line, and BSD/macOS sed lacks the `s///e` flag), but it's one template
+  edit away on GNU sed and already corrupts files on titles containing
+  `|`, `&`, or `\`. Added `sed_escape_replacement` to `_lib.sh` (pure
+  bash, escapes `\`, `|`, `&`) and routed the user-controlled
+  substitutions through it. Hostile titles now render verbatim instead
+  of executing or breaking. (+3 regression checks; 91 total.)
+
+  This was found in a security audit of the template's bash scripts,
+  justfile, and CI. No other code findings: `advance-cycle` allowlists
+  cycle values, `archive-spec` is awk-only with validated IDs, there are
+  no GitHub Actions workflows, and `.gitignore` excludes secrets.
+
 ## 2026-06-02 — Recommended-tools catalog + Mermaid convention (v5.7)
 
 Consolidates optional, project-level tool guidance into one catalog and

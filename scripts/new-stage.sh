@@ -47,13 +47,16 @@ sed_inplace() {
     fi
 }
 
-REPO_ID=$(get_repo_id)
+# Escape user-controlled values before substituting them into the
+# template (see sed_escape_replacement in _lib.sh).
+TITLE_ESC=$(sed_escape_replacement "$TITLE")
+REPO_ID_ESC=$(sed_escape_replacement "$(get_repo_id)")
 
 sed_inplace "s|STAGE-XXX|${STAGE_ID}|g" "$STAGE_FILE"
 sed_inplace "s|PROJ-XXX|${PROJECT_ID}|g" "$STAGE_FILE"
-sed_inplace "s|<Short Title — the coherent outcome>|${TITLE}|g" "$STAGE_FILE"
+sed_inplace "s|<Short Title — the coherent outcome>|${TITLE_ESC}|g" "$STAGE_FILE"
 sed_inplace "s|__TODAY__|$(today)|g" "$STAGE_FILE"
-sed_inplace "s|__REPO_ID__|${REPO_ID}|g" "$STAGE_FILE"
+sed_inplace "s|__REPO_ID__|${REPO_ID_ESC}|g" "$STAGE_FILE"
 
 success "Created ${STAGE_FILE}"
 echo ""
