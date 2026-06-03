@@ -34,7 +34,10 @@ git and works on bash 3.2 (macOS default).
   side is native rather than a dependency.
 - AGENTS.md (both variants): the Verify checklist's "decision drift"
   check now points at `just decisions-audit --changed`; Pointers gains
-  the verify-tooling note.
+  the verify-tooling note. The build-cycle "Create `DEC-*`" step now
+  instructs the agent to fill `affected_scope` for file-bound
+  decisions, so the field gets populated at creation time rather than
+  rotting empty.
 
 ## 2026-04-25 — Backlog and roadmap views (v5.4)
 

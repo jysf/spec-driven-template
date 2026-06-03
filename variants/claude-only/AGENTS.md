@@ -296,7 +296,13 @@ When done:
 1. Fill in spec's `## Build Completion` (including reflection).
 2. Append a build cost session entry to `cost.sessions`.
 3. `just advance-cycle SPEC-NNN verify`.
-4. Create `DEC-*` files for non-trivial build decisions.
+4. Create `DEC-*` files for non-trivial build decisions. When a
+   decision is tied to specific code, fill in its `affected_scope`
+   with the path globs it governs (e.g. `src/lib/log.ts`,
+   `src/api/**`). This is required for file-bound decisions — it's
+   what lets `just decisions-audit --changed` surface the decision
+   when those paths change later. Leave `affected_scope: []` only for
+   decisions not tied to particular files (e.g. a process choice).
 5. Open PR.
 
 ### During **verify**

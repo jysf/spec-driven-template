@@ -310,7 +310,13 @@ When done:
 1. Fill in the handoff's `## Completion` section (including reflection).
 2. Update `handoff.status` → `completed`; update spec's `task.cycle` → `verify`.
 3. Append a build cost session entry to the spec's `cost.sessions`.
-4. Create `DEC-*` files for non-trivial implementer decisions.
+4. Create `DEC-*` files for non-trivial implementer decisions. When a
+   decision is tied to specific code, fill in its `affected_scope`
+   with the path globs it governs (e.g. `src/lib/log.ts`,
+   `src/api/**`). This is required for file-bound decisions — it's
+   what lets `just decisions-audit --changed` surface the decision
+   when those paths change later. Leave `affected_scope: []` only for
+   decisions not tied to particular files (e.g. a process choice).
 5. Open PR following Section 13.
 
 Shortcut: `just advance-cycle SPEC-NNN verify`.
