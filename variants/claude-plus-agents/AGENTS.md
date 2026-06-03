@@ -327,6 +327,13 @@ Check:
 7. `cost.sessions` has entries for prior cycles? Flag if missing
    (don't block).
 
+For check 3, run `just decisions-audit --changed` — it flags which
+`DEC-*` records govern the files the implementer touched, so you can
+confirm the work stayed consistent with them. `just decisions-audit`
+(no flag) lints the records themselves. See `/guidance/verify-tooling.md`
+for optional, heavier verify tooling (e.g. LineSpec for protocol-level
+integration tests).
+
 Append a verify cost session entry before returning the verdict.
 
 Output: ✅ APPROVED (with SHA) / ⚠ PUNCH LIST / ❌ REJECTED.
@@ -370,7 +377,8 @@ should land between 0.7 and 0.95.
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
-- Decisions: `/decisions/`
+- Decisions: `/decisions/` (audit with `just decisions-audit`)
+- Verify-phase tooling: `/guidance/verify-tooling.md`
 - Projects: `/projects/`
 - Templates: `/projects/_templates/`
 - What we're building (architecture): `/docs/architecture.md`

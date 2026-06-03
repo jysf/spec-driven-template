@@ -2,6 +2,40 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-02 — Decision auditing (v5.5)
+
+A native, zero-dependency take on LineSpec-style provenance auditing,
+plus a note on where heavier external verify tooling fits. The
+template stays dependency-free; the new command is pure bash + awk +
+git and works on bash 3.2 (macOS default).
+
+### Added
+
+- **`just decisions-audit`** — audits `decisions/*.md`. Default mode
+  lints structure (filename ↔ `insight.id` match, no duplicate IDs,
+  required `created_at`/`insight.type`, and bidirectional
+  `supersedes`/`superseded_by` integrity — no dangling or one-sided
+  links) and warns on scope overlap between active decisions. Exits 1
+  on structural errors, so it drops into CI or a pre-commit hook.
+  (`scripts/decisions-audit.sh`)
+- **`just decisions-audit --changed [BASE]`** — flags which active
+  decisions govern the files you're about to commit (working tree +
+  staged + untracked, or `BASE...HEAD` with a ref). Advisory (exit 0):
+  "re-read DEC-007 before changing this." This is the LineSpec
+  `provenance audit` idea done natively.
+- **Optional `affected_scope:` field** in the decision front-matter
+  (both variants' `decisions/_template.md` and example `DEC-001`) — a
+  glob list (`**` spans dirs, `*` within a segment) that powers the
+  scope checks. Decisions without it are still linted; they're just
+  skipped by the scope passes.
+- **`guidance/verify-tooling.md`** (both variants) — documents
+  LineSpec for protocol-level integration tests in the Verify phase as
+  an *optional, project-level* choice, and explains why the decision
+  side is native rather than a dependency.
+- AGENTS.md (both variants): the Verify checklist's "decision drift"
+  check now points at `just decisions-audit --changed`; Pointers gains
+  the verify-tooling note.
+
 ## 2026-04-25 — Backlog and roadmap views (v5.4)
 
 Two read-only views over existing data, answering different

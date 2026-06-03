@@ -308,6 +308,13 @@ constraint violations? non-trivial choices have DEC-*? build reflection
 answered honestly? `cost.sessions` has entries for prior cycles
 (flag if missing, don't block)?
 
+For the "decision drift" check, run `just decisions-audit --changed` —
+it flags which `DEC-*` records govern the files this spec touched, so you
+can confirm the build stayed consistent with them. `just decisions-audit`
+(no flag) lints the records themselves. See
+`/guidance/verify-tooling.md` for optional, heavier verify tooling
+(e.g. LineSpec for protocol-level integration tests).
+
 Append a verify cost session entry to `cost.sessions`.
 
 Output: ✅ APPROVED / ⚠ PUNCH LIST / ❌ REJECTED.
@@ -354,7 +361,8 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
-- Decisions: `/decisions/`
+- Decisions: `/decisions/` (audit with `just decisions-audit`)
+- Verify-phase tooling: `/guidance/verify-tooling.md`
 - Projects: `/projects/`
 - Templates: `/projects/_templates/`
 - Architecture: `/docs/architecture.md`

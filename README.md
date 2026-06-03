@@ -83,6 +83,7 @@ Run `just --list` to see everything. The main ones:
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |
 | `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field |
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog |
+| `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just weekly-review` | Load recent activity and print the Weekly Review prompt |
 
 ## What ContextCore concepts this template uses

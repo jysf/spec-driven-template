@@ -20,6 +20,10 @@ created_at: 2026-04-19
 supersedes: null
 superseded_by: null
 
+# This decision governs the logger module and anything that imports it.
+affected_scope:
+  - src/lib/log.ts
+
 tags:
   - example
   - infrastructure

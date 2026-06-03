@@ -422,6 +422,48 @@ else
 fi
 
 # ============================================================
+# decisions-audit: lint + scope auditing
+# ============================================================
+# Clean state: the example DEC-001 is well-formed and has an
+# affected_scope, so a plain audit should pass and report "clean".
+audit_out=$(just decisions-audit 2>&1)
+if printf '%s\n' "$audit_out" | grep -qE "clean: structure valid"; then
+    pass "decisions-audit reports clean on the example decision"
+else
+    fail "decisions-audit did not report clean: $audit_out"
+fi
+
+# A structurally broken decision (missing created_at + insight.type and
+# a dangling supersedes) must make the audit exit non-zero.
+cat > decisions/DEC-666-broken.md <<'BROKEN'
+---
+insight:
+  id: DEC-666
+supersedes: DEC-999
+superseded_by: null
+---
+
+# DEC-666: Intentionally broken
+BROKEN
+assert_cmd_fails "decisions-audit exits non-zero on a broken decision" \
+    just decisions-audit
+rm -f decisions/DEC-666-broken.md
+
+# --changed maps pending edits to the decisions that govern them.
+# Needs a git repo (scratch had its .git removed at setup), so init one.
+git init -q >/dev/null 2>&1
+git add -A >/dev/null 2>&1
+git commit -qm "scratch baseline" >/dev/null 2>&1
+mkdir -p src/lib
+echo "// touched" >> src/lib/log.ts
+changed_out=$(just decisions-audit --changed 2>&1)
+if printf '%s\n' "$changed_out" | grep -qE "DEC-001"; then
+    pass "decisions-audit --changed flags DEC-001 for an edit to src/lib/log.ts"
+else
+    fail "decisions-audit --changed missed DEC-001: $changed_out"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

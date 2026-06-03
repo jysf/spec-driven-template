@@ -24,6 +24,14 @@ created_at: YYYY-MM-DD
 supersedes: null                     # DEC-YYY if this replaces a prior decision
 superseded_by: null                  # filled in when this decision is replaced
 
+# OPTIONAL. Path globs this decision governs. When present, `just
+# decisions-audit` warns if another active decision overlaps the same
+# scope, and `just decisions-audit --changed` flags this decision when
+# your pending changes touch these paths. `**` spans directories,
+# `*` stays within a path segment. Omit if the decision isn't tied to
+# specific files.
+affected_scope: []                   # e.g. ["src/lib/log.ts", "src/**/*.ts"]
+
 tags:
   - tag-1
   - tag-2

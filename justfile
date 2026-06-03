@@ -123,6 +123,13 @@ backlog *FLAGS:
 roadmap:
     @./scripts/roadmap.sh
 
+# Audit decisions: structural lint + scope-conflict warnings (zero
+# deps; a native take on LineSpec-style provenance auditing). Lints
+# front-matter and supersession links across all DEC-* files. Pass
+# `--changed [BASE]` to flag which decisions govern your pending changes.
+decisions-audit *FLAGS:
+    @./scripts/decisions-audit.sh {{FLAGS}}
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------
