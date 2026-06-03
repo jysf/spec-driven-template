@@ -258,6 +258,10 @@ spec. DECs are stable repo-level records; specs come and go.
 - **Logging:** [REPLACE]
 - **Comments:** Explain *why*, not *what*.
 - **No dead code.** Delete, don't comment out.
+- **Diagrams:** author them as Mermaid fenced blocks in markdown
+  (`/docs/`, `/decisions/`, specs) so they render on GitHub and you can
+  keep them current as part of the work. Update the relevant diagram in
+  the same change, not afterward. See `/guidance/recommended-tools.md`.
 
 ---
 
@@ -336,7 +340,7 @@ Check:
 For check 3, run `just decisions-audit --changed` — it flags which
 `DEC-*` records govern the files the implementer touched, so you can
 confirm the work stayed consistent with them. `just decisions-audit`
-(no flag) lints the records themselves. See `/guidance/verify-tooling.md`
+(no flag) lints the records themselves. See `/guidance/recommended-tools.md`
 for optional, heavier verify tooling (e.g. LineSpec for protocol-level
 integration tests).
 
@@ -384,7 +388,7 @@ should land between 0.7 and 0.95.
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
-- Verify-phase tooling: `/guidance/verify-tooling.md`
+- Recommended (optional) tools: `/guidance/recommended-tools.md`
 - Projects: `/projects/`
 - Templates: `/projects/_templates/`
 - What we're building (architecture): `/docs/architecture.md`

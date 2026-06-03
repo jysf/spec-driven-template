@@ -5,7 +5,16 @@
 
 ## Entities
 
-[REPLACE: List the main entities, their fields, and their relationships.]
+[REPLACE: List the main entities, their fields, and their relationships.
+The Mermaid ER diagram below renders on GitHub — keep it in sync with the
+tables as the model evolves.]
+
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    PRODUCT ||--o{ ORDER_ITEM : "appears in"
+```
 
 ### Entity: [Name]
 

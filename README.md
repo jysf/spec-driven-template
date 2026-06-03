@@ -49,6 +49,7 @@ You'll have a repo root containing:
 - `.repo-context.yaml` — describes the app (the repo)
 - `justfile` — commands you'll run daily
 - `docs/`, `guidance/`, `decisions/` — repo-level (accumulate across all projects)
+  - `guidance/recommended-tools.md` — optional, project-level tool escalations (Mermaid is the default for diagrams; Structurizr, LineSpec, etc. when you outgrow it)
 - `projects/PROJ-001-example-mvp/` — example project you can learn from or delete
 
 **Next step:** open `GETTING_STARTED.md` and follow it.

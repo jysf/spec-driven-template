@@ -2,6 +2,33 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-02 — Recommended-tools catalog + Mermaid convention (v5.7)
+
+Consolidates optional, project-level tool guidance into one catalog and
+makes Mermaid the blessed default for diagrams. No new dependencies.
+
+### Added
+
+- **`guidance/recommended-tools.md`** (both variants) — a single catalog
+  of optional, project-level tool escalations, organized by concern
+  (Diagrams, Testing/Verify, Decisions). States the template's stance
+  once — zero-dependency defaults, with "reach for it when / skip it
+  when" framing — so adopting any of them is a deliberate `DEC-*`, not a
+  default. Covers Mermaid (default), Structurizr (optional C4),
+  LineSpec (optional protocol tests), and native `decisions-audit` vs.
+  LineSpec provenance.
+- **Mermaid as the blessed diagram default.** AGENTS.md (both variants)
+  Coding Conventions now states diagrams are Mermaid fenced blocks in
+  markdown, updated in the same change as the work. Added a starter
+  Mermaid ER diagram to `docs/data-model.md` to match the existing one
+  in `docs/architecture.md`.
+
+### Changed
+
+- **Folded `guidance/verify-tooling.md` into `recommended-tools.md`**
+  (single source of truth) and repointed the AGENTS.md verify-check and
+  Pointers references in both variants. README now mentions the catalog.
+
 ## 2026-06-02 — Specs-by-stage ledger (v5.6)
 
 Back-ported and modernized from a downstream project (bragfile000)
