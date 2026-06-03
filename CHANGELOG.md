@@ -2,6 +2,33 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-02 — Specs-by-stage ledger (v5.6)
+
+Back-ported and modernized from a downstream project (bragfile000)
+built on an earlier template. Fills the one gap the `status` /
+`backlog` / `roadmap` trio left: a flat, every-spec ledger.
+
+### Added
+
+- **`just specs-by-stage`** — lists every spec grouped by stage, with
+  status, ship date, and complexity. Defaults to **all projects** (a
+  historical ledger — unlike `roadmap`/`backlog`, which scope to the
+  active project). `--active` (or `--current`) scopes to the active
+  project; a `PROJ-NNN` id (or full dir name) scopes to one project.
+  Reads authoritative front-matter — `project.stage`, `task.cycle`,
+  `task.complexity`, and the `ship` cost session's `recorded_at` for
+  archived specs — rather than scraping backlog prose, so it stays
+  accurate on the current data model. Also tallies un-promoted
+  "(not yet written)" backlog bullets per stage. Read-only.
+  (`scripts/specs-by-stage.sh`, `_lib.sh`-based; +5 test.sh checks)
+
+  The original downstream version scraped inline `(shipped on …)` /
+  `(S)` annotations out of stage backlogs; this rewrite derives the
+  same facts from the fields the template already maintains. Other
+  downstream scripts (`claude-code-post-session.sh`,
+  `build`/`install`/`uninstall`/`test-docs`) were reviewed and left
+  out as project-specific.
+
 ## 2026-06-02 — Decision auditing (v5.5)
 
 A native, zero-dependency take on LineSpec-style provenance auditing,

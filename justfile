@@ -123,6 +123,12 @@ backlog *FLAGS:
 roadmap:
     @./scripts/roadmap.sh
 
+# Flat ledger of every spec grouped by stage, with ship date and
+# complexity. Defaults to ALL projects (history); pass `--active` for
+# the current project or a `PROJ-NNN` id for a specific one.
+specs-by-stage *FLAGS:
+    @./scripts/specs-by-stage.sh {{FLAGS}}
+
 # Audit decisions: structural lint + scope-conflict warnings (zero
 # deps; a native take on LineSpec-style provenance auditing). Lints
 # front-matter and supersession links across all DEC-* files. Pass

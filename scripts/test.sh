@@ -422,6 +422,34 @@ else
 fi
 
 # ============================================================
+# specs-by-stage: flat ledger across scopes
+# ============================================================
+sbs_all=$(just specs-by-stage 2>&1)
+if printf '%s\n' "$sbs_all" | grep -qE "Specs by stage — all projects"; then
+    pass "specs-by-stage defaults to all projects"
+else
+    fail "specs-by-stage default header wrong: $sbs_all"
+fi
+if printf '%s\n' "$sbs_all" | grep -qE "^Totals: [0-9]+ shipped"; then
+    pass "specs-by-stage prints a totals line"
+else
+    fail "specs-by-stage totals line missing: $sbs_all"
+fi
+if printf '%s\n' "$sbs_all" | grep -qE "STAGE-001-foundational-infra"; then
+    pass "specs-by-stage groups specs under their stage"
+else
+    fail "specs-by-stage did not render STAGE-001: $sbs_all"
+fi
+sbs_active=$(just specs-by-stage --active 2>&1)
+if printf '%s\n' "$sbs_active" | grep -qE "active project \(PROJ-001"; then
+    pass "specs-by-stage --active scopes to the active project"
+else
+    fail "specs-by-stage --active header wrong: $sbs_active"
+fi
+assert_cmd_fails "specs-by-stage rejects an unknown flag" \
+    just specs-by-stage --bogus
+
+# ============================================================
 # decisions-audit: lint + scope auditing
 # ============================================================
 # Clean state: the example DEC-001 is well-formed and has an
