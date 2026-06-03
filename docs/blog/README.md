@@ -12,12 +12,10 @@ meant to be edited into your own voice before publishing.
 | 2026-06-02 | [The repo is the app](2026-06-02-the-repo-is-the-app.md) — why I built a spec-driven template | draft |
 | 2026-06-02 | [Dogfooding: what shipping bragfile taught the template](2026-06-02-dogfooding-bragfile.md) | draft |
 | 2026-06-02 | [Zero-dependency tooling](2026-06-02-zero-dependency-tooling.md) — decisions-audit and the reporting trio | draft |
+| 2026-06-03 | [Security in an agentic template](2026-06-03-security-in-an-agentic-template.md) — when the agent types the title | draft |
 
 ## Ideas not yet drafted
 
-- **Security in an agentic template** — the v5.8 `sed`-injection audit:
-  why "the operator types the title" stops being a safe assumption once
-  an agent types it. (Material in `SECURITY.md` + `CHANGELOG.md` v5.8.)
 - **One agent vs. two** — the `claude-only` / `claude-plus-agents` split,
   and why "a fresh session is weaker than it looks with a single agent"
   (from the bragfile feedback).
