@@ -13,12 +13,5 @@ meant to be edited into your own voice before publishing.
 | 2026-06-02 | [Dogfooding: what shipping bragfile taught the template](2026-06-02-dogfooding-bragfile.md) | draft |
 | 2026-06-02 | [Zero-dependency tooling](2026-06-02-zero-dependency-tooling.md) — decisions-audit and the reporting trio | draft |
 | 2026-06-03 | [Security in an agentic template](2026-06-03-security-in-an-agentic-template.md) — when the agent types the title | draft |
-
-## Ideas not yet drafted
-
-- **One agent vs. two** — the `claude-only` / `claude-plus-agents` split,
-  and why "a fresh session is weaker than it looks with a single agent"
-  (from the bragfile feedback).
-- **Tracking value and cost per spec** — the v5.2 front-matter for
-  business-value thesis and self-reported AI cost, and what the weekly
-  report does with it.
+| 2026-06-03 | [One agent or two](2026-06-03-one-agent-vs-two.md) — the two shapes of spec-driven work | draft |
+| 2026-06-03 | [Two numbers traditional dev hides](2026-06-03-value-and-cost.md) — value and AI cost per spec | draft |

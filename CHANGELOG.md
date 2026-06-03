@@ -2,6 +2,24 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-03 — More blog drafts + SECURITY.md ships downstream (v5.10)
+
+Documentation only — no script or behavior changes.
+
+### Added
+
+- **Two more blog drafts** (`docs/blog/`): "One agent or two" (the
+  `claude-only` / `claude-plus-agents` split and session hygiene vs.
+  handoffs) and "Two numbers traditional dev hides" (the v5.2 value
+  thesis + per-spec AI cost tracking). The blog ideas list is now
+  cleared — five drafts total.
+- **`SECURITY.md` in both variants**, so a repo created with `just init`
+  carries the trust model (local tooling + agents read files and run
+  commands; treat externally-sourced content as untrusted; secret
+  hygiene). User-facing, with a reporting section to adapt. The template
+  root keeps its own maintainer-facing `SECURITY.md`. README's
+  post-init file list now mentions it.
+
 ## 2026-06-02 — Project docs: usage, security, contributing, blog (v5.9)
 
 Documentation only — no script or behavior changes.
