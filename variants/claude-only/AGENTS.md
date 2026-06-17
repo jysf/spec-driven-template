@@ -74,20 +74,38 @@ delivered it, and where value traceability broke down.
 ## 4. Cost Tracking Discipline
 
 Every cycle on a spec appends a session entry to the spec's
-`cost.sessions` list. Agents self-report so reports can aggregate AI
-spend over time.
+`cost.sessions` list, with a **real** `tokens_total` for metered cycles —
+so reports aggregate actual AI spend, not zeros. Documentation alone is
+skippable, and cost tracking silently goes empty (all-null numerics) the
+moment a prompt says "leave it null"; the rule below + `just cost-audit`
+make it stick. Full reference: `docs/cost-tracking.md`.
 
-- **Claude Code:** run `/cost` at the end of your session.
-- **API calls:** use the `usage` object in the API response.
-- **Claude.ai web:** estimate based on session length. Set
-  `interface: claude-ai` so reports can distinguish estimates.
-- **Third-party agents** (Ollama, Kilo, Factory, etc.): use whatever
-  cost mechanism the agent provides. If none, enter null numeric
-  values with a note.
+- **Schema:** a single combined `tokens_total` per session (the harness
+  reports one number — `subagent_tokens` in an `Agent` result, or `/cost`
+  interactively). Do NOT split input/output; there is no reliable split.
+- **build / verify cycles** run as metered subagents: the ORCHESTRATOR
+  reads `subagent_tokens` + `duration_ms` from the `Agent` result and
+  writes the real `tokens_total` / `duration_minutes` / `estimated_usd`
+  into the spec at **ship**. (If run interactively, use `/cost`.) These
+  cycles must NOT be left null.
+- **design / ship cycles** are orchestrator main-loop work with no clean
+  per-cycle metering — leave numerics `null` with a "main-loop, not
+  separately metered" note.
+- **`estimated_usd`** = `tokens_total` × your model's published list rate,
+  no cache discount — an order-of-magnitude estimate; say so in the note.
+- **Other interfaces:** `interface: claude-ai` (estimate by length),
+  `api` (the `usage` object), `ollama`/`other`. Only genuinely un-metered
+  cycles may be null-with-note.
 
-Verify cycle flags specs missing cost entries for prior cycles (does
-not block the PR — visibility only). Ship cycle computes `cost.totals`
-from the session entries.
+The cycle-prompt wording lives in
+`projects/_templates/prompts/cost-snippet.md` — use it so prompts don't
+re-introduce the "null numerics" loophole. **Ship computes `cost.totals`**
+(sum of non-null sessions; `tokens_total` uses `0`, never `null`) and runs
+`just cost-audit`, which **fails if any shipped spec lacks build/verify
+cost** (constraint `cost-captured-per-cycle`; CI job `cost-data`; surfaced
+in `just status` and `report-weekly`). Pre-process specs can be
+grandfathered via `COST_AUDIT_GRANDFATHERED` in `scripts/_lib.sh` (empty
+by default).
 
 Reports aggregate cost by cycle, by interface, by spec, and by stage.
 
@@ -341,7 +359,7 @@ Stage Ship prompt.
 ## 16. Session Hygiene (claude-only specific)
 
 Because one agent plays multiple roles, context contamination is a real
-risk. Four habits keep it at bay:
+risk. Five habits keep it at bay:
 
 1. **New session per cycle where possible.** Especially design → build
    and build → verify.
@@ -350,6 +368,13 @@ risk. Four habits keep it at bay:
 3. **Weekly review is non-optional.** Without a second agent pushing
    back, drift compounds silently. Run `just weekly-review`.
 4. **Honest confidence values on decisions.** See Section 17.
+5. **One git worktree per concurrent session.** If more than one session
+   works on this repo at once, each MUST run in its own `git worktree`,
+   not the shared checkout — two agents writing one working tree corrupt
+   each other (a parallel build can clobber an uncommitted edit, or a
+   commit can land on the wrong branch). `git worktree add <path> <branch>`,
+   work there, commit + push, then `git worktree remove`. Always check
+   `git branch --show-current` before any commit.
 
 ---
 

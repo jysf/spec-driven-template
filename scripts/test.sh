@@ -516,6 +516,72 @@ else
 fi
 
 # ============================================================
+# cost-audit: the cost-capture gate has teeth
+# ============================================================
+# SPEC-002 was archived (shipped) in §5 with an empty cost block, so the
+# gate must fail until real build/verify numbers are recorded.
+assert_cmd_fails "cost-audit fails when a shipped spec lacks build/verify cost" \
+    just cost-audit
+
+# status surfaces the same gap.
+status_cost_out=$(just status 2>&1)
+if printf '%s\n' "$status_cost_out" | grep -qE "Specs missing cost data"; then
+    pass "status shows the 'Specs missing cost data' section"
+else
+    fail "status missing the cost-data section: $status_cost_out"
+fi
+if printf '%s\n' "$status_cost_out" | grep -qE "SPEC-002.*missing"; then
+    pass "status lists SPEC-002 as missing build/verify cost"
+else
+    fail "status did not flag SPEC-002: $status_cost_out"
+fi
+
+# Grandfathering a pre-process spec lets the gate pass (empty list by
+# default; here we opt SPEC-002 out via the env var).
+if COST_AUDIT_GRANDFATHERED=SPEC-002 just cost-audit >/dev/null 2>&1; then
+    pass "cost-audit passes when SPEC-002 is grandfathered"
+else
+    fail "cost-audit still failed with SPEC-002 grandfathered"
+fi
+
+# Recording real build+verify tokens clears the gate without grandfathering.
+awk '
+    /^  sessions: \[\]/ {
+        print "  sessions:"
+        print "    - cycle: build"
+        print "      interface: claude-code"
+        print "      tokens_total: 120000"
+        print "      estimated_usd: 0.50"
+        print "      recorded_at: 2026-06-17"
+        print "    - cycle: verify"
+        print "      interface: claude-code"
+        print "      tokens_total: 30000"
+        print "      estimated_usd: 0.15"
+        print "      recorded_at: 2026-06-17"
+        next
+    }
+    { print }
+' "$ARCHIVED" > "$ARCHIVED.tmp" && mv "$ARCHIVED.tmp" "$ARCHIVED"
+if just cost-audit >/dev/null 2>&1; then
+    pass "cost-audit passes once real build/verify cost is recorded"
+else
+    fail "cost-audit failed after recording real cost"
+fi
+
+# specs-by-stage now shows the cost column header and a recorded-cost total.
+sbs_cost=$(just specs-by-stage 2>&1)
+if printf '%s\n' "$sbs_cost" | grep -qE "cost \(usd · tokens\)"; then
+    pass "specs-by-stage header advertises the cost column"
+else
+    fail "specs-by-stage missing cost column header: $sbs_cost"
+fi
+if printf '%s\n' "$sbs_cost" | grep -qE "Recorded cost:"; then
+    pass "specs-by-stage prints a Recorded cost total"
+else
+    fail "specs-by-stage missing Recorded cost line: $sbs_cost"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

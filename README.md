@@ -87,6 +87,7 @@ Run `just --list` to see everything. The main ones:
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog |
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
+| `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just weekly-review` | Load recent activity and print the Weekly Review prompt |
 
 ## Documentation

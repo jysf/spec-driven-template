@@ -39,7 +39,13 @@ Current situation:
 - `README.md` — gets replaced by variant's README during init (variants
   have their own README.md)
 - `LICENSE` — survives init (not in variants, so both inherit)
-- `.github/` — survives init (template-only metadata)
+- `.github/TEMPLATE_README.md` — template-only metadata at the root; not in
+  variants, so it survives init (harmless leftover noise in an instance)
+- `.github/workflows/ci.yml` — lives inside *each variant* (not at the root),
+  so `just init` copies it to the instance's `.github/workflows/` but it does
+  NOT run against this template repo (which is never initialized). It carries
+  only the language-agnostic `cost-data` gate; per-stack build/test/lint jobs
+  are left for the instance to add.
 
 ## Testing changes to the template
 

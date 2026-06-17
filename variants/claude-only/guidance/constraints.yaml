@@ -59,3 +59,19 @@ constraints:
     added_by: human
     added_at: 2026-04-19
     rationale: "Keeps review loop tractable and traceable."
+
+  - id: cost-captured-per-cycle
+    rule: "Every shipped spec must record a real `tokens_total` on its metered cycles (build, verify) in `cost.sessions` — the orchestrator fills it from the Agent result's subagent_tokens (or `/cost`) at ship. Only un-metered main-loop cycles (design, ship) may be null-with-note. Enforced by `just cost-audit` (CI job `cost-data`)."
+    severity: warning
+    paths: ["projects/**/specs/**"]
+    added_by: claude
+    added_at: 2026-06-17
+    rationale: "Cost tracking is structurally present but silently goes empty when documentation alone asks for it (all-null numerics). A check makes it stick — the same pattern as wiring a license policy into CI. See AGENTS.md §4 and docs/cost-tracking.md."
+
+  - id: license-policy
+    rule: "If this project pulls in third-party dependencies, define an allowed-license policy (typically permissive-only: MIT / Apache-2.0 / BSD / ISC / Zlib) and enforce it in CI with your ecosystem's tool — cargo-deny (Rust), pip-licenses / pip-audit (Python), license-checker (Node), go-licenses (Go). Any dependency outside the policy fails the build unless explicitly excepted."
+    severity: advisory
+    paths: ["**"]
+    added_by: claude
+    added_at: 2026-06-17
+    rationale: "A copyleft (GPL/AGPL) dependency can silently relicense a statically-linked binary, and license drift is invisible until an audit. Make the policy mechanical. The tool is per-language — see docs/license-policy.md (includes a Rust cargo-deny worked example)."

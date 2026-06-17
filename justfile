@@ -136,6 +136,12 @@ specs-by-stage *FLAGS:
 decisions-audit *FLAGS:
     @./scripts/decisions-audit.sh {{FLAGS}}
 
+# Fail if any shipped spec is missing real build/verify cost data
+# (AGENTS.md §4 / docs/cost-tracking.md). Same check the CI `cost-data`
+# job runs; also surfaced in `just status` and `just report-weekly`.
+cost-audit:
+    @./scripts/cost-audit.sh
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------

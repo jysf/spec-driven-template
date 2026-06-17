@@ -2,6 +2,59 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-17 — Cost-capture gate + license-policy guidance (v5.11)
+
+Ported from a downstream instance of the template (a Rust project built on
+it): cost tracking was structurally present but silently went empty (specs
+shipped with all-null numerics, and the report lib summed
+`tokens_input`/`tokens_output` while specs record a single `tokens_total`).
+This makes cost capture real and enforced — a discipline documentation
+couldn't keep, made mechanical with a `just` check + a CI job. Plus generic
+guidance for the sibling license-policy gate.
+
+### Added
+
+- **`just cost-audit`** (`scripts/cost-audit.sh`, CI job `cost-data`) — fails
+  if any *shipped* spec lacks a positive `tokens_total` on its build/verify
+  cycles. design/ship (main-loop) cycles may stay null. Surfaced in
+  `just status` ("Specs missing cost data") and `just report-weekly`.
+- **`.github/workflows/ci.yml`** in both variants — a language-agnostic
+  `cost-data` job that runs the gate on every push/PR. Lands at the repo root
+  via `just init`; the template repo itself isn't initialized, so it doesn't
+  run there. App build/test/lint jobs are left for the project to add.
+- **`docs/cost-tracking.md`** — the operational reference: schema, where the
+  numbers come from, the enforcement layers, and the (initially empty)
+  grandfather list.
+- **`docs/license-policy.md`** — optional, per-language license-gate guidance
+  with a Rust cargo-deny worked example. The tool is per-ecosystem
+  (cargo-deny / pip-licenses / license-checker / go-licenses); the template
+  core ships no license tool or `deny.toml`.
+- **`projects/_templates/prompts/cost-snippet.md`** — cycle-prompt wording
+  that records real `tokens_total` instead of the old "null numerics" line.
+- **Constraints** `cost-captured-per-cycle` (warning, enforced) and
+  `license-policy` (advisory, opt-in) in both variants' `constraints.yaml`.
+
+### Changed
+
+- **`scripts/_lib.sh`** — `sum_cost_tokens_for_spec` now reads `tokens_total`
+  (still sums legacy `tokens_input`/`tokens_output` for forward-compat). New
+  audit helpers `is_grandfathered_cost`, `cycle_tokens_total`,
+  `spec_missing_cost_cycles`; `COST_AUDIT_GRANDFATHERED` defaults to empty.
+- **`scripts/status.sh`** — new "Specs missing cost data" section.
+- **`scripts/report_weekly.sh`** — the shipped-without-cost flag now checks
+  for null numerics on build/verify, not just whether any session entry exists.
+- **`scripts/specs-by-stage.sh`** — cost column per spec, a per-stage subtotal,
+  and a grand "Recorded cost" total.
+- **`AGENTS.md` §4** (both variants) — rewritten: `tokens_total` schema, no
+  null loophole, the capture mechanism, and the enforcement layers.
+- **`AGENTS.md` §16 / §13** — the one-worktree-per-concurrent-session habit
+  (claude-only Session Hygiene; claude-plus-agents Git Conventions, where two
+  agents run concurrently).
+- **`projects/_templates/spec.md`** (both variants) — corrected `cost:` block
+  comment (record real numbers; null only for un-metered cycles).
+- **`scripts/test.sh`** — coverage for the gate (teeth, status surfacing,
+  grandfathering, recovery, and the specs-by-stage cost column).
+
 ## 2026-06-03 — More blog drafts + SECURITY.md ships downstream (v5.10)
 
 Documentation only — no script or behavior changes.
