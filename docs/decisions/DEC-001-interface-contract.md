@@ -3,7 +3,7 @@ insight:
   id: DEC-001
   type: architecture
   confidence: 0.8
-status: proposed            # proposed | accepted | superseded
+status: accepted            # proposed | accepted | superseded
 date: 2026-06-18
 deciders: [jysf, claude]
 supersedes: null
@@ -19,8 +19,9 @@ tags: [architecture, api, schema, tooling, cli]
 
 > **This is the template's own decision log** (meta), separate from the
 > `decisions/` that ships *inside* each variant to instances. It records how
-> the template itself evolves. Status is **proposed** — this is a draft for
-> review. No implementation until accepted.
+> the template itself evolves. **Accepted 2026-06-18** — implementation
+> proceeds in phases (see Rollout); the cost-convention track is spun out to
+> [DEC-002](DEC-002-cost-convention.md).
 
 ## Context
 
