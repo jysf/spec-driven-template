@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-18 — Interface contract Phase 1a: `just dash` + `just validate` + schema reference (v5.12)
+
+Implements the non-`--json` part of `docs/decisions/DEC-001-interface-contract.md`
+Phase 1 (accepted 2026-06-18). Additive and non-breaking — every existing
+command and its output is unchanged. (`--json` output is the next increment.)
+
+### Added
+
+- **`just dash`** (`scripts/dash.sh`) — one read command, many lenses, the
+  antidote to view sprawl: `dash now` / `next` / `future` / `ledger` dispatch to
+  `status` / `backlog` / `roadmap` / `specs-by-stage` (which keep working as
+  permanent aliases), and bare `just dash` stitches a single overview (now +
+  future + recorded cost + flags). A new slice is a lens here, not a new script.
+- **`just validate`** (`scripts/validate.sh`) — the schema gate: fails if any
+  spec's front-matter is missing a required structural field (`task.id/type/
+  cycle/complexity`, `project.id/stage`, `repo.id`) or has an invalid enum.
+  Exits non-zero, CI-suitable. Skips `specs/prompts/` and `*-timeline.md`.
+  Cost-on-shipped stays with `cost-audit`; `DEC-*` linting stays with
+  `decisions-audit`.
+- **`docs/schema-reference.md`** (both variants) — the canonical front-matter
+  contract for every artifact (repo-context, brief, stage, spec, decision,
+  constraints, handoff), what each gate enforces, and the ContextCore/OTel
+  alignment. The front-matter is the repo's public API.
+
+### Notes
+
+- +11 test checks in `scripts/test.sh` (now 109) covering every `dash` lens,
+  the stitched dashboard, lens flag-passthrough, and the `validate` gate
+  (clean pass, enum failure, prompt-file exclusion).
+- Discovered while building `validate`: `find_all_specs` also returns
+  `specs/prompts/SPEC-*.md` and `*-timeline.md`; the validator skips both
+  explicitly (other commands skip them incidentally via downstream filters).
+
 ## 2026-06-17 — Cost-capture gate + license-policy guidance (v5.11)
 
 Ported from a downstream instance of the template (a Rust project built on

@@ -623,6 +623,37 @@ fi
 assert_cmd_fails "dash rejects an unknown lens" just dash bogus
 
 # ============================================================
+# validate: the schema gate (structural front-matter)
+# ============================================================
+just validate >/dev/null 2>&1 && pass "validate passes on a well-formed repo" \
+    || fail "validate failed on a clean repo"
+# A spec with an invalid enum value must fail the gate.
+cat > projects/PROJ-001-example-mvp/specs/SPEC-099-broken.md <<'BROKENSPEC'
+---
+task:
+  id: SPEC-099
+  type: task
+  cycle: bogus
+  complexity: S
+project:
+  id: PROJ-001
+  stage: STAGE-001
+repo:
+  id: my-app
+---
+BROKENSPEC
+assert_cmd_fails "validate fails on an invalid task.cycle" just validate
+rm -f projects/PROJ-001-example-mvp/specs/SPEC-099-broken.md
+just validate >/dev/null 2>&1 && pass "validate passes again once the bad spec is removed" \
+    || fail "validate still failing after the bad spec was removed"
+# Prompt files (specs/prompts/SPEC-*.md) share the glob but must NOT be
+# validated as specs — the example ships SPEC-001-build/design prompt files.
+if [ -f projects/PROJ-001-example-mvp/specs/prompts/SPEC-001-build.md ]; then
+    just validate >/dev/null 2>&1 && pass "validate ignores specs/prompts/ cycle-prompt files" \
+        || fail "validate wrongly flagged a prompts/ file"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

@@ -150,6 +150,13 @@ decisions-audit *FLAGS:
 cost-audit:
     @./scripts/cost-audit.sh
 
+# Validate that every spec's front-matter carries the required structural
+# fields with valid values (the schema contract; DEC-001 §1 /
+# docs/schema-reference.md). Exits non-zero on any violation — gate-style,
+# suitable for CI. Cost-on-shipped is enforced separately by `just cost-audit`.
+validate:
+    @./scripts/validate.sh
+
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------

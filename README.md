@@ -80,6 +80,7 @@ Run `just --list` to see everything. The main ones:
 | Command | What it does |
 |---|---|
 | `just init` | One-time: choose variant, scaffold the repo |
+| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage); no arg stitches an overview |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |
@@ -88,6 +89,7 @@ Run `just --list` to see everything. The main ones:
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
+| `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums (the schema gate; see `docs/schema-reference.md`) |
 | `just weekly-review` | Load recent activity and print the Weekly Review prompt |
 
 ## Documentation
