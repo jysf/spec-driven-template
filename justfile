@@ -111,6 +111,14 @@ daily-status-report:
         { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
         echo "✓ Wrote reports/daily/$D-status.md"
 
+# The project dashboard — one read view, many lenses (DEC-001 §4). With no
+# argument it stitches a single overview (now + future + cost + flags). The
+# lenses are the existing views, which keep working as their own commands:
+#   just dash now=status · next=backlog · future=roadmap · ledger=specs-by-stage
+# Want a new slice? Add a lens to scripts/dash.sh — not a new command.
+dash *ARGS:
+    @./scripts/dash.sh {{ARGS}}
+
 # Spec-grained "what's next?" view: in-flight specs in the active
 # stage, un-promoted bullets in the active stage's backlog, and
 # counts in upcoming stages. Pass --all to widen scope.

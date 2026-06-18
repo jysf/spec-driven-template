@@ -582,6 +582,47 @@ else
 fi
 
 # ============================================================
+# dash: unified read command, lenses dispatch to the existing views
+# ============================================================
+# Each lens must reproduce the view it aliases.
+dash_now=$(just dash now 2>&1)
+if printf '%s\n' "$dash_now" | grep -qE "Specs missing cost data"; then
+    pass "dash now → status view"
+else
+    fail "dash now did not render the status view: $dash_now"
+fi
+dash_future=$(just dash future 2>&1)
+if printf '%s\n' "$dash_future" | grep -qE "^Roadmap for "; then
+    pass "dash future → roadmap view"
+else
+    fail "dash future did not render the roadmap view: $dash_future"
+fi
+dash_next=$(just dash next 2>&1)
+if printf '%s\n' "$dash_next" | grep -qE "^Backlog for "; then
+    pass "dash next → backlog view"
+else
+    fail "dash next did not render the backlog view: $dash_next"
+fi
+dash_ledger=$(just dash ledger 2>&1)
+if printf '%s\n' "$dash_ledger" | grep -qE "Specs by stage —|Recorded cost:"; then
+    pass "dash ledger → specs-by-stage view"
+else
+    fail "dash ledger did not render the ledger view: $dash_ledger"
+fi
+# Flags pass through the lens to the underlying view.
+just dash ledger --active >/dev/null 2>&1 || fail "dash ledger --active exited non-zero"
+pass "dash ledger passes flags through to specs-by-stage"
+# Default (no lens) stitches the dashboard.
+dash_def=$(just dash 2>&1)
+if printf '%s\n' "$dash_def" | grep -qE "Dashboard —" && printf '%s\n' "$dash_def" | grep -qE "Recorded cost"; then
+    pass "dash (no arg) stitches now + future + recorded cost"
+else
+    fail "dash default dashboard missing expected sections: $dash_def"
+fi
+# Unknown lens is rejected (no silent fall-through to the dashboard).
+assert_cmd_fails "dash rejects an unknown lens" just dash bogus
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
