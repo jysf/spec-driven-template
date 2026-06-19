@@ -172,9 +172,9 @@ info:
 template-version *ARGS:
     @./scripts/template-version.sh {{ARGS}}
 
-# Run the template's end-to-end happy-path tests (uses a temp dir).
-# Intended for template maintainers, not end users. Works from the
-# pre-init template root only — after `just init` runs, variants/ is
-# gone and this test would fail at the first check.
-test:
+# Scaffolds a throwaway repo in a temp dir and runs the template's full suite
+# (init -> cycle -> reports -> audits). Maintainers only: works from the
+# pre-init template root; after `just init` it fails early by design.
+# Maintainer self-test of the template itself (the app keeps `just test`).
+template-selftest:
     @./scripts/test.sh

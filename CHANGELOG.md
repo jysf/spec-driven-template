@@ -2,7 +2,19 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
-## 2026-06-19 — Accomplishment-logging guidance at ship (v0.5.15)
+## 2026-06-19 — Rename the maintainer self-test recipe → `just template-selftest` (v0.5.16)
+
+### Changed
+
+- **`just test` → `just template-selftest`** (`justfile`) — the recipe that runs
+  the template's own maintainer self-test (`scripts/test.sh`) no longer squats on
+  `test`, the name an app's real suite (npm/cargo/etc.) expects to own. `test` is
+  now free; nothing shadows it. `scripts/test.sh` is unchanged, and CI's
+  `cost-data` job is untouched. Updated the dev-loop reference in `CONTRIBUTING.md`
+  (dated `docs/sessions/*` logs are left as historical record).
+
+Patch, not minor: the renamed recipe is maintainer-only (it fails early in a
+generated instance by design), so no instance/user workflow breaks.
 
 Tells agents to record the win when something ships, and — more importantly —
 how to frame **impact** (outcome, not output). Guidance only; no new dependency.

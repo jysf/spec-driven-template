@@ -29,12 +29,13 @@ that breaks one of them is almost always the wrong change:
 ## Development loop
 
 ```bash
-just test        # the end-to-end suite (init → full cycle → reports → audits)
+just template-selftest   # the end-to-end suite (init → full cycle → reports → audits)
 ```
 
-`just test` scaffolds a throwaway repo in a temp dir and runs the real
-commands against it. It must stay green. When you add or change a
-recipe:
+`just template-selftest` scaffolds a throwaway repo in a temp dir and runs the
+real commands against it. It must stay green. (The name is `template-selftest`,
+not `test`, so a generated app keeps `just test` for its own suite.) When you add
+or change a recipe:
 
 1. Add coverage to `scripts/test.sh` (assert behavior, not just exit 0).
 2. Update the command table in `README.md`.
