@@ -2,6 +2,40 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-18 — Interface contract Phase 1b: `--json` output + exit-code contract (v5.13)
+
+Completes DEC-001 Phase 1: machine-readable output on the read/dashboard views,
+so the front-matter contract is consumable by an MCP server / ContextCore
+exporter / UI without scraping. Additive and non-breaking — default human
+output is unchanged.
+
+### Added
+
+- **`--json` on `status`, `specs-by-stage`, `roadmap`, `backlog`, and `dash`**
+  (and every `dash` lens — `dash now --json` etc. delegate to the underlying
+  view). One stable envelope: `{schema_version, command, generated_at, data}`;
+  the `data` payload uses ContextCore/OTel attribute names (`task.id`,
+  `task.cycle`, `project.stage`, `cost.tokens_total`, `cost.estimated_usd`, …).
+  `just dash --json` stitches the status + roadmap reports plus a cost rollup.
+- **A JSON toolkit in `scripts/_lib.sh`** — `json_escape` (awk-based; correct
+  per the JSON spec for all control chars and UTF-8-safe), `json_qs`,
+  `json_obj`, `json_arr`, `json_emit`, `has_json_flag`. Pure bash 3.2, no
+  `jq`/`yq`. Resolves the DEC-001 open question on JSON-in-bash.
+- **Exit-code contract** (`usage_error`, exit 2): `0` success · `1` gate failure
+  (`cost-audit`/`validate`/`decisions-audit`) · `2` usage error. Documented in
+  `docs/schema-reference.md`.
+
+### Notes
+
+- +12 test checks (now 121): each `--json` endpoint emits the envelope and
+  parses as valid JSON (via `python3` when available), `dash now --json`
+  delegates to `status`, and a usage error exits `2`.
+- `report-daily` / `report-weekly` keep emitting markdown (a portable artifact
+  already); a `--json` variant for the report generators is deferred.
+- Building this caught two real bugs: bash-version-fragile param-expansion
+  escaping (now awk-based), and a `grep -c … || echo 0` that double-counted on
+  empty input (now an awk filter + `wc -l`).
+
 ## 2026-06-18 — Interface contract Phase 1a: `just dash` + `just validate` + schema reference (v5.12)
 
 Implements the non-`--json` part of `docs/decisions/DEC-001-interface-contract.md`

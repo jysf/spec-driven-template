@@ -11,6 +11,53 @@ VARIANT=$(get_variant)
 ACTIVE_PROJECT=$(get_active_project)
 ACTIVE_PROJECT_DIR="${REPO_ROOT}/projects/${ACTIVE_PROJECT}"
 
+# --- JSON output (DEC-001 §2) ------------------------------------------------
+if [ "$(has_json_flag "$@")" = 1 ]; then
+    specs_json=(); missing_specs=()
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in *-timeline.md|*/prompts/*) continue ;; esac
+        sid=$(basename "$f" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+        name=$(basename "$f" .md)
+        cyc=$(get_spec_cycle "$f"); [ -n "$cyc" ] || cyc="?"
+        u=$(sum_cost_usd_for_spec "$f"); t=$(sum_cost_tokens_for_spec "$f")
+        case "$f" in
+            */specs/done/*) shipped=true ;;
+            *) if [ "$cyc" = ship ]; then shipped=true; else shipped=false; fi ;;
+        esac
+        mc_json="[]"
+        if [ "$shipped" = true ] && ! is_grandfathered_cost "$name"; then
+            m=$(spec_missing_cost_cycles "$f")
+            if [ -n "$m" ]; then
+                parts=(); for c in $m; do parts+=("$(json_qs "$c")"); done
+                mc_json=$(json_arr "${parts[@]}")
+                missing_specs+=("$(json_qs "$sid")")
+            fi
+        fi
+        specs_json+=("$(json_obj \
+            "task.id" "$(json_qs "$sid")" \
+            "task.cycle" "$(json_qs "$cyc")" \
+            shipped "$shipped" \
+            "cost.tokens_total" "$t" \
+            "cost.estimated_usd" "$u" \
+            missing_cost "$mc_json")")
+    done < <(find_all_specs "$ACTIVE_PROJECT_DIR")
+    [ "${#specs_json[@]}" -gt 0 ] && specs_arr=$(json_arr "${specs_json[@]}") || specs_arr="[]"
+    [ "${#missing_specs[@]}" -gt 0 ] && missing_arr=$(json_arr "${missing_specs[@]}") || missing_arr="[]"
+    total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/ && !/\/prompts\//' | wc -l | tr -d ' ')
+    shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/' | wc -l | tr -d ' ')
+    total_decisions=$(find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
+    summary=$(json_obj total_specs "${total_specs:-0}" shipped "${shipped_specs:-0}" decisions "${total_decisions:-0}")
+    data=$(json_obj \
+        variant "$(json_qs "$VARIANT")" \
+        active_project "$(json_qs "$ACTIVE_PROJECT")" \
+        specs "$specs_arr" \
+        missing_cost_specs "$missing_arr" \
+        summary "$summary")
+    json_emit status "$data"
+    exit 0
+fi
+
 echo "${BOLD}Repo status${RESET}"
 echo ""
 echo "  Variant:         ${VARIANT}"

@@ -569,3 +569,89 @@ update_frontmatter_scalar() {
         { print }
     ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
+
+# --- Exit-code contract (DEC-001 §2) -----------------------------------------
+# 0 = success · 1 = gate failure (die) · 2 = usage error.
+# `die` already exits 1 (gate/runtime failure). Use usage_error for bad
+# flags/arguments so callers and CI can tell a misuse from a real violation.
+usage_error() {
+    echo "${RED}usage:${RESET} $*" >&2
+    exit 2
+}
+
+# --- JSON emission (DEC-001 §2; pure bash 3.2, no jq/yq) ---------------------
+# The output contract for `--json`. Helpers compose a value at a time; string
+# values must be passed through json_qs so they are escaped + quoted.
+
+# Escape a string for a JSON double-quoted literal. Fully correct per the JSON
+# spec: backslash, quote, the named control escapes, and any other control char
+# < 0x20 as \u00XX. awk-based (RS is a byte that can't appear in text, so the
+# whole input — newlines included — is one record). Portable across BWK awk and
+# gawk; multibyte UTF-8 passes through unchanged (raw UTF-8 is legal in JSON).
+json_escape() {
+    printf '%s' "$1" | awk '
+        BEGIN {
+            RS = "\001"
+            for (i = 0; i < 256; i++) ord[sprintf("%c", i)] = i
+        }
+        {
+            s = $0; out = ""; n = length(s)
+            for (i = 1; i <= n; i++) {
+                c = substr(s, i, 1); v = ord[c]
+                if      (c == "\\") out = out "\\\\"
+                else if (c == "\"") out = out "\\\""
+                else if (v == 8)  out = out "\\b"
+                else if (v == 9)  out = out "\\t"
+                else if (v == 10) out = out "\\n"
+                else if (v == 12) out = out "\\f"
+                else if (v == 13) out = out "\\r"
+                else if (v != "" && v < 32) out = out sprintf("\\u%04x", v)
+                else out = out c
+            }
+            printf "%s", out
+        }
+    '
+}
+
+# Quote+escape a string as a JSON string value. Empty input → "" (not null).
+json_qs() { printf '"%s"' "$(json_escape "$1")"; }
+
+# Build a JSON object from alternating key value pairs. Values must already be
+# valid JSON (use json_qs for strings, bare numbers, or the literal null).
+#   json_obj id "$(json_qs "$id")" tokens 42 note null
+json_obj() {
+    local out="" first=1 k v
+    while [ "$#" -ge 2 ]; do
+        k=$1; v=$2; shift 2
+        if [ "$first" = 1 ]; then first=0; else out="${out},"; fi
+        out="${out}\"${k}\":${v}"
+    done
+    printf '{%s}' "$out"
+}
+
+# Build a JSON array from already-valid-JSON elements.
+json_arr() {
+    local out="" first=1 e
+    for e in "$@"; do
+        if [ "$first" = 1 ]; then first=0; else out="${out},"; fi
+        out="${out}${e}"
+    done
+    printf '[%s]' "$out"
+}
+
+# Wrap a data payload in the stable envelope and print it.
+#   json_emit status "$data_object"
+json_emit() {
+    local cmd=$1 data=$2 ts
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || printf '')
+    printf '{"schema_version":1,"command":"%s","generated_at":"%s","data":%s}\n' \
+        "$cmd" "$ts" "$data"
+}
+
+# Detect a --json flag among args; prints "1" if present. Other args are the
+# caller's to handle. Usage: if [ "$(has_json_flag "$@")" = 1 ]; then ...
+has_json_flag() {
+    local a
+    for a in "$@"; do [ "$a" = "--json" ] && { printf '1'; return; }; done
+    printf '0'
+}

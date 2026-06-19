@@ -76,11 +76,13 @@ fmt_tok() {
 
 SCOPE="all"
 TARGET=""
+JSON_OUT=0
 for arg in "$@"; do
     case "$arg" in
         --active|--current) SCOPE="active" ;;
         --all)              SCOPE="all" ;;
-        --*)                die "Unknown flag: $arg (use --active, --all, or a PROJ-NNN id)" ;;
+        --json)             JSON_OUT=1 ;;
+        --*)                usage_error "Unknown flag: $arg (use --active, --all, --json, or a PROJ-NNN id)" ;;
         *)                  SCOPE="one"; TARGET="$arg" ;;
     esac
 done
@@ -99,6 +101,62 @@ else
 fi
 
 [ "${#PROJECTS[@]}" -gt 0 ] || die "No projects found under projects/."
+
+# ---------------------------------------------------------------------
+# JSON output (DEC-001 §2). Flat specs[] with ContextCore attribute names
+# + totals. Mirrors the human render below; exits before it.
+# ---------------------------------------------------------------------
+if [ "$JSON_OUT" = 1 ]; then
+    specs_json=()
+    g_shipped=0; g_inflight=0; g_notwritten=0; g_stages=0; g_usd="0.00"; g_tok=0
+    for proj in "${PROJECTS[@]}"; do
+        project_dir="${REPO_ROOT}/projects/${proj}"
+        [ -d "$project_dir" ] || continue
+        while IFS= read -r stage_file; do
+            [ -f "$stage_file" ] || continue
+            g_stages=$((g_stages + 1))
+            stage_id=$(basename "$stage_file" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+            sshipped=$(get_stage_shipped_at "$stage_file")
+            nw=$(grep -cE '^- \[[ x~?]\] \(not yet written\)' "$stage_file" 2>/dev/null || true)
+            g_notwritten=$((g_notwritten + ${nw:-0}))
+            while IFS= read -r sf; do
+                [ -f "$sf" ] || continue
+                case "$sf" in *-timeline.md) continue ;; esac
+                [ "$(get_spec_stage "$sf")" = "$stage_id" ] || continue
+                sid=$(basename "$sf" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+                cyc=$(get_spec_cycle "$sf"); [ -n "$cyc" ] || cyc="?"
+                cx=$(get_spec_complexity "$sf"); [ -n "$cx" ] || cx="?"
+                u=$(sum_cost_usd_for_spec "$sf"); t=$(sum_cost_tokens_for_spec "$sf")
+                g_usd=$(awk -v a="$g_usd" -v b="$u" 'BEGIN{printf "%.2f", a+b}')
+                g_tok=$((g_tok + t))
+                case "$sf" in
+                    */done/*)
+                        shipped_bool=true
+                        sdate=$(get_spec_ship_date "$sf"); [ -n "$sdate" ] || sdate="$sshipped"
+                        g_shipped=$((g_shipped + 1)) ;;
+                    *)  shipped_bool=false; sdate=""; g_inflight=$((g_inflight + 1)) ;;
+                esac
+                if [ -n "$sdate" ]; then sdate_json=$(json_qs "$sdate"); else sdate_json=null; fi
+                specs_json+=("$(json_obj \
+                    project "$(json_qs "$proj")" \
+                    "task.id" "$(json_qs "$sid")" \
+                    "project.stage" "$(json_qs "$stage_id")" \
+                    "task.cycle" "$(json_qs "$cyc")" \
+                    "task.complexity" "$(json_qs "$cx")" \
+                    shipped "$shipped_bool" \
+                    ship_date "$sdate_json" \
+                    "cost.tokens_total" "$t" \
+                    "cost.estimated_usd" "$u")")
+            done < <(find_all_specs "$project_dir" | sort)
+        done < <(find "${project_dir}/stages" -maxdepth 1 -type f -name 'STAGE-*.md' 2>/dev/null | sort)
+    done
+    if [ "${#specs_json[@]}" -gt 0 ]; then specs_arr=$(json_arr "${specs_json[@]}"); else specs_arr="[]"; fi
+    totals=$(json_obj shipped "$g_shipped" in_flight "$g_inflight" not_written "$g_notwritten" \
+        stages "$g_stages" projects "${#PROJECTS[@]}" "cost.tokens_total" "$g_tok" "cost.estimated_usd" "$g_usd")
+    data=$(json_obj scope "$(json_qs "$SCOPE")" specs "$specs_arr" totals "$totals")
+    json_emit specs-by-stage "$data"
+    exit 0
+fi
 
 # ---------------------------------------------------------------------
 # Render.

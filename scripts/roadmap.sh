@@ -60,6 +60,45 @@ count_backlog_bullets() {
     ' "$f"
 }
 
+# --- JSON output (DEC-001 §2) ------------------------------------------------
+if [ "$(has_json_flag "$@")" = 1 ]; then
+    active_stage_file=$(get_active_stage_file "$ACTIVE_DIR" || true)
+    active_stage_id=""
+    [ -n "$active_stage_file" ] && active_stage_id=$(basename "$active_stage_file" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+    stages_json=()
+    if [ -d "$STAGES_DIR" ]; then
+        for s in "${STAGES_DIR}"/STAGE-*.md; do
+            [ -f "$s" ] || continue
+            sid=$(basename "$s" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+            status=$(get_stage_status "$s"); [ -n "$status" ] || status="?"
+            case "$status" in
+                shipped)   bucket=shipped ;;
+                cancelled) bucket=cancelled ;;
+                active)    if [ "$sid" = "$active_stage_id" ]; then bucket=active; else bucket=upcoming; fi ;;
+                *)         bucket=upcoming ;;
+            esac
+            ca=$(get_stage_created_at "$s"); sa=$(get_stage_shipped_at "$s"); tg=$(get_stage_target "$s")
+            inf=$(count_in_flight_for_stage "$sid"); bk=$(count_backlog_bullets "$s")
+            stages_json+=("$(json_obj \
+                "project.stage" "$(json_qs "$sid")" \
+                "stage.status" "$(json_qs "$status")" \
+                bucket "$(json_qs "$bucket")" \
+                created_at "$([ -n "$ca" ] && json_qs "$ca" || printf null)" \
+                shipped_at "$([ -n "$sa" ] && json_qs "$sa" || printf null)" \
+                target_complete "$([ -n "$tg" ] && json_qs "$tg" || printf null)" \
+                in_flight "$inf" \
+                backlog "$bk")")
+        done
+    fi
+    [ "${#stages_json[@]}" -gt 0 ] && stages_arr=$(json_arr "${stages_json[@]}") || stages_arr="[]"
+    data=$(json_obj \
+        active_project "$(json_qs "$ACTIVE_PROJECT")" \
+        active_stage "$([ -n "$active_stage_id" ] && json_qs "$active_stage_id" || printf null)" \
+        stages "$stages_arr")
+    json_emit roadmap "$data"
+    exit 0
+fi
+
 echo "${BOLD}Roadmap for ${ACTIVE_PROJECT}${RESET}"
 if [ ! -d "$STAGES_DIR" ]; then
     echo "  ${DIM}(no stages/ directory yet)${RESET}"

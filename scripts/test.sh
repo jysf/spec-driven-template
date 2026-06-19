@@ -654,6 +654,46 @@ if [ -f projects/PROJ-001-example-mvp/specs/prompts/SPEC-001-build.md ]; then
 fi
 
 # ============================================================
+# --json: the structured-output contract (DEC-001 §2)
+# ============================================================
+HAVE_PY3=0; command -v python3 >/dev/null 2>&1 && HAVE_PY3=1
+json_ok() {
+    local label="$1"; shift
+    local out; out=$("$@" 2>/dev/null)
+    if printf '%s' "$out" | grep -q '"schema_version":1'; then
+        pass "${label}: emits the envelope"
+    else
+        fail "${label}: missing envelope: $out"
+    fi
+    if [ "$HAVE_PY3" = 1 ]; then
+        if printf '%s' "$out" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null; then
+            pass "${label}: valid JSON"
+        else
+            fail "${label}: invalid JSON: $out"
+        fi
+    fi
+}
+json_ok "status --json"         just status --json
+json_ok "specs-by-stage --json" just specs-by-stage --json
+json_ok "roadmap --json"        just roadmap --json
+json_ok "backlog --json"        just backlog --json
+json_ok "dash --json"           just dash --json
+# A lens carries the underlying command name (delegation).
+if just dash now --json 2>/dev/null | grep -q '"command":"status"'; then
+    pass "dash now --json delegates to status"
+else
+    fail "dash now --json did not delegate to status"
+fi
+# Usage errors return exit 2 (distinct from gate failures, which are 1).
+if just specs-by-stage --bogus >/dev/null 2>&1; then
+    fail "specs-by-stage --bogus should have failed"
+else
+    rc=$?
+    [ "$rc" = 2 ] && pass "usage error exits 2 (DEC-001 §2 contract)" \
+        || fail "usage error exit was ${rc}, expected 2"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

@@ -69,9 +69,10 @@ list-variants:
 # DAILY COMMANDS (work after `just init`)
 # ----------------------------------------------------------------------------
 
-# Print repo state: active project, stage, specs by cycle, stale items
-status:
-    @./scripts/status.sh
+# Print repo state: active project, stage, specs by cycle, stale items.
+# Pass --json for machine-readable output (DEC-001 §2).
+status *ARGS:
+    @./scripts/status.sh {{ARGS}}
 
 # Scaffold a new spec. Usage: just new-spec "short title" STAGE-NNN [PROJ-NNN]
 new-spec TITLE STAGE_ID PROJECT_ID="":
@@ -128,8 +129,8 @@ backlog *FLAGS:
 # Stage-grained "where is this project going" view: one row per
 # stage in the active project with status, date range, and (for
 # active/upcoming) spec counts.
-roadmap:
-    @./scripts/roadmap.sh
+roadmap *ARGS:
+    @./scripts/roadmap.sh {{ARGS}}
 
 # Flat ledger of every spec grouped by stage, with ship date and
 # complexity. Defaults to ALL projects (history); pass `--active` for

@@ -80,7 +80,7 @@ Run `just --list` to see everything. The main ones:
 | Command | What it does |
 |---|---|
 | `just init` | One-time: choose variant, scaffold the repo |
-| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage); no arg stitches an overview |
+| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage); no arg stitches an overview. Add `--json` for machine-readable output (also on status/specs-by-stage/roadmap/backlog) |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |

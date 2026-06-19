@@ -130,3 +130,37 @@ OTel pipeline without scraping.
 > Versioning: a `schema_version` per artifact is planned so changes are
 > detectable; until then, schema changes are tracked via decisions + a migration
 > note (precedent: `MIGRATION_TO_REPORTS_AND_COSTS.md`).
+
+---
+
+## Structured output (`--json`) and exit codes
+
+The read/dashboard commands accept `--json` for machine-readable output — the
+contract a consumer (an MCP server, a ContextCore exporter, a dashboard) reads
+instead of scraping text. Supported: `dash` (and every lens — `now` / `next` /
+`future` / `ledger`), `status`, `specs-by-stage`, `roadmap`, `backlog`. Default
+human output is unchanged.
+
+Stable envelope:
+
+```
+{ "schema_version": 1, "command": "<name>", "generated_at": "<UTC ISO-8601>",
+  "data": { … } }
+```
+
+The `data` payload uses the ContextCore/OTel attribute names above (`task.id`,
+`task.cycle`, `project.stage`, `cost.tokens_total`, `cost.estimated_usd`, …).
+`just dash --json` stitches the `status` and `roadmap` reports plus a cost
+rollup. The report generators (`report-daily` / `report-weekly`) emit markdown,
+not `--json` — their files are already a portable artifact.
+
+> If your `just` version intercepts the flag, pass it after `--`:
+> `just status -- --json`.
+
+Exit-code contract (DEC-001 §2):
+
+| Code | Meaning |
+|---|---|
+| `0` | success (read commands always; gates when clean) |
+| `1` | gate failure — a real violation (`cost-audit`, `validate`, `decisions-audit`) |
+| `2` | usage error (unknown flag/argument) |

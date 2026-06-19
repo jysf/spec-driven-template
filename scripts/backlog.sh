@@ -20,20 +20,23 @@ source "${SCRIPT_DIR}/_lib.sh"
 require_initialized
 
 SHOW_ALL=0
+JSON_OUT=0
 for arg in "$@"; do
     case "$arg" in
         --all) SHOW_ALL=1 ;;
+        --json) JSON_OUT=1 ;;
         -h|--help)
             cat <<EOF
-Usage: just backlog [--all]
+Usage: just backlog [--all] [--json]
 
-  --all   Include in-flight specs and un-promoted bullets across all
-          stages, not just the active one. Counts for upcoming stages
-          stay rolled up.
+  --all    Include in-flight specs and un-promoted bullets across all
+           stages, not just the active one. Counts for upcoming stages
+           stay rolled up.
+  --json   Machine-readable output (DEC-001 §2).
 EOF
             exit 0
             ;;
-        *) die "Unknown argument: $arg (try --help)" ;;
+        *) usage_error "Unknown argument: $arg (try --help)" ;;
     esac
 done
 
@@ -114,6 +117,76 @@ format_unpromoted_bullet() {
 count_unpromoted_bullets() {
     extract_unpromoted_bullets "$1" | wc -l | tr -d ' '
 }
+
+# --- JSON output (DEC-001 §2) ---------------------------------------
+if [ "$JSON_OUT" = 1 ]; then
+    scope=$([ "$SHOW_ALL" = 1 ] && printf all || printf active)
+    inflight_json=(); unpromoted_json=(); upcoming_json=()
+
+    if [ -d "$SPECS_DIR" ]; then
+        for f in "${SPECS_DIR}"/SPEC-*.md; do
+            [ -f "$f" ] || continue
+            cycle=$(get_spec_cycle "$f")
+            case "$cycle" in frame|design|build|verify|ship) ;; *) continue ;; esac
+            stage_id=$(get_spec_stage_id "$f")
+            if [ "$SHOW_ALL" = 1 ] || [ "$stage_id" = "$ACTIVE_STAGE_ID" ]; then
+                sid=$(basename "$f" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+                cx=$(get_spec_complexity "$f"); [ -n "$cx" ] || cx="?"
+                inflight_json+=("$(json_obj "task.id" "$(json_qs "$sid")" "task.cycle" "$(json_qs "$cycle")" \
+                    "task.complexity" "$(json_qs "$cx")" "project.stage" "$(json_qs "$stage_id")")")
+            fi
+        done
+    fi
+
+    # Append unpromoted-bullet objects for one stage to unpromoted_json (global).
+    emit_bullets_for() {
+        local sf="$1" sidp="$2" line summary complexity
+        while IFS= read -r line; do
+            [ -n "$line" ] || continue
+            summary=$(printf '%s' "$line" | sed -E 's/^[[:space:]]*-[[:space:]]*\[[ x~?]\][[:space:]]*//; s/\(not yet written\)[[:space:]]*[—-][[:space:]]*//')
+            complexity=null
+            if [[ "$summary" =~ \[([SML])\] ]]; then
+                complexity=$(json_qs "${BASH_REMATCH[1]}")
+                summary=$(printf '%s' "$summary" | sed -E 's/[[:space:]]*\[[SML]\][[:space:]]*//')
+            fi
+            summary=$(printf '%s' "$summary" | sed -E 's/[[:space:]]+$//')
+            unpromoted_json+=("$(json_obj "project.stage" "$(json_qs "$sidp")" summary "$(json_qs "$summary")" complexity "$complexity")")
+        done <<< "$(extract_unpromoted_bullets "$sf")"
+    }
+    if [ -d "$STAGES_DIR" ]; then
+        if [ "$SHOW_ALL" = 1 ]; then
+            for s in "${STAGES_DIR}"/STAGE-*.md; do
+                [ -f "$s" ] || continue
+                emit_bullets_for "$s" "$(basename "$s" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')"
+            done
+        elif [ -n "$ACTIVE_STAGE_FILE" ]; then
+            emit_bullets_for "$ACTIVE_STAGE_FILE" "$ACTIVE_STAGE_ID"
+        fi
+    fi
+
+    if [ -d "$STAGES_DIR" ]; then
+        for s in "${STAGES_DIR}"/STAGE-*.md; do
+            [ -f "$s" ] || continue
+            sid=$(basename "$s" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+            [ "$sid" = "$ACTIVE_STAGE_ID" ] && continue
+            status=$(get_stage_status "$s")
+            { [ "$status" = shipped ] || [ "$status" = cancelled ]; } && continue
+            cnt=$(count_unpromoted_bullets "$s")
+            upcoming_json+=("$(json_obj "project.stage" "$(json_qs "$sid")" backlog_count "$cnt")")
+        done
+    fi
+
+    mkarr() { if [ "$#" -gt 0 ] && [ -n "${1:-}" ]; then json_arr "$@"; else printf '[]'; fi; }
+    data=$(json_obj \
+        active_project "$(json_qs "$ACTIVE_PROJECT")" \
+        active_stage "$([ -n "$ACTIVE_STAGE_ID" ] && json_qs "$ACTIVE_STAGE_ID" || printf null)" \
+        scope "$(json_qs "$scope")" \
+        in_flight "$(mkarr "${inflight_json[@]:-}")" \
+        unpromoted "$(mkarr "${unpromoted_json[@]:-}")" \
+        upcoming "$(mkarr "${upcoming_json[@]:-}")")
+    json_emit backlog "$data"
+    exit 0
+fi
 
 # --- Output ---------------------------------------------------------
 
