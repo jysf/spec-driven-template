@@ -118,3 +118,42 @@ search over decisions via embeddings. It overlaps with what
 `/decisions/` + `just decisions-audit` already do natively, so the
 template doesn't depend on it. Reach for it only if you specifically want
 embedding-based semantic search across a large decision history.
+
+---
+
+## Accomplishment logging (at ship)
+
+When a spec, stage, or project ships, record the win in an accomplishment
+log — for retros, performance reviews, and résumés.
+[brag](https://github.com/) is one such tool (a local-first CLI: `brag add`);
+any equivalent works. Optional, never required, and personal/team-specific —
+keep it out of the template defaults.
+
+**When** — at the `ship` cycle (AGENTS §15):
+- Per shipped spec, or batch a stage's specs into one entry at stage-ship.
+- At stage-ship: the user-visible capability the stage delivered.
+- At project-ship: whether the project's `value.thesis` held up.
+
+**How** (brag example):
+
+```
+brag add \
+  -t "<short headline of what shipped>" \
+  -p "<project / initiative>" -k shipped -T "<comma,tags>" \
+  -d "<what + how, 2–4 sentences>" \
+  -i "<IMPACT — see below>"
+```
+
+**How to think about impact** (the `-i` field — the one that matters):
+Impact is the *outcome*, not the output. "Shipped the logger" is output;
+"structured logging cut incident-triage time, unblocking on-call" is impact.
+A good impact line answers *who or what is better off, and by how much.*
+
+- Prefer a metric, a quote, or a concrete unblock over an adjective.
+- Reuse the value you already wrote — the spec's `value_link`, the stage's
+  `value_contribution.delivers`, the project's `value.thesis`. The ship
+  Reflection is where this crystallizes; the brag entry is its outward form.
+- Pair it with cost: a spec's `cost.totals` lets you frame "delivered &lt;impact&gt;
+  for ~$&lt;spend&gt;" — value-per-dollar, which this template already tracks.
+- Be honest (AGENTS §17, confidence discipline). A defensible, order-of-
+  magnitude claim beats a grand vague one.

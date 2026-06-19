@@ -354,6 +354,11 @@ session entry, then compute `cost.totals`. Then
 `just archive-spec SPEC-NNN`. If stage backlog is complete, run the
 Stage Ship prompt.
 
+Optionally, log the win in an accomplishment log (see
+`guidance/recommended-tools.md` → Accomplishment logging) — frame the
+**impact** (the outcome / who's better off), not the output. The ship
+Reflection and the spec's `value_link` are the raw material.
+
 ---
 
 ## 16. Session Hygiene (claude-only specific)

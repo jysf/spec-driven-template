@@ -2,6 +2,29 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-19 — Accomplishment-logging guidance at ship (v0.5.15)
+
+Tells agents to record the win when something ships, and — more importantly —
+how to frame **impact** (outcome, not output). Guidance only; no new dependency.
+
+### Added
+
+- **`guidance/recommended-tools.md` → "Accomplishment logging (at ship)"** (both
+  variants) — recommends an accomplishment log (e.g. `brag`) as an optional,
+  never-required external tool, with the `brag add` invocation and *when* to log
+  (per shipped spec / stage-ship / project-ship). The bulk is **how to think
+  about impact**: outcome over output; prefer a metric/quote/unblock; reuse the
+  value you already wrote (`value_link`, `value_contribution.delivers`,
+  `value.thesis`); pair it with `cost.totals` for a value-per-dollar story; stay
+  honest (§17 confidence discipline).
+- **AGENTS.md §15 "During ship"** (both variants) — an optional step pointing to
+  that guidance, framing the impact from the ship Reflection + `value_link`.
+
+### Notes
+
+- +2 test checks (now 128): the accomplishment-logging guidance survives
+  `just init` into an instance (both `recommended-tools.md` and `AGENTS.md`).
+
 ## 2026-06-19 — Versioning system + `just template-version` (v0.5.14)
 
 The template now has a real, machine-readable version. (`TEMPLATE_README.md`

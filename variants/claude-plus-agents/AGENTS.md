@@ -390,6 +390,10 @@ Then:
 - Append a ship cost session entry, then compute `cost.totals`.
 - Run `just archive-spec SPEC-NNN` (moves to `done/`, updates stage).
 - If stage backlog is complete, run the Stage Ship prompt.
+- Optionally, log the win in an accomplishment log (see
+  `guidance/recommended-tools.md` → Accomplishment logging) — frame the
+  **impact** (the outcome / who's better off), not the output. The ship
+  Reflection and the spec's `value_link` are the raw material.
 - Commit.
 
 ---

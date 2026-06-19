@@ -728,6 +728,14 @@ else
 fi
 
 # ============================================================
+# Accomplishment-logging guidance survives init
+# ============================================================
+assert_contains "guidance/recommended-tools.md" "Accomplishment logging" \
+    "recommended-tools documents accomplishment logging"
+assert_contains "AGENTS.md" "Accomplishment logging" \
+    "AGENTS ship step points to the accomplishment-logging guidance"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
