@@ -694,6 +694,40 @@ else
 fi
 
 # ============================================================
+# template-version: the versioning system
+# ============================================================
+assert_file "VERSION"
+ver=$(tr -d ' \t\n\r' < VERSION)
+# Semver shape.
+if printf '%s' "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    pass "VERSION is semver (${ver})"
+else
+    fail "VERSION is not semver: '${ver}'"
+fi
+# Human output names the template + the VERSION value.
+tv=$(just template-version 2>&1)
+if [ "$tv" = "spec-driven-template ${ver}" ]; then
+    pass "template-version prints the VERSION value"
+else
+    fail "template-version output '${tv}' != 'spec-driven-template ${ver}'"
+fi
+# --json carries the same version.
+if [ "$HAVE_PY3" = 1 ]; then
+    if just template-version --json 2>/dev/null \
+        | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="template-version" and d["data"]["version"]==sys.argv[1]' "$ver" 2>/dev/null; then
+        pass "template-version --json carries the version"
+    else
+        fail "template-version --json wrong or invalid"
+    fi
+fi
+# Drift guard: the VERSION value must appear in the newest CHANGELOG entry.
+if grep -qE "v${ver}([^0-9]|\$)" CHANGELOG.md; then
+    pass "VERSION matches a CHANGELOG entry (no drift)"
+else
+    fail "VERSION ${ver} not found in CHANGELOG.md (version/changelog drift)"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

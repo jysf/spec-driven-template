@@ -62,6 +62,19 @@ just status
 
 ## Versioning
 
-The template doesn't have its own version. Each variant's docs link to
-the current ContextCore philosophy; if ContextCore fundamentally changes
-its vocabulary, this template should be updated in lockstep.
+The template version is the top-level `VERSION` file (semver), surfaced by
+`just template-version`. `VERSION` is a top-level file (not in `variants/`), so
+it survives `just init` — a generated instance reports the template version it
+was scaffolded from. The template is **pre-1.0** (`0.y.z`): the interface may
+still change.
+
+Bump policy (also in `CONTRIBUTING.md`):
+- While `0.y.z`: bump the minor `y` for a breaking change (e.g. the DEC-001
+  Phase 3 command consolidation), the patch `z` for an additive feature or fix.
+- `1.0.0` marks the first stable release.
+
+Every change bumps `VERSION` and adds a `CHANGELOG.md` entry tagged with the
+same `v<version>`; `scripts/test.sh` drift-guards the two against each other.
+Separately, the vocabulary still tracks ContextCore — if ContextCore
+fundamentally changes its conventions, update the template (and the schema
+reference) in lockstep.

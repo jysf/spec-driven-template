@@ -38,10 +38,29 @@ recipe:
 
 1. Add coverage to `scripts/test.sh` (assert behavior, not just exit 0).
 2. Update the command table in `README.md`.
-3. Add a `CHANGELOG.md` entry — one per change, newest at the top, with
-   a short version tag.
+3. Bump the top-level `VERSION` file (see Versioning below) and add a matching
+   `CHANGELOG.md` entry — one per change, newest at the top, tagged with the
+   same `vMAJOR.MINOR.PATCH`. A test drift-guards `VERSION` against the CHANGELOG.
 4. If the change is user-facing, reflect it in the relevant `AGENTS.md`
    sections of **both** variants.
+
+## Versioning
+
+The template version lives in the top-level `VERSION` file (semver) and is
+printed by `just template-version`. It is **pre-1.0** (`0.y.z`) — the command
+surface and the front-matter/`--json` contract may still change. Bump it with
+every change:
+
+- While `0.y.z`: bump the minor `y` for a **breaking** change (renamed/removed
+  recipe, changed output contract, incompatible schema). The DEC-001 Phase 3
+  command consolidation is breaking, so it bumps the minor.
+- Bump the patch `z` for an **additive** feature (new recipe/flag/`--json`
+  field) or a fix.
+- `1.0.0` marks the **first stable** release — declared once the command surface
+  and the front-matter/`--json` contract are considered stable.
+
+`VERSION` is top-level (not in `variants/`), so it survives `just init`: an
+instance reports the template version it was scaffolded from.
 
 ## Style
 

@@ -2,6 +2,34 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-19 — Versioning system + `just template-version` (v0.5.14)
+
+The template now has a real, machine-readable version. (`TEMPLATE_README.md`
+previously claimed it had none, while the CHANGELOG tagged `v5.x` — this
+reconciles that.) Adopted **honest pre-1.0 semver**: the old `v5.x` tags were a
+sequence counter, never semver majors, so the canonical version is restated as
+`0.5.14` (a leading `0.` signals the interface is still moving). Prior CHANGELOG
+tags stay as historical labels.
+
+### Added
+
+- **`VERSION`** (top-level, semver) — the single source of truth. It survives
+  `just init`, so a generated instance reports the template version it was
+  scaffolded from.
+- **`just template-version`** (`scripts/template-version.sh`) — prints
+  `spec-driven-template <version>`; works pre-init (the template) and post-init
+  (an instance). `--json` for machine-readable output (Phase 1b envelope).
+- **Bump policy** (CONTRIBUTING.md): while pre-1.0 (`0.y.z`), the minor `y`
+  bumps on a breaking change (e.g. the DEC-001 Phase 3 command consolidation)
+  and the patch `z` on an additive feature or fix; `1.0.0` marks the first
+  stable release. Bumping `VERSION` is now a step in the dev loop, and a test
+  drift-guards `VERSION` against the newest CHANGELOG entry.
+
+### Notes
+
+- +5 test checks (now 126): semver shape, human + `--json` output, and the
+  VERSION↔CHANGELOG drift guard.
+
 ## 2026-06-18 — Interface contract Phase 1b: `--json` output + exit-code contract (v5.13)
 
 Completes DEC-001 Phase 1: machine-readable output on the read/dashboard views,

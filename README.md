@@ -90,6 +90,7 @@ Run `just --list` to see everything. The main ones:
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums (the schema gate; see `docs/schema-reference.md`) |
+| `just template-version` | Print the spec-driven template version (the version your repo was scaffolded from); `--json` for machine-readable |
 | `just weekly-review` | Load recent activity and print the Weekly Review prompt |
 
 ## Documentation

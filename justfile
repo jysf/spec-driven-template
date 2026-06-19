@@ -166,6 +166,12 @@ validate:
 info:
     @./scripts/info.sh
 
+# Print the spec-driven template version (from the top-level VERSION file).
+# An instance reports the template version it was scaffolded from. `--json`
+# for machine-readable output.
+template-version *ARGS:
+    @./scripts/template-version.sh {{ARGS}}
+
 # Run the template's end-to-end happy-path tests (uses a temp dir).
 # Intended for template maintainers, not end users. Works from the
 # pre-init template root only — after `just init` runs, variants/ is
