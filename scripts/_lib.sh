@@ -655,3 +655,86 @@ has_json_flag() {
     for a in "$@"; do [ "$a" = "--json" ] && { printf '1'; return; }; done
     printf '0'
 }
+
+# --- Governance readers (decisions + questions) for the dash lenses ----------
+# These browse repo-level governance artifacts (cf. `decisions-audit`, which
+# lints them). Shared by the dash lenses and the default-dash flag counts.
+
+# All decision files (repo-level), sorted. Empty if no decisions/ dir.
+find_all_decisions() {
+    find "${REPO_ROOT}/decisions" -maxdepth 1 -type f -name 'DEC-*.md' 2>/dev/null | sort
+}
+
+# insight.id; falls back to the filename's DEC-NNN stem.
+get_dec_id() {
+    local id
+    id=$(awk '/^---$/{f=!f;next} !f{next} /^insight:/{i=1;next} i&&/^[a-zA-Z_]/{i=0} i&&/^[[:space:]]+id:/{print $2;exit}' "$1")
+    [ -n "$id" ] || id=$(basename "$1" .md | sed -E 's/^(DEC-[0-9]+).*/\1/')
+    echo "$id"
+}
+
+# insight.confidence (e.g. 0.95). Empty if missing.
+get_dec_confidence() {
+    awk '/^---$/{f=!f;next} !f{next} /^insight:/{i=1;next} i&&/^[a-zA-Z_]/{i=0} i&&/^[[:space:]]+confidence:/{print $2;exit}' "$1"
+}
+
+# superseded_by (top-level). Empty if null/missing (i.e. the decision is active).
+get_dec_superseded_by() {
+    awk '/^---$/{f=!f;next} !f{next} /^superseded_by:/{v=$2; if(v!="null"&&v!="")print v; exit}' "$1"
+}
+
+# Title from the first `# DEC-XXX: <title>` heading (just the <title> part).
+get_dec_title() {
+    awk '/^# DEC-/{sub(/^# DEC-[0-9]+:[[:space:]]*/,""); print; exit}' "$1"
+}
+
+# affected_scope globs, one per line. Empty if none / `[]`.
+get_dec_affected_scope() {
+    awk '
+        /^---$/ { f=!f; next } !f { next }
+        /^affected_scope:/ { s=1; next }
+        s && /^[a-zA-Z_]/ { s=0 }
+        s && /^[[:space:]]*-[[:space:]]*/ {
+            g=$0; sub(/^[[:space:]]*-[[:space:]]*/,"",g); sub(/[[:space:]]+#.*$/,"",g)
+            if (g!="" && g!="[]") print g
+        }
+    ' "$1"
+}
+
+# Count active decisions whose confidence is below 0.7 (the §17 threshold).
+count_low_confidence_decisions() {
+    local f c n=0
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        [ -n "$(get_dec_superseded_by "$f")" ] && continue   # skip superseded
+        c=$(get_dec_confidence "$f")
+        case "$c" in ''|null) continue ;; esac
+        awk -v x="$c" 'BEGIN{exit !(x+0 < 0.7)}' && n=$((n+1))
+    done < <(find_all_decisions)
+    echo "$n"
+}
+
+# Emit questions as TSV (id<TAB>priority<TAB>status<TAB>question), one per line.
+# Skips the `notes: |` block (its content is indented past the entry keys).
+emit_questions_tsv() {
+    local f="${1:-${REPO_ROOT}/guidance/questions.yaml}"
+    [ -f "$f" ] || return 0
+    awk '
+        function val(s){ sub(/^[^:]*:[[:space:]]*/,"",s); gsub(/^"|"$/,"",s); return s }
+        function qval(s){ sub(/^[[:space:]]*question:[[:space:]]*/,"",s); gsub(/^"|"$/,"",s); return s }
+        function emit(){ if (have) printf "%s\t%s\t%s\t%s\n", id, pri, st, q }
+        /^questions:/ { inq=1; next }
+        !inq { next }
+        /^[a-zA-Z_]/ { inq=0 }
+        /^[[:space:]]*-[[:space:]]*id:/ { emit(); id=val($0); pri=""; st=""; q=""; have=1; next }
+        /^[[:space:]]+question:/ { q=qval($0); next }
+        /^[[:space:]]+priority:/ { pri=val($0); next }
+        /^[[:space:]]+status:/   { st=val($0); next }
+        END { emit() }
+    ' "$f"
+}
+
+# Count questions with status "open".
+count_open_questions() {
+    emit_questions_tsv | awk -F'\t' '$3=="open"' | wc -l | tr -d ' '
+}

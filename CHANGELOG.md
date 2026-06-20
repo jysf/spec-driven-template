@@ -2,6 +2,36 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-19 — `dash` governance lenses: decisions + questions (v0.5.17)
+
+Makes two artifacts you create quickly viewable. Per DEC-001 §4 these are
+`dash` **lenses, not new top-level commands** — adding a slice is a lens, never
+a new `just` recipe (the anti-sprawl rule `dash` exists to enforce).
+
+### Added
+
+- **`just dash decisions`** — browse every `DEC-*` with its confidence,
+  active/superseded status, `affected_scope`, and title (⚠ marks confidence
+  < 0.7). Complements `just decisions-audit`, which lints rather than lists.
+- **`just dash questions`** — open questions from `guidance/questions.yaml`
+  (what's blocking), grouped by priority. Skips the `notes:` block.
+- **Governance flags in the default `just dash`** — a flags line surfacing the
+  open-question count and the number of active decisions at confidence < 0.7,
+  so the things that should nag you appear where you already look.
+- Both lenses and the default dashboard support `--json`; payloads use
+  ContextCore attribute names (`insight.*` for decisions, `guidance.*` with
+  `type=question`).
+- Shared parsers in `scripts/_lib.sh` (`find_all_decisions`, `get_dec_*`,
+  `emit_questions_tsv`, `count_open_questions`, `count_low_confidence_decisions`)
+  feed both the lenses and the flag counts.
+
+### Notes
+
+- +6 test checks (now 134): both lenses (human + `--json` with the right command
+  names + attribute keys) and the default-dashboard flags (human + `--json`).
+- New views are reachable only via `just dash <lens>` — no `just decisions` /
+  `just questions` recipe, by design.
+
 ## 2026-06-19 — Rename the maintainer self-test recipe → `just template-selftest` (v0.5.16)
 
 ### Changed
@@ -15,6 +45,8 @@ All notable changes to this template. One entry per fix; newest at top.
 
 Patch, not minor: the renamed recipe is maintainer-only (it fails early in a
 generated instance by design), so no instance/user workflow breaks.
+
+## 2026-06-19 — Accomplishment-logging guidance at ship (v0.5.15)
 
 Tells agents to record the win when something ships, and — more importantly —
 how to frame **impact** (outcome, not output). Guidance only; no new dependency.

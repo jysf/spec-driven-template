@@ -736,6 +736,40 @@ assert_contains "AGENTS.md" "Accomplishment logging" \
     "AGENTS ship step points to the accomplishment-logging guidance"
 
 # ============================================================
+# dash governance lenses: decisions + questions
+# ============================================================
+# The example project ships DEC-001 (confidence 0.95) and two open questions.
+dd=$(just dash decisions 2>&1)
+if printf '%s\n' "$dd" | grep -qE "^Decisions \([0-9]+\)" && printf '%s\n' "$dd" | grep -q "DEC-001"; then
+    pass "dash decisions lists DEC-* with a header"
+else
+    fail "dash decisions output unexpected: $dd"
+fi
+dq=$(just dash questions 2>&1)
+if printf '%s\n' "$dq" | grep -qE "Open questions \([0-9]+ open" && printf '%s\n' "$dq" | grep -q "example-caching-strategy"; then
+    pass "dash questions lists open questions"
+else
+    fail "dash questions output unexpected: $dq"
+fi
+# Both lenses emit valid JSON with the right command + attribute names.
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash decisions --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="decisions" and d["data"]["count"]>=1 and "insight.id" in d["data"]["decisions"][0]' \
+        && pass "dash decisions --json (insight.* names)" || fail "dash decisions --json wrong/invalid"
+    just dash questions --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="questions" and d["data"]["open"]>=1 and "guidance.id" in d["data"]["questions"][0]' \
+        && pass "dash questions --json (guidance.* names)" || fail "dash questions --json wrong/invalid"
+fi
+# The default dashboard surfaces governance flags (human + json).
+if just dash 2>&1 | grep -qE "Flags.*open question"; then
+    pass "default dash shows governance flags"
+else
+    fail "default dash missing governance flags"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash --json 2>/dev/null | python3 -c 'import json,sys; f=json.load(sys.stdin)["data"]["flags"]; assert "open_questions" in f and "low_confidence_decisions" in f' \
+        && pass "default dash --json carries flags" || fail "default dash --json missing flags"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
