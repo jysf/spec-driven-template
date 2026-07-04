@@ -120,7 +120,10 @@ context graph lives in the handoff file.
    — <answer>
 
 2. **Does any template, constraint, or decision need updating?**
-   — <answer>
+   — <answer — if yes but not done this session, record it in
+   `/guidance/signals.yaml`: `type: lesson` (with its N-count) for a recurring
+   coding pattern, `type: process-debt` for tooling/process friction. A close
+   then forces the decision. See `docs/signals.md`.>
 
 3. **Is there a follow-up spec I should write now before I forget?**
    — <answer>

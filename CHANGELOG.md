@@ -2,6 +2,55 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-19 — Signals registry + close-disposition ritual (v0.5.18)
+
+Closes a structural asymmetry: **coding** lessons had a forcing function
+(reflect at ship → codify at a close), but **process/tooling** feedback had only
+capture (it landed in `feedback/` and rotted — un-adopted recommendations got
+re-flagged months later). Now *every* kind of feedback gets the same teeth.
+
+### Added
+
+- **`guidance/signals.yaml`** (both variants) — one typed feedback ledger, a
+  sibling of `constraints.yaml` / `questions.yaml`. Every signal is a record:
+  `id, type (lesson|process-debt|product|risk), summary, evidence, bar, status,
+  disposition_at, first_flagged, last_touched, raised_by, notes`. It **subsumes**
+  the per-stage WATCH convention rather than duplicating it: `type: lesson` is
+  dispositioned at a **stage** close and keeps the **N=3 same-outcome / N=2
+  paired-opposing** codification bar intact (the running N lives in `evidence` +
+  `bar`) — which also fixes the "WATCH items lack cross-stage visibility" gap, by
+  putting every queued lesson in one file instead of scattered stage-file prose.
+  `process-debt` / `product` / `risk` are dispositioned at a **project** close
+  (the previously-missing ritual). Ships with 5 illustrative seeds drawn from
+  real dogfooding (incl. the re-flagged-but-un-adopted `lightweight-verify-lane`).
+- **The close-disposition ritual** in `FIRST_SESSION_PROMPTS.md` Prompts 1d
+  (stage) and 1e (project), both variants: walk every open/watch signal the
+  close owns; each gets accept-and-schedule / reject-with-reason /
+  defer-with-trigger; **no silent carry**. Capture nudges added to the spec ship
+  Reflection Q2, the stage-level reflection, and AGENTS.md "During ship".
+- **`just dash signals`** — a new `dash` **lens** (DEC-001 §4: a lens, never a
+  new top-level recipe), human + `--json`. Lists signals awaiting disposition
+  first. `--json` emits a template-native `signal.*` payload (no ContextCore
+  namespace spans all four types — documented like `cost.*`). The open count
+  also surfaces in `just dash`'s governance **flags**.
+- **`docs/signals.md`** (both variants) — authoring guide: the type table, the
+  codification bar, the ritual, capture, and a **migration note** for folding an
+  existing per-stage WATCH convention into `type: lesson` entries without losing
+  the N-count. Documented in `docs/schema-reference.md`; pointer from AGENTS.md.
+
+### Notes
+
+- Additive (patch): new file + new lens + prompt steps; no existing command,
+  output, or artifact changes. Instances are independent forks, so this reaches
+  them via new `just init` (or manual cherry-pick) — no automated migration, and
+  the seeded file is zero-risk to drop in.
+- +9 test checks (now 143): the artifact + guide survive init, the lens (human + `--json`
+  with a lesson's bar preserved), the dashboard signals flag, and both close
+  prompts wiring the ritual. Enforcement is the ritual, not a CI gate (kept
+  lightweight by design).
+- Helpers in `scripts/_lib.sh` (`emit_signals_tsv`, `count_open_signals`) feed
+  the lens and the flag, mirroring the questions/decisions helpers.
+
 ## 2026-06-19 — `dash` governance lenses: decisions + questions (v0.5.17)
 
 Makes two artifacts you create quickly viewable. Per DEC-001 §4 these are

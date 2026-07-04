@@ -208,8 +208,20 @@ Your task:
    current project? A spec in the NEXT stage? Deferred to a future
    project?
 
-7. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
-   template based on patterns across shipped specs.
+7. **Disposition the stage-owned signals.** Open `/guidance/signals.yaml`
+   and walk every signal with `disposition_at: stage-close` whose status is
+   `open` or `watch` (these are all `type: lesson`). For each, do ONE of:
+   accept-and-schedule / reject-with-reason / defer-with-trigger, and bump
+   `last_touched`. A lesson only graduates to `status: codified` once its
+   `evidence` meets its `bar` (N=3 same-outcome / N=2 paired-opposing) — then
+   land the rule (step 8) and mark it `codified`; otherwise leave it `watch`
+   with the running N. **No silent carry** — every owned signal gets touched.
+   Add any new lesson the reflections surfaced (record below-bar ones as
+   `watch`, don't codify yet). See `docs/signals.md`.
+
+8. Propose updates to /AGENTS.md, /guidance/constraints.yaml, or any
+   template based on patterns across shipped specs — including landing any
+   lesson you marked `codified` in step 7.
 
 I'll review your proposals and write them into the stage file myself.
 ```
@@ -256,7 +268,17 @@ Your task:
    (status: shipped) and a new project started, or is there more
    work that should extend into a "PROJ-NNN phase 2"?
 
-7. Propose updates to /AGENTS.md, /guidance/*, or templates.
+7. **Disposition the project-owned signals.** Open `/guidance/signals.yaml`
+   and walk every signal with `disposition_at: project-close` whose status is
+   `open` or `watch` (`type: process-debt`, `product`, `risk`). For each, do
+   ONE of: accept-and-schedule / reject-with-reason / defer-with-trigger, and
+   bump `last_touched`. **No silent carry** — a `process-debt` signal sitting
+   `open` across two project closes is the exact rot this registry exists to
+   stop; decide it. Fold each `product` signal into step 5 (next project's
+   frame); revisit each `risk`. This is where the un-adopted-fix backlog
+   finally gets a yes/no. See `docs/signals.md`.
+
+8. Propose updates to /AGENTS.md, /guidance/*, or templates.
 
 I'll review and write the proposals into the brief.
 ```
@@ -596,8 +618,10 @@ After I paste answers:
 - Mark ship `[x]` in the timeline with merge date + total cost.
 - Run: just advance-cycle SPEC-NNN ship
 - Run: just archive-spec SPEC-NNN  (also moves timeline into done/)
-- If I mentioned a template/constraint/decision update, propose the
-  specific edit.
+- If I mentioned a template/constraint/decision update but it's NOT made now,
+  record it in /guidance/signals.yaml (type: lesson with its N-count for a
+  recurring coding pattern; type: process-debt for tooling friction) so a
+  close forces the decision. If made now, propose the specific edit.
 - If I mentioned a follow-up spec, add to the stage's backlog.
 - Update the parent STAGE's backlog (mark shipped).
 

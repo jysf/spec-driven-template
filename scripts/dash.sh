@@ -15,6 +15,7 @@
 #   just dash ledger     every spec, all history          (= just specs-by-stage)
 #   just dash decisions  browse DEC-* (confidence, superseded, scope)
 #   just dash questions  open questions (what's blocking)
+#   just dash signals    the typed feedback ledger (what's queued / un-adopted)
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
@@ -30,6 +31,7 @@ case "$lens" in
     ledger)    shift; exec "${SCRIPT_DIR}/specs-by-stage.sh" "$@" ;;
     decisions) shift; exec "${SCRIPT_DIR}/decisions-view.sh" "$@" ;;
     questions) shift; exec "${SCRIPT_DIR}/questions-view.sh" "$@" ;;
+    signals)   shift; exec "${SCRIPT_DIR}/signals-view.sh" "$@" ;;
     help|-h|--help)
         cat <<'EOF'
 just dash [lens] [--json]
@@ -40,11 +42,12 @@ just dash [lens] [--json]
   ledger     every spec, all history           (= just specs-by-stage)
   decisions  browse DEC-* (confidence, active/superseded, scope)
   questions  open questions from guidance/questions.yaml (what's blocking)
+  signals    the typed feedback ledger (guidance/signals.yaml) — what's queued / un-adopted
   --json     machine-readable output (works on the dashboard and every lens)
 EOF
         exit 0 ;;
     ""|--json) : ;;  # no lens → stitched dashboard (human or, with --json, JSON)
-    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | help, or no arg for the dashboard)" ;;
+    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | help, or no arg for the dashboard)" ;;
 esac
 
 project=$(get_active_project)
@@ -63,7 +66,7 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
         tot_tok=$((tot_tok + t))
     done < <(find_all_specs "$pdir")
     cost=$(json_obj "cost.tokens_total" "$tot_tok" "cost.estimated_usd" "$tot_usd")
-    flags=$(json_obj open_questions "$(count_open_questions)" low_confidence_decisions "$(count_low_confidence_decisions)")
+    flags=$(json_obj open_questions "$(count_open_questions)" low_confidence_decisions "$(count_low_confidence_decisions)" open_signals "$(count_open_signals)")
     data=$(json_obj now "$now_json" future "$future_json" recorded_cost "$cost" flags "$flags")
     json_emit dash "$data"
     exit 0
@@ -97,8 +100,9 @@ echo
 # Governance flags — things that should nag you, surfaced where you look.
 oq=$(count_open_questions)
 lcd=$(count_low_confidence_decisions)
-if [ "$oq" -gt 0 ] || [ "$lcd" -gt 0 ]; then
-    printf "${BOLD}▸ Flags${RESET}  ${YELLOW}⚠${RESET} %s open question(s) · %s decision(s) at confidence <0.7  ${DIM}(just dash questions | decisions)${RESET}\n" "$oq" "$lcd"
+os=$(count_open_signals)
+if [ "$oq" -gt 0 ] || [ "$lcd" -gt 0 ] || [ "$os" -gt 0 ]; then
+    printf "${BOLD}▸ Flags${RESET}  ${YELLOW}⚠${RESET} %s open question(s) · %s decision(s) at confidence <0.7 · %s signal(s) awaiting disposition  ${DIM}(just dash questions | decisions | signals)${RESET}\n" "$oq" "$lcd" "$os"
 else
-    printf "${BOLD}▸ Flags${RESET}  ${DIM}none — no open questions, no low-confidence decisions${RESET}\n"
+    printf "${BOLD}▸ Flags${RESET}  ${DIM}none — no open questions, no low-confidence decisions, no signals awaiting disposition${RESET}\n"
 fi

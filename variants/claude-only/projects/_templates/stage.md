@@ -93,5 +93,9 @@ FIRST_SESSION_PROMPTS.md to draft this.*
 - **What changed between starting and shipping?** <one sentence>
 - **Lessons that should update AGENTS.md, templates, or constraints?**
   - <one-line updates>
+- **Signals dispositioned at this close?** (Prompt 1d step 7) Every
+  `type: lesson` signal in `/guidance/signals.yaml` owned by this stage close
+  was walked — codified (at its bar), left `watch`, or dropped. No silent carry.
+  - <note what codified / what's still watch + its N>
 - **Should any spec-level reflections be promoted to stage-level lessons?**
-  - <one-line items>
+  - <one-line items — record below-bar ones as `watch` signals; don't codify yet>

@@ -158,9 +158,10 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── docs/                              # Architecture, data model, API contract
 ├── guidance/                          # Repo-level rules (across all projects)
 │   ├── constraints.yaml
-│   └── questions.yaml
+│   ├── questions.yaml
+│   └── signals.yaml                   # Typed feedback ledger (see docs/signals.md)
 ├── decisions/                         # Repo-level DEC-* (across all projects)
-├── feedback/                          # Downstream user feedback captures
+├── feedback/                          # Raw inbound feedback captures (triaged into signals.yaml)
 ├── reports/                           # Daily + weekly report outputs
 ├── projects/                          # Waves of work
 │   ├── _templates/                    # Shared templates
@@ -354,6 +355,13 @@ session entry, then compute `cost.totals`. Then
 `just archive-spec SPEC-NNN`. If stage backlog is complete, run the
 Stage Ship prompt.
 
+If Reflection Q2 surfaces a template/constraint/decision change you're
+**not** making this session, don't let it evaporate — record it in
+`guidance/signals.yaml` (a recurring coding pattern → `type: lesson`
+with its N-count; framework/tooling friction → `type: process-debt`).
+The close-disposition ritual (Prompts 1d/1e) then forces a decision on
+it. See `docs/signals.md`; browse with `just dash signals`.
+
 Optionally, log the win in an accomplishment log (see
 `guidance/recommended-tools.md` → Accomplishment logging) — frame the
 **impact** (the outcome / who's better off), not the output. The ship
@@ -401,6 +409,7 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
+- Signals (typed feedback ledger): `/guidance/signals.yaml` (browse `just dash signals`; ritual + bar in `docs/signals.md`)
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
 - Recommended (optional) tools: `/guidance/recommended-tools.md`
 - Projects: `/projects/`

@@ -105,6 +105,24 @@ constraints[]: { id ✅, rule ✅, severity ✅ enum{blocking,warning,advisory},
 
 `guidance/questions.yaml` is the same model with `guidance.type = question`.
 
+## `guidance/signals.yaml` — the typed feedback ledger (template extension)
+
+```
+signals[]: { id ✅, type ✅ enum{lesson,process-debt,product,risk}, summary ✅,
+             evidence ✅, bar ◦ (lessons only), status ✅ enum{open,watch,accepted,
+             rejected,codified,done,dropped}, disposition_at ✅ enum{stage-close,
+             project-close}, first_flagged ✅, last_touched ✅, raised_by ✅, notes ◦ }
+```
+
+One ledger for every feedback type, so nothing rots un-decided (`lesson` is
+dispositioned at a stage close and keeps the N=3/N=2 codification bar;
+`process-debt`/`product`/`risk` at a project close). The forcing function is the
+close-disposition ritual in `FIRST_SESSION_PROMPTS.md` (Prompts 1d/1e), not a CI
+gate. Browse with `just dash signals`; the open count surfaces in `just dash`'s
+flags. No ContextCore/OTel namespace spans all four types, so `--json` emits a
+template-native `signal.*` payload (like `cost.*`, a documented extension). Full
+authoring guide + migration note: `docs/signals.md`.
+
 ## `projects/PROJ-*/handoffs/HANDOFF-*.md` — *(claude-plus-agents only)* (ContextCore `handoff.*`)
 
 ```

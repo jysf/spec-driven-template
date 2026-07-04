@@ -738,3 +738,33 @@ emit_questions_tsv() {
 count_open_questions() {
     emit_questions_tsv | awk -F'\t' '$3=="open"' | wc -l | tr -d ' '
 }
+
+# --- Signals registry (guidance/signals.yaml) ------------------------------
+# The one typed feedback ledger: lesson | process-debt | product | risk. See
+# docs/signals.md. Powers the `just dash signals` lens + the dashboard flag.
+
+# Emit signals as TSV: id<TAB>type<TAB>status<TAB>disposition_at<TAB>bar<TAB>summary.
+# One record per line; the multi-key `val()` strips the `key:` prefix and quotes.
+emit_signals_tsv() {
+    local f="${1:-${REPO_ROOT}/guidance/signals.yaml}"
+    [ -f "$f" ] || return 0
+    awk '
+        function val(s){ sub(/^[^:]*:[[:space:]]*/,"",s); gsub(/^"|"$/,"",s); return s }
+        function emit(){ if (have) printf "%s\t%s\t%s\t%s\t%s\t%s\n", id, ty, st, da, bar, sm }
+        /^signals:/ { ins=1; next }
+        !ins { next }
+        /^[a-zA-Z_]/ { ins=0 }
+        /^[[:space:]]*-[[:space:]]*id:/  { emit(); id=val($0); ty=""; st=""; da=""; bar=""; sm=""; have=1; next }
+        /^[[:space:]]+type:/             { ty=val($0); next }
+        /^[[:space:]]+status:/           { st=val($0); next }
+        /^[[:space:]]+disposition_at:/   { da=val($0); next }
+        /^[[:space:]]+bar:/              { bar=val($0); next }
+        /^[[:space:]]+summary:/          { sm=val($0); next }
+        END { emit() }
+    ' "$f"
+}
+
+# Count signals awaiting disposition (non-terminal: status open or watch).
+count_open_signals() {
+    emit_signals_tsv | awk -F'\t' '$3=="open" || $3=="watch"' | wc -l | tr -d ' '
+}

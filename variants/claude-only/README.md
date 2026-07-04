@@ -71,7 +71,7 @@ is the *meta-process*; this section is about the *app*. Include:]
 | `AGENTS.md` | Conventions for Claude working in this repo |
 | `.repo-context.yaml` | Structured metadata about the app |
 | `docs/` | Architecture, data model, API contract |
-| `guidance/` | Repo-level rules and open questions |
+| `guidance/` | Repo-level rules, open questions, and the signals ledger (`just dash signals`) |
 | `decisions/` | Decision log (accumulates across projects) |
 | `projects/` | Each project (wave of work) lives here |
 | `projects/*/brief.md` | What this project is and why |

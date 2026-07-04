@@ -765,9 +765,40 @@ else
     fail "default dash missing governance flags"
 fi
 if [ "$HAVE_PY3" = 1 ]; then
-    just dash --json 2>/dev/null | python3 -c 'import json,sys; f=json.load(sys.stdin)["data"]["flags"]; assert "open_questions" in f and "low_confidence_decisions" in f' \
+    just dash --json 2>/dev/null | python3 -c 'import json,sys; f=json.load(sys.stdin)["data"]["flags"]; assert "open_questions" in f and "low_confidence_decisions" in f and "open_signals" in f' \
         && pass "default dash --json carries flags" || fail "default dash --json missing flags"
 fi
+
+# ============================================================
+# Signals registry + dash signals lens
+# ============================================================
+# The registry artifact + authoring guide land at the repo root via init.
+assert_file "guidance/signals.yaml"
+assert_file "docs/signals.md"
+# The lens lists the seeds, with the awaiting-disposition header.
+ds=$(just dash signals 2>&1)
+if printf '%s\n' "$ds" | grep -qE "Signals \([0-9]+ awaiting" && printf '%s\n' "$ds" | grep -q "lightweight-verify-lane"; then
+    pass "dash signals lists the ledger with an awaiting-disposition header"
+else
+    fail "dash signals output unexpected: $ds"
+fi
+json_ok "dash signals --json"   just dash signals --json
+# --json carries the signal.* payload, including a lesson's bar (codification bar survives).
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash signals --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="signals" and d["data"]["awaiting"]>=1 and "signal.id" in d["data"]["signals"][0]; assert any(s["signal.type"]=="lesson" and s["signal.bar"] for s in d["data"]["signals"]), "a lesson must carry its bar"' \
+        && pass "dash signals --json (signal.* names + lesson bar preserved)" || fail "dash signals --json wrong/invalid"
+fi
+# The default dashboard surfaces the awaiting-disposition signal count.
+if just dash 2>&1 | grep -qE "signal\(s\) awaiting disposition"; then
+    pass "default dash flags signals awaiting disposition"
+else
+    fail "default dash missing signals flag"
+fi
+# The close-disposition ritual is wired into both close prompts.
+assert_contains "FIRST_SESSION_PROMPTS.md" "disposition_at: stage-close" \
+    "stage-close prompt wires the signal disposition ritual"
+assert_contains "FIRST_SESSION_PROMPTS.md" "disposition_at: project-close" \
+    "project-close prompt wires the signal disposition ritual"
 
 # ============================================================
 # Done
