@@ -29,6 +29,7 @@ fm_scalar() {
 }
 
 VALID_CYCLE=" frame design build verify ship "
+VALID_PATCH_CYCLE=" patch verify ship "
 VALID_COMPLEXITY=" S M L "
 
 offenders=0
@@ -65,10 +66,40 @@ while IFS= read -r pdir; do
             offenders=$((offenders + 1))
         fi
     done < <(find_all_specs "$pdir")
+
+    # Patches (the patch lane, DEC-003): same task.* schema as specs, but the
+    # cycle enum is patch/verify/ship and there is NO project.stage requirement
+    # (a patch attaches to the project, not a stage).
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in
+            */prompts/*) continue ;;
+            *-timeline.md) continue ;;
+        esac
+        name=$(basename "$f" .md)
+        problems=""
+
+        [ -n "$(fm_scalar "$f" task id)" ]    || problems="${problems} task.id"
+        [ -n "$(fm_scalar "$f" task type)" ]  || problems="${problems} task.type"
+        [ -n "$(fm_scalar "$f" project id)" ] || problems="${problems} project.id"
+        [ -n "$(fm_scalar "$f" repo id)" ]    || problems="${problems} repo.id"
+
+        cyc=$(fm_scalar "$f" task cycle)
+        case "$VALID_PATCH_CYCLE" in *" $cyc "*) : ;; *) problems="${problems} task.cycle(='${cyc:-∅}')" ;; esac
+
+        cx=$(fm_scalar "$f" task complexity)
+        case "$VALID_COMPLEXITY" in *" $cx "*) : ;; *) problems="${problems} task.complexity(='${cx:-∅}')" ;; esac
+
+        checked=$((checked + 1))
+        if [ -n "$problems" ]; then
+            printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
+            offenders=$((offenders + 1))
+        fi
+    done < <(find_all_patches "$pdir")
 done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sort)
 
 if [ "$offenders" -gt 0 ]; then
     echo ""
-    die "validate: ${offenders} spec(s) with invalid/missing required front-matter (checked ${checked}). See DEC-001 §1 / docs/schema-reference.md."
+    die "validate: ${offenders} artifact(s) with invalid/missing required front-matter (checked ${checked}). See DEC-001 §1 / docs/schema-reference.md."
 fi
-success "validate: ${checked} spec(s) have valid required front-matter."
+success "validate: ${checked} artifact(s) (specs + patches) have valid required front-matter."

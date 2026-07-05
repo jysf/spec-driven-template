@@ -878,6 +878,73 @@ fi
 rm -rf projects/PROJ-002-num-test
 
 # ============================================================
+# Patch lane (v0.5.21, DEC-003)
+# ============================================================
+assert_file "projects/_templates/patch.md"
+
+# new-patch scaffolds a first-class patch: task.type: patch, own PATCH-* seq, no stage.
+just new-patch "Out Dir Auto Create" >/dev/null 2>&1
+PATCH_FILE=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-out-dir-auto-create.md 2>/dev/null | head -n1)
+PATCH_ID=$(basename "$PATCH_FILE" 2>/dev/null | grep -oE 'PATCH-[0-9]+')
+if [ -n "$PATCH_FILE" ] && [ "$PATCH_ID" = "PATCH-001" ]; then
+    pass "new-patch scaffolds PATCH-001 (its own repo-wide sequence)"
+else
+    fail "new-patch did not scaffold PATCH-001 (got '${PATCH_ID:-none}')"
+fi
+assert_contains "$PATCH_FILE" "type: patch" "patch uses task.type: patch"
+assert_contains "$PATCH_FILE" "cycle: patch" "patch starts at cycle: patch"
+if grep -qE '^[[:space:]]+stage:' "$PATCH_FILE"; then
+    fail "patch should have NO project.stage line"
+else
+    pass "patch has no project.stage (attaches to the project, not a stage)"
+fi
+
+# advance-cycle accepts the patch lane's cycle and edits the real patch.
+just advance-cycle "$PATCH_ID" verify >/dev/null 2>&1
+assert_contains "$PATCH_FILE" "cycle: verify" "advance-cycle moves a patch patch->verify"
+
+# validate treats a well-formed patch as first-class (passes).
+if just validate >/dev/null 2>&1; then
+    pass "validate passes with a well-formed patch present"
+else
+    fail "validate failed with a well-formed patch present"
+fi
+# ...and rejects a patch carrying a spec-only cycle (design ∉ patch|verify|ship).
+BADPATCH="projects/PROJ-001-example-mvp/patches/PATCH-999-bad.md"
+cp "$PATCH_FILE" "$BADPATCH"
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  cycle: verify.*/  cycle: design/' "$BADPATCH"; else sed -i 's/^  cycle: verify.*/  cycle: design/' "$BADPATCH"; fi
+assert_cmd_fails "validate rejects a patch with an invalid (spec-only) cycle" just validate
+rm -f "$BADPATCH"
+
+# cost-audit gates a shipped patch missing its metered (patch+verify) cost.
+just advance-cycle "$PATCH_ID" ship >/dev/null 2>&1
+assert_cmd_fails "cost-audit fails on a shipped patch with no metered cost" just cost-audit
+
+# status surfaces patches (human + --json). Capture first, then grep the string:
+# a live `... | grep -q` closes the pipe on match and SIGPIPEs status under pipefail.
+status_out=$(just status 2>&1)
+if printf '%s\n' "$status_out" | grep -q "Patches in"; then
+    pass "status lists patches by cycle"
+else
+    fail "status missing the Patches section"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just status --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d["data"]["patches"]; assert ps and ps[0]["task.id"].startswith("PATCH-")' \
+        && pass "status --json carries a patches[] array" || fail "status --json missing patches[]"
+fi
+
+# archive-patch files it under patches/done/; a second archive fails.
+just archive-patch "$PATCH_ID" >/dev/null 2>&1
+if [ -f "projects/PROJ-001-example-mvp/patches/done/$(basename "$PATCH_FILE")" ]; then
+    pass "archive-patch moves the patch to patches/done/"
+else
+    fail "archive-patch did not move the patch to done/"
+fi
+assert_cmd_fails "double archive-patch fails" just archive-patch "$PATCH_ID"
+# Remove the test patch so the shipped-without-cost file can't affect later runs.
+rm -rf projects/PROJ-001-example-mvp/patches
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

@@ -66,6 +66,28 @@ Honest confidence matters: decisions carry an `insight.confidence`
 (0.0–1.0) that drives questions at design and flags at verify. See
 `AGENTS.md` → Confidence Discipline.
 
+## The patch lane (lightweight fixes)
+
+Not every change deserves the full five-phase cycle. A **patch** is a bounded
+fix to *already-shipped* behavior (a bug or UX papercut) that adds no new
+feature/command. It runs a collapsed **`patch → verify → ship`** cycle — design
+and build fused into one test-first pass — while **keeping the independent
+verify** (the discipline that catches real defects) and a `DEC-*` when there's a
+real decision. It sheds the separate frame/design cycles and all stage
+bookkeeping.
+
+```bash
+just new-patch "out-dir should auto-create" PROJ-001   # → patches/PATCH-001-...md
+just advance-cycle PATCH-001 verify                    # independent session
+just advance-cycle PATCH-001 ship
+just archive-patch PATCH-001                            # → patches/done/
+```
+
+Patches are first-class: `just validate`, `just cost-audit` (metered on
+`patch`+`verify`), and `just status` all recognize them. **Guardrail:** if the
+change adds a command/flag or needs its own design exploration, it's a spec, not
+a patch. Rationale + full contract: `docs/decisions/DEC-003-patch-lane.md`.
+
 ## Decisions and guardrails
 
 Architectural decisions live in `decisions/` as `DEC-*` records. Audit

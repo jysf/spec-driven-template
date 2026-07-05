@@ -46,8 +46,28 @@ while IFS= read -r f; do
     fi
 done < <(find_all_specs "$project_dir")
 
+# Patches (DEC-003) are gated the same way, but their metered cycles are
+# `patch verify` (a patch has no separate build cycle).
+while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in *-timeline.md) continue ;; esac
+    name=$(basename "$f" .md)
+    shipped=0
+    case "$f" in
+        */patches/done/*) shipped=1 ;;
+        *) if [ "$(get_spec_cycle "$f")" = "ship" ]; then shipped=1; fi ;;
+    esac
+    [ "$shipped" = "1" ] || continue
+    if is_grandfathered_cost "$name"; then continue; fi
+    missing=$(spec_missing_cost_cycles "$f" patch verify)
+    if [ -n "$missing" ]; then
+        printf "  %-58s missing cost on: %s\n" "$name" "$missing"
+        offenders=$((offenders + 1))
+    fi
+done < <(find_all_patches "$project_dir")
+
 if [ "$offenders" -gt 0 ]; then
     echo ""
-    die "cost-audit: ${offenders} shipped spec(s) missing build/verify cost. Record tokens_total per AGENTS.md §4 / docs/cost-tracking.md."
+    die "cost-audit: ${offenders} shipped spec(s)/patch(es) missing metered-cycle cost. Record tokens_total per AGENTS.md §4 / docs/cost-tracking.md."
 fi
-success "cost-audit: all shipped specs have build/verify cost recorded."
+success "cost-audit: all shipped specs and patches have their metered-cycle cost recorded."

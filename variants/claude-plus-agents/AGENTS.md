@@ -223,6 +223,31 @@ Projects and stages have lighter lifecycles (not full cycles):
 A stage is `active` when its first spec enters design. `shipped` when
 its spec backlog is complete AND the stage-level reflection is written.
 
+### The patch lane (lightweight fixes — DEC-003)
+
+A **patch** is a bounded fix to *already-shipped* behavior (a bug or UX papercut)
+that adds **no new feature/command** and doesn't warrant a full spec + stage. It
+runs a collapsed **`patch → verify → ship`** cycle instead of a spec's five:
+
+- **patch** — design + build fused into one test-first pass (write the failing
+  test *and* the fix together).
+- **verify** — **kept, and kept independent** (a separate agent from the patch
+  author). This is the one discipline the dogfood retrospective proved catches
+  real defects; it is non-negotiable.
+- **ship** — CHANGELOG `[Unreleased] → Fixed` + `just archive-patch`. **No stage
+  bookkeeping** — a patch attaches to the project, not a stage.
+
+**Stays:** the full gate suite, a `DEC-*` when there's a real decision, and
+index-verify-before-ship. **Sheds:** the separate frame + design cycles and the
+stage backlog/`Count:` bookkeeping. **Guardrail:** if a change adds a
+command/flag or needs its own design exploration, it's a **spec, not a patch**.
+
+Mechanics: `just new-patch "title" [PROJ-NNN]` scaffolds
+`projects/PROJ-*/patches/PATCH-NNN-<slug>.md` (its own repo-wide `PATCH-*`
+sequence). Patches are first-class in `just validate`, `just cost-audit`
+(metered on `patch`+`verify`), and `just status`. `just archive-patch PATCH-NNN`
+files it under `patches/done/`.
+
 ---
 
 ## 9. Instruction Timeline

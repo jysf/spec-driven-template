@@ -47,11 +47,42 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
     total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/ && !/\/prompts\//' | wc -l | tr -d ' ')
     shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/' | wc -l | tr -d ' ')
     total_decisions=$(find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
+    # Patches (the patch lane, DEC-003) — same task.* attribute names as specs.
+    patches_json=()
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in *-timeline.md|*/prompts/*) continue ;; esac
+        pid=$(basename "$f" | sed -E 's/^(PATCH-[0-9]+).*/\1/')
+        pname=$(basename "$f" .md)
+        cyc=$(get_spec_cycle "$f"); [ -n "$cyc" ] || cyc="?"
+        u=$(sum_cost_usd_for_spec "$f"); t=$(sum_cost_tokens_for_spec "$f")
+        case "$f" in
+            */patches/done/*) pshipped=true ;;
+            *) if [ "$cyc" = ship ]; then pshipped=true; else pshipped=false; fi ;;
+        esac
+        pmc_json="[]"
+        if [ "$pshipped" = true ] && ! is_grandfathered_cost "$pname"; then
+            m=$(spec_missing_cost_cycles "$f" patch verify)
+            if [ -n "$m" ]; then
+                parts=(); for c in $m; do parts+=("$(json_qs "$c")"); done
+                pmc_json=$(json_arr "${parts[@]}")
+            fi
+        fi
+        patches_json+=("$(json_obj \
+            "task.id" "$(json_qs "$pid")" \
+            "task.cycle" "$(json_qs "$cyc")" \
+            shipped "$pshipped" \
+            "cost.tokens_total" "$t" \
+            "cost.estimated_usd" "$u" \
+            missing_cost "$pmc_json")")
+    done < <(find_all_patches "$ACTIVE_PROJECT_DIR")
+    [ "${#patches_json[@]}" -gt 0 ] && patches_arr=$(json_arr "${patches_json[@]}") || patches_arr="[]"
     summary=$(json_obj total_specs "${total_specs:-0}" shipped "${shipped_specs:-0}" decisions "${total_decisions:-0}")
     data=$(json_obj \
         variant "$(json_qs "$VARIANT")" \
         active_project "$(json_qs "$ACTIVE_PROJECT")" \
         specs "$specs_arr" \
+        patches "$patches_arr" \
         missing_cost_specs "$missing_arr" \
         summary "$summary")
     json_emit status "$data"
@@ -133,6 +164,33 @@ else
     echo "  ${DIM}(no specs yet)${RESET}"
 fi
 echo ""
+
+# --- Active project: patches (the patch lane, DEC-003) ---
+patches_dir="${ACTIVE_PROJECT_DIR}/patches"
+patch_total=0
+if [ -d "$patches_dir" ]; then
+    patch_total=$(find "$patches_dir" -name 'PATCH-*.md' 2>/dev/null | wc -l | tr -d ' ')
+fi
+if [ "${patch_total:-0}" -gt 0 ]; then
+    echo "${BOLD}Patches in ${ACTIVE_PROJECT} by cycle${RESET}"
+    for cycle in patch verify ship; do
+        count=0; names=""
+        for f in "${patches_dir}"/PATCH-*.md; do
+            [ -f "$f" ] || continue
+            pc=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+cycle:/{print $2; exit}' "$f" 2>/dev/null || echo "")
+            if [ "$pc" = "$cycle" ]; then count=$((count + 1)); names="${names}    - $(basename "$f" .md)\n"; fi
+        done
+        if [ "$cycle" = "ship" ] && [ -d "${patches_dir}/done" ]; then
+            for f in "${patches_dir}/done"/PATCH-*.md; do
+                [ -f "$f" ] || continue
+                count=$((count + 1)); names="${names}    - $(basename "$f" .md) ${DIM}(archived)${RESET}\n"
+            done
+        fi
+        printf "  ${BOLD}%-8s${RESET} (%d)\n" "$cycle" "$count"
+        [ -n "$names" ] && printf "%b" "$names"
+    done
+    echo ""
+fi
 
 # --- Low-confidence decisions ---
 echo "${BOLD}Low-confidence decisions (< 0.7)${RESET}"

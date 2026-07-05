@@ -16,8 +16,8 @@ if [ -z "$SPEC_ID" ] || [ -z "$NEW_CYCLE" ]; then
 fi
 
 case "$NEW_CYCLE" in
-    frame|design|build|verify|ship) ;;
-    *) die "Invalid cycle: ${NEW_CYCLE}. Must be one of: frame, design, build, verify, ship." ;;
+    frame|design|build|verify|ship|patch) ;;
+    *) die "Invalid cycle: ${NEW_CYCLE}. Must be one of: frame, design, build, verify, ship (specs), or patch (the patch lane)." ;;
 esac
 
 SPEC_FILE=$(find_spec "$SPEC_ID")

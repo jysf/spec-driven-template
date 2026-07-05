@@ -91,6 +91,16 @@ advance-cycle SPEC_ID NEW_CYCLE:
 archive-spec SPEC_ID:
     @./scripts/archive-spec.sh "{{SPEC_ID}}"
 
+# Scaffold a patch (the lightweight fix lane, DEC-003): a bounded fix to
+# shipped behavior, patch -> verify -> ship. Usage: just new-patch "title" [PROJ-NNN]
+new-patch TITLE PROJECT_ID="":
+    @./scripts/new-patch.sh "{{TITLE}}" "{{PROJECT_ID}}"
+
+# Archive a shipped patch: move to patches/done/ (no stage bookkeeping).
+# Usage: just archive-patch PATCH-NNN
+archive-patch PATCH_ID:
+    @./scripts/archive-patch.sh "{{PATCH_ID}}"
+
 # Print the Weekly Review prompt with recent activity pre-loaded
 weekly-review:
     @./scripts/weekly-review.sh

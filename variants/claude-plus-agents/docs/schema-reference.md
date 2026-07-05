@@ -63,6 +63,27 @@ The **required structural set** `just validate` enforces: `task.id`,
 `project.id`, `project.stage`, `repo.id`. Files under `specs/prompts/` and
 `*-timeline.md` are not specs and are skipped.
 
+## `projects/PROJ-*/patches/PATCH-*.md` — a patch (the patch lane, DEC-003)
+
+A **patch** is a bounded fix to already-shipped behavior; it uses the same
+`task.*` schema as a spec so `just validate` / `cost-audit` / `status` treat it
+as first-class, with two differences: `task.cycle` is the collapsed
+`patch|verify|ship`, and there is **no `project.stage`** (a patch attaches to the
+project, not a stage).
+
+```
+task: { id ✅ (PATCH-NNN), type ✅ =patch, cycle ✅ enum{patch,verify,ship},
+        blocked ◦, priority ◦, complexity ✅ enum{S,M,L} }
+project.id ✅   repo.id ✅            agents: { implementer ◦, verifier ◦, created_at ◦ }
+references.decisions[] ◦
+cost: …                                 ◦ structurally; ✅ on shipped patches (patch+verify) via cost-audit
+```
+
+`just validate` requires `task.id/type/complexity`, `task.cycle` ∈
+{patch,verify,ship}, `project.id`, `repo.id` (not `project.stage`). `cost-audit`
+requires a real `tokens_total` on the **patch** and **verify** cycles of a
+shipped patch. See the patch-lane section in `AGENTS.md` and DEC-003.
+
 ### The `cost` block (template extension — see DEC-002)
 
 ```

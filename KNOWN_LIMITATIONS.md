@@ -64,6 +64,14 @@ Note: `STAGE-*`/`SPEC-*` **numbering** is repo-wide and continuous (v0.5.20), so
 it is unaffected by which project is "active" — new ids always continue from the
 global maximum.
 
+## Patch lane: reports don't yet include patches
+
+The patch lane (DEC-003, v0.5.21) is wired into `just validate`, `just cost-audit`,
+and `just status` (so `just dash now` shows patches too), but **not** yet into the
+`report-daily` / `report-weekly` generators or a dedicated `dash patches` lens —
+those still enumerate specs only. Patch cost/state is visible via `status` and
+gated by `cost-audit`; the report + lens surfaces are a planned follow-up.
+
 ## Templates exist in two copies (one per variant)
 
 `claude-only/` and `claude-plus-agents/` share most files. Changing a

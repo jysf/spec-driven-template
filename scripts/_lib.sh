@@ -308,6 +308,14 @@ find_all_specs() {
     find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null
 }
 
+# All PATCH-*.md under a project's patches/ (the patch lane — DEC-003).
+# Patches use the same task.* schema as specs, so the cost/cycle helpers below
+# work on them unchanged.
+find_all_patches() {
+    local project_dir="$1"
+    find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null
+}
+
 # Extract a spec's cycle from front-matter.
 # Usage: get_spec_cycle path/to/spec.md
 get_spec_cycle() {
@@ -434,9 +442,15 @@ cycle_tokens_total() {
 # Echo the build/verify cycles of a spec that lack a positive tokens_total.
 # Empty output = cost fully recorded. (design/ship are orchestrator main-loop
 # cycles and may legitimately be null — they are not checked.)
+# Which metered cycles lack a real tokens_total. Defaults to a spec's
+# build+verify; pass an explicit cycle list for other artifacts (a patch's
+# metered cycles are `patch verify` — DEC-003).
 spec_missing_cost_cycles() {
-    local file="$1" out="" c t
-    for c in build verify; do
+    local file="$1"; shift
+    local out="" c t
+    local cycles="$*"
+    [ -n "$cycles" ] || cycles="build verify"
+    for c in $cycles; do
         t=$(cycle_tokens_total "$file" "$c")
         case "$t" in
             ''|null|0) out="${out} ${c}" ;;

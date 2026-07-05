@@ -2,6 +2,48 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — The patch lane: lightweight fixes to shipped behavior (v0.5.21)
+
+The #1 recommendation of the dogfood retrospective, validated by two shipped
+projects (crustyimg, which shipped a proof-of-concept `DEC-043` + `PATCH-001`;
+bragfile). The full five-cycle is disproportionate for a trivial fix — the two
+things that *bought* quality were the DEC log and the **independent verify**, not
+the four named cycles. The patch lane keeps exactly those and drops the rest.
+Design record: `docs/decisions/DEC-003-patch-lane.md`.
+
+### Added
+
+- **A patch artifact + collapsed cycle.** A **patch** is a bounded fix to
+  already-shipped behavior (a bug or UX papercut) that adds no new
+  feature/command. It runs **`patch → verify → ship`** (design+build fused into
+  one test-first pass; the **independent verify is kept**). `projects/_templates/patch.md`
+  (both variants).
+- **`just new-patch "title" [PROJ-NNN]`** (`scripts/new-patch.sh`) → scaffolds
+  `projects/PROJ-*/patches/PATCH-NNN-<slug>.md` with its own repo-wide,
+  continuous `PATCH-*` id sequence. **`just archive-patch PATCH-NNN`**
+  (`scripts/archive-patch.sh`) → `patches/done/`, **no stage bookkeeping**.
+- **Patches are first-class in the tooling** (via `task.type: patch`): a patch
+  reuses the spec `task.*` schema (so it maps to the same ContextCore attribute
+  names), with `task.cycle` ∈ `{patch,verify,ship}` and **no `project.stage`**.
+  `just validate` validates patch front-matter; `just cost-audit` gates a shipped
+  patch's `patch`+`verify` cost; `just status` lists patches by cycle (human +
+  `--json` `patches[]`). `just advance-cycle` accepts the `patch` cycle.
+- **Docs:** a "Patch lane" section in both variants' `AGENTS.md` (Cycle Model)
+  and in `docs/USAGE.md`; the patch artifact + gates in `docs/schema-reference.md`.
+
+### Notes
+
+- +13 test checks (now 163): scaffold shape (type/cycle/no-stage/PATCH-001),
+  `advance-cycle` on the patch cycle, `validate` accept + reject-bad-cycle,
+  `cost-audit` gating a shipped patch, `status` human + `--json` patches, and
+  `archive-patch` + double-archive refusal.
+- Additive; existing spec flow, output, and files are unchanged. **Guardrail:**
+  a change that adds a command/flag or needs its own design exploration is a
+  spec, not a patch.
+- v1 scope: `validate`/`cost-audit`/`status` (and `dash now`, which inherits
+  `status`). Deferred to a follow-up: patch lines in `report-daily`/`report-weekly`
+  and a dedicated `dash patches` lens (`KNOWN_LIMITATIONS.md`).
+
 ## 2026-06-27 — Repo-wide continuous STAGE/SPEC numbering (v0.5.20)
 
 From dogfood feedback (a second project restarted numbering at `001` instead of
