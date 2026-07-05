@@ -291,6 +291,31 @@ fi
         echo ""
     fi
 
+    # ---------- Patches (the patch lane, DEC-003) ----------
+    PATCHES_DIR="${ACTIVE_DIR}/patches"
+    patch_total=0
+    if [ -d "$PATCHES_DIR" ]; then
+        patch_total=$(find "$PATCHES_DIR" -type f -name "PATCH-*.md" 2>/dev/null | wc -l | tr -d ' ')
+    fi
+    if [ "${patch_total:-0}" -gt 0 ]; then
+        echo "## Patches"
+        echo ""
+        p_open=0; p_shipped=0; p_usd="0.00"; p_tok=0
+        while IFS= read -r -d '' f; do
+            cyc=$(get_spec_cycle "$f")
+            case "$f" in
+                */patches/done/*) p_shipped=$((p_shipped + 1)) ;;
+                *) if [ "$cyc" = ship ]; then p_shipped=$((p_shipped + 1)); else p_open=$((p_open + 1)); fi ;;
+            esac
+            u=$(sum_cost_usd_for_spec "$f"); t=$(sum_cost_tokens_for_spec "$f")
+            p_usd=$(awk -v a="$p_usd" -v b="$u" 'BEGIN{printf "%.2f", a+b}')
+            p_tok=$((p_tok + t))
+        done < <(find "$PATCHES_DIR" -type f -name "PATCH-*.md" -print0 2>/dev/null)
+        printf -- "- **Total patches:** %d (%d shipped / %d in flight)\n" "$patch_total" "$p_shipped" "$p_open"
+        printf -- "- **Recorded patch cost:** \$%s · %d tokens\n" "$p_usd" "$p_tok"
+        echo ""
+    fi
+
     # ---------- Decision activity ----------
     echo "## Decision activity"
     echo ""

@@ -215,6 +215,42 @@ fi
     fi
     echo ""
 
+    # ---------- Patches (the patch lane, DEC-003) ----------
+    PATCHES_DIR="${ACTIVE_DIR}/patches"
+    patch_total=0
+    if [ -d "$PATCHES_DIR" ]; then
+        patch_total=$(find "$PATCHES_DIR" -type f -name "PATCH-*.md" 2>/dev/null | wc -l | tr -d ' ')
+    fi
+    if [ "${patch_total:-0}" -gt 0 ]; then
+        echo "## Patches"
+        echo ""
+        p_open=0; p_shipped=0; p_wip_usd="0.00"; p_missing=()
+        while IFS= read -r -d '' f; do
+            name=$(basename "$f" .md)
+            cyc=$(get_spec_cycle "$f")
+            case "$f" in
+                */patches/done/*) p_shipped=$((p_shipped + 1)) ;;
+                *)
+                    if [ "$cyc" = ship ]; then p_shipped=$((p_shipped + 1)); else p_open=$((p_open + 1)); fi
+                    u=$(sum_cost_usd_for_spec "$f")
+                    p_wip_usd=$(awk -v a="$p_wip_usd" -v b="$u" 'BEGIN{printf "%.2f", a+b}')
+                    ;;
+            esac
+            case "$f" in
+                */patches/done/*) : ;;
+                *) [ "$cyc" = ship ] && { m=$(spec_missing_cost_cycles "$f" patch verify); [ -n "$m" ] && p_missing+=("${name} (${m})"); } ;;
+            esac
+        done < <(find "$PATCHES_DIR" -type f -name "PATCH-*.md" -print0 2>/dev/null)
+        echo "- **In flight (patch/verify):** ${p_open}"
+        echo "- **Shipped:** ${p_shipped}"
+        echo "- **WIP accumulated cost (open patches):** \$${p_wip_usd}"
+        if [ "${#p_missing[@]}" -gt 0 ]; then
+            echo "- **Shipped patches missing metered cost** (${#p_missing[@]}):"
+            for s in "${p_missing[@]}"; do echo "  - ${s}"; done
+        fi
+        echo ""
+    fi
+
     # ---------- Flags ----------
     echo "## Flags"
     echo ""

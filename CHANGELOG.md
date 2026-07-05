@@ -2,6 +2,31 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — Patch lane visibility: `dash patches` lens + reports (v0.5.22)
+
+Completes the patch lane's v1 follow-up (the surfaces DEC-003 / v0.5.21 deferred).
+
+### Added
+
+- **`just dash patches`** (`scripts/patches-view.sh`) — a new `dash` lens: the
+  active project's patches grouped by cycle (`patch|verify|ship`), flagging a
+  shipped patch that's missing its metered (`patch`+`verify`) cost. Human +
+  `--json` (same `task.*`/`cost.*` attribute names as `status`'s `patches[]`).
+  A lens, not a new top-level recipe (DEC-001 §4).
+- **Patches in the reports.** `report-daily` grows a `## Patches` section
+  (in-flight vs shipped counts, WIP patch cost, shipped patches missing metered
+  cost) and `report-weekly` a `## Patches` section (total/shipped/in-flight +
+  recorded patch cost). Both emit only when the project has patches, so a
+  patch-free project's reports are unchanged.
+
+### Notes
+
+- +6 test checks (now 169): the `dash patches` lens (human + `--json` envelope,
+  valid JSON, and `task.*` payload) and the daily/weekly `## Patches` sections.
+- Removed the `KNOWN_LIMITATIONS.md` note that flagged reports + a patches lens
+  as pending — both now ship. The patch lane is complete across `validate`,
+  `cost-audit`, `status`, `dash` (a lens + `dash now`), and the reports.
+
 ## 2026-06-27 — The patch lane: lightweight fixes to shipped behavior (v0.5.21)
 
 The #1 recommendation of the dogfood retrospective, validated by two shipped

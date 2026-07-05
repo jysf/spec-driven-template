@@ -941,6 +941,28 @@ else
     fail "archive-patch did not move the patch to done/"
 fi
 assert_cmd_fails "double archive-patch fails" just archive-patch "$PATCH_ID"
+
+# --- dash patches lens + reports include patches (v0.5.22) ---
+# The patch is now archived (shipped) under patches/done/; the lens lists it.
+dp=$(just dash patches 2>&1)
+if printf '%s\n' "$dp" | grep -qE "^Patches — " && printf '%s\n' "$dp" | grep -q "$PATCH_ID"; then
+    pass "dash patches lists the patch lane by cycle"
+else
+    fail "dash patches output unexpected: $dp"
+fi
+json_ok "dash patches --json"   just dash patches --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash patches --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="patches" and d["data"]["total"]>=1 and d["data"]["patches"][0]["task.id"].startswith("PATCH-")' \
+        && pass "dash patches --json (task.* payload)" || fail "dash patches --json wrong/invalid"
+fi
+# report-daily / report-weekly grow a Patches section when patches exist.
+just report-daily >/dev/null 2>&1
+daily_file=$(ls -t reports/daily/*.md 2>/dev/null | head -n1)
+assert_contains "$daily_file" "## Patches" "report-daily includes a Patches section"
+just report-weekly >/dev/null 2>&1
+weekly_file=$(ls -t reports/weekly/*.md 2>/dev/null | head -n1)
+assert_contains "$weekly_file" "## Patches" "report-weekly includes a Patches section"
+
 # Remove the test patch so the shipped-without-cost file can't affect later runs.
 rm -rf projects/PROJ-001-example-mvp/patches
 
