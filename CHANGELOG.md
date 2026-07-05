@@ -2,6 +2,40 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — Runtime coverage: behavioral pre-flight + defect-catch-stage (v0.5.24)
+
+From the bragfile three-project retrospective (40/42 shipped, one supersession,
+zero design→ship drift — the discipline is validated at scale; the retro's
+explicit ask is *don't* speed up or codify sooner). Its one structural finding:
+design→build→verify is dense on spec-logic and sparse on **runtime/operational**
+behavior — every defect that escaped a cycle across three projects was
+operational/runtime. These are the two small, portable additions it asked for.
+
+### Added
+
+- **Behavioral pre-flight convention** (AGENTS.md §12, both variants): when a
+  spec's literal/artifact claims *runtime behavior* — a component registers, a
+  hook fires, a binary resolves on PATH, a server answers, a config takes effect
+  — exercise it through the surface that **runs** it before design is done, not
+  merely the surface that **validates its shape** (a manifest can pass
+  `validate --strict` and still register nothing). The verify checklist gains a
+  matching check. The template taught *no* design-time pre-flight before this.
+- **Defect-catch-stage tag** on the ship reflection (`spec.md`) and patch
+  completion (`patch.md`), both variants: one word from a fixed vocabulary
+  (`design | build | verify | ship | escaped | none`) so the **defect-escape
+  distribution** — "where do defects actually get caught, and what escapes?" — is
+  greppable across specs (it only shows up in a cross-project view).
+
+### Notes
+
+- +3 test checks (now 176): the pre-flight convention + both defect-catch tags
+  survive init.
+- Guidance/template text only — no script or command change. The retro's
+  bigger second ask (a release-spec template with an operational checklist) is
+  drafted as **DEC-006** (proposed) rather than built, to keep the checklist
+  generic. Validation items the retro says to protect (codification lag, the
+  N=3/N=2 bar, confidence, PEEL, premise-audit family) are unchanged by design.
+
 ## 2026-06-27 — Harvest backlog: cost rollup, audit hygiene, severity map (v0.5.23)
 
 The smaller-but-worthwhile items from the crustyimg + zany-animal-slots harvest.

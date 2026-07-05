@@ -127,3 +127,12 @@ context graph lives in the handoff file.
 
 3. **Is there a follow-up spec I should write now before I forget?**
    — <answer>
+
+4. **Where was the worst defect caught?** — one word from a fixed vocabulary so
+   the defect-escape distribution is greppable across specs:
+   `design` | `build` | `verify` | `ship` | `escaped` (reached prod/runtime) |
+   `none` (clean first try).
+   — <one word>
+   *(Runtime/operational defects — the escape-prone class — only exist once the
+   artifact meets its real host. `escaped` here is a signal to strengthen the
+   §12 behavioral pre-flight for that surface.)*

@@ -1063,6 +1063,16 @@ assert_contains "guidance/constraints.yaml" "critical, high -> blocking" \
     "constraints.yaml documents the severity mapping (critical/high -> blocking)"
 
 # ============================================================
+# Runtime coverage (v0.5.24): behavioral pre-flight + defect-catch-stage
+# ============================================================
+assert_contains "AGENTS.md" "Behavioral pre-flight" \
+    "AGENTS.md documents the behavioral pre-flight convention (runtime gap)"
+assert_contains "projects/_templates/spec.md" "Where was the worst defect caught" \
+    "spec ship reflection carries the defect-catch-stage tag"
+assert_contains "projects/_templates/patch.md" "Defect-catch-stage" \
+    "patch reflection carries the defect-catch-stage tag"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

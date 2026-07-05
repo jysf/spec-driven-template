@@ -79,6 +79,10 @@ for a patch.
 - **Fix summary:** <one or two lines>
 - **New decision emitted:** `DEC-NNN` (only if a real decision was made)
 - **Reflection (1 line):** what would make this class of fix faster next time?
+- **Defect-catch-stage:** where the bug this patch fixes was caught —
+  `design` | `build` | `verify` | `ship` | `escaped` (reached prod/runtime) —
+  one word, for the cross-project defect-escape distribution. (A patch usually
+  fixes an `escaped` defect; that's the signal a behavioral pre-flight was missed.)
 
 ## Ship
 

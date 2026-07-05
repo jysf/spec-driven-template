@@ -327,6 +327,16 @@ spec. DECs are stable repo-level records; specs come and go.
 - Need not test: third-party internals, framework behavior.
 - **TDD:** Tests live in the spec's `## Failing Tests` section, written
   during **design**, made to pass during **build**.
+- **Behavioral pre-flight (design-time).** When a spec's literal/artifact makes a
+  claim about *runtime behavior* — a component registers, a hook fires, a binary
+  resolves on PATH, a server answers, a config is actually loaded — exercise that
+  behavior through the surface that **runs** it before declaring design done, not
+  merely the surface that **validates its shape**. A manifest that passes
+  `validate --strict` can still register nothing; a completion script that lints
+  can still emit the wrong marker; a config that parses can still not take effect.
+  Shape-check and behavior-check are *different checks* — neither substitutes for
+  the other. The defect class that escapes design→build→verify is disproportionately
+  operational/runtime, not spec-logic; this is where to catch it.
 
 ---
 
@@ -398,6 +408,11 @@ Check:
 6. Implementer reflection answered (not mailed in)?
 7. `cost.sessions` has entries for prior cycles? Flag if missing
    (don't block).
+8. For any acceptance criterion claiming **runtime behavior** (a component
+   registers, a hook fires, a binary resolves on PATH, a server answers, a
+   config takes effect), was the *behavioral* surface actually exercised — not
+   just the shape validated (§12 behavioral pre-flight)? This is the class that
+   escapes.
 
 For check 3, run `just decisions-audit --changed` — it flags which
 `DEC-*` records govern the files the implementer touched, so you can

@@ -311,6 +311,16 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 - Coverage expectations: [REPLACE]
 - **TDD:** Tests live in the spec's `## Failing Tests` section, written
   during **design**, made to pass during **build**.
+- **Behavioral pre-flight (design-time).** When a spec's literal/artifact makes a
+  claim about *runtime behavior* — a component registers, a hook fires, a binary
+  resolves on PATH, a server answers, a config is actually loaded — exercise that
+  behavior through the surface that **runs** it before declaring design done, not
+  merely the surface that **validates its shape**. A manifest that passes
+  `validate --strict` can still register nothing; a completion script that lints
+  can still emit the wrong marker; a config that parses can still not take effect.
+  Shape-check and behavior-check are *different checks* — neither substitutes for
+  the other. The defect class that escapes design→build→verify is disproportionately
+  operational/runtime, not spec-logic; this is where to catch it.
 
 ---
 
@@ -374,6 +384,11 @@ can confirm the build stayed consistent with them. `just decisions-audit`
 (no flag) lints the records themselves. See
 `/guidance/recommended-tools.md` for optional, heavier verify tooling
 (e.g. LineSpec for protocol-level integration tests).
+
+For any acceptance criterion that claims **runtime behavior** (a component
+registers, a hook fires, a binary resolves on PATH, a server answers, a config
+takes effect), confirm the *behavioral* surface was actually exercised — not just
+the shape validated (§12 behavioral pre-flight). This is the class that escapes.
 
 Append a verify cost session entry to `cost.sessions`.
 
