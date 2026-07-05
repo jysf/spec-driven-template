@@ -2,6 +2,35 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — DEC-005 Phase 2: config-driven models + generalized wording (v0.5.26)
+
+Finishes [DEC-005](docs/decisions/DEC-005-agent-portability.md) (now **fully
+implemented**). Phase 1 made cost portable; this removes the last hard-coded
+Claude model ids and the Claude-specific session wording.
+
+### Changed
+
+- **`new-spec` / `new-patch` stamp `agents.*` from the `tier_map`** (new
+  `get_default_model` + `get_tier_model` in `_lib.sh`): a scaffolded spec's
+  `architect` = `tier_map.design`, `implementer` = `tier_map.build` (and the
+  `claude-plus-agents` `handoff.from_agent` = `tier_map.design`); a patch's
+  `implementer`/`verifier` = `tier_map.build`/`verify`. Model ids are no longer
+  hard-coded in the templates — a non-Claude instance's specs carry *its* models.
+  With the default tier map this also makes `architect` ≠ `implementer`
+  (opus/sonnet), fixing the "architect == implementer looks like design→build
+  contamination" misread a downstream verifier hit.
+- **Generalized "Claude session" → "session"** in `AGENTS.md`, `GETTING_STARTED.md`,
+  and `README.md` (both variants). The `claude-only` fresh-session-per-cycle
+  premise is now stated once as an explicit *variant assumption* (read "session"
+  as "session/agent" on another tool), not sprinkled as a universal.
+
+### Notes
+
+- +4 test checks (now 185): tier-map stamping on specs (design≠build) and
+  patches, no leftover model placeholders, and no `Claude session` left in
+  `AGENTS.md`. Defaults reproduce Claude behavior, so existing instances are
+  unaffected; `docs/porting.md` updated (no by-hand edits left for a porter).
+
 ## 2026-06-27 — DEC-005 Phase 1: run on non-Claude agents (config + graceful cost-audit) (v0.5.25)
 
 Implements Phase 1 of [DEC-005](docs/decisions/DEC-005-agent-portability.md)

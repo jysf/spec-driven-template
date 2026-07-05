@@ -313,6 +313,45 @@ get_metering_source() {
     echo "${v:-subagent_tokens}"
 }
 
+# The default agent model from .repo-context.yaml (spec.agent.default_model),
+# stamped into new artifacts' agents.* (DEC-005). Falls back to claude-opus-4-7.
+get_default_model() {
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    local v=""
+    if [ -f "$ctx" ]; then
+        v=$(awk '
+            /^spec:/ { in_spec = 1; next }
+            /^[a-zA-Z]/ && in_spec { in_spec = 0 }
+            in_spec && /^  agent:/ { in_agent = 1; next }
+            in_spec && in_agent && /^  [a-zA-Z]/ { in_agent = 0 }
+            in_agent && /^    default_model:/ { print $2; exit }
+        ' "$ctx")
+    fi
+    echo "${v:-claude-opus-4-7}"
+}
+
+# The model configured for a cycle (spec.agent.tier_map.<cycle>), e.g. the
+# design=Opus/build=Sonnet split made pluggable. Falls back to default_model
+# (then claude-opus-4-7). DEC-005.
+get_tier_model() {
+    local cycle="$1"
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    local v=""
+    if [ -f "$ctx" ]; then
+        v=$(awk -v cyc="$cycle" '
+            /^spec:/ { in_spec = 1; next }
+            /^[a-zA-Z]/ && in_spec { in_spec = 0 }
+            in_spec && /^  agent:/ { in_agent = 1; next }
+            in_spec && in_agent && /^  [a-zA-Z]/ { in_agent = 0 }
+            in_agent && /^    tier_map:/ { in_tier = 1; next }
+            in_agent && in_tier && /^    [a-zA-Z]/ { in_tier = 0 }
+            in_tier && $0 ~ ("^      " cyc ":") { print $2; exit }
+        ' "$ctx")
+    fi
+    [ -n "$v" ] || v=$(get_default_model)
+    echo "$v"
+}
+
 # ---------------------------------------------------------------------
 # Report helpers — parse value and cost metadata from front-matter
 # and do portable date math. Keep pure bash + awk + date; no yq.

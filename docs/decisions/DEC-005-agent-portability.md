@@ -20,13 +20,13 @@ tags: [architecture, portability, cost, non-claude, config]
 
 # DEC-005: run on non-Claude agents — parameterize the model + cost seams
 
-> **This is the template's own decision log** (meta). **Status: accepted** —
-> **Phase 1 shipped in v0.5.25**: the `spec.agent`/`spec.cost` config block in
+> **This is the template's own decision log** (meta). **Status: accepted —
+> fully implemented.** Phase 1 (v0.5.25): the `spec.agent`/`spec.cost` config in
 > `.repo-context.yaml`, a `cost-audit` that honors `metering_source` (`none`
-> disables the gate), and `docs/porting.md`. **Phase 2 (pending):** `new-spec`/
-> `new-patch` stamp `agents.*` from `default_model`/`tier_map`, and the
-> "fresh Claude session" prompt wording is generalized (§3 below). It is the
-> dependency named in
+> disables the gate), and `docs/porting.md`. Phase 2 (v0.5.26): `new-spec` /
+> `new-patch` stamp `agents.*` (and the plus-agents `handoff.from_agent`) from
+> the `tier_map`, and the "new Claude session" AGENTS wording is generalized to
+> "new session." It is the dependency named in
 > [DEC-004 §5](DEC-004-subagent-execution-mode.md): DEC-004's rule 3 (model
 > config) consumes the config this decision defines. Builds on
 > [DEC-002](DEC-002-cost-convention.md) (the `cost.*` extension).

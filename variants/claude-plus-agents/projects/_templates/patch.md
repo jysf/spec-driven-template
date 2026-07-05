@@ -23,8 +23,8 @@ repo:
   id: __REPO_ID__
 
 agents:
-  implementer: claude-opus-4-7     # the patch pass (design+build fused, test-first)
-  verifier: claude-opus-4-7        # independent verify — KEPT (a separate session/agent)
+  implementer: __IMPLEMENTER_MODEL__  # the patch pass (tier_map.build; DEC-005)
+  verifier: __VERIFIER_MODEL__        # independent verify — KEPT (tier_map.verify; a separate session/agent)
   created_at: __TODAY__
 
 references:

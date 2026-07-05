@@ -1097,6 +1097,43 @@ if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/metering_source: none/metering_s
 rm -rf projects/PROJ-001-example-mvp/patches
 
 # ============================================================
+# DEC-005 Phase 2: config-driven agents.* stamping + wording
+# ============================================================
+# The example tier_map has design=opus, build=sonnet, so a scaffolded spec's
+# architect != implementer — proving tier_map is read (not the hardcoded
+# fallback), and fixing the 'architect==implementer looks like contamination'
+# misread.
+just new-stage "P2 Stage" >/dev/null 2>&1
+P2S=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p2-stage.md 2>/dev/null | head -n1 | xargs -I{} basename {} | grep -oE 'STAGE-[0-9]+')
+just new-spec "P2 Spec" "$P2S" >/dev/null 2>&1
+P2SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p2-spec.md 2>/dev/null | head -n1)
+arch=$(awk '/^  architect:/{print $2; exit}' "$P2SPEC")
+impl=$(awk '/^  implementer:/{print $2; exit}' "$P2SPEC")
+if [ "$arch" = "claude-opus-4-7" ] && [ "$impl" = "claude-sonnet-4-6" ] && [ "$arch" != "$impl" ]; then
+    pass "new-spec stamps agents.* from tier_map (design!=build, not hardcoded)"
+else
+    fail "agents stamping wrong: architect=$arch implementer=$impl"
+fi
+if grep -qE '__ARCHITECT_MODEL__|__IMPLEMENTER_MODEL__' "$P2SPEC"; then
+    fail "scaffolded spec still has a model placeholder"
+else
+    pass "no model placeholders remain in the scaffolded spec"
+fi
+just new-patch "P2 Patch" >/dev/null 2>&1
+P2P=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-p2-patch.md 2>/dev/null | head -n1)
+pimpl=$(awk '/^  implementer:/{print $2; exit}' "$P2P")
+[ "$pimpl" = "claude-sonnet-4-6" ] \
+    && pass "new-patch stamps agents from tier_map.build" \
+    || fail "patch implementer stamping wrong: $pimpl"
+rm -rf projects/PROJ-001-example-mvp/patches
+# Session wording generalized (DEC-005 §3): no 'Claude session' in AGENTS.
+if grep -q "Claude session" AGENTS.md; then
+    fail "AGENTS.md still says 'Claude session' (wording not generalized)"
+else
+    pass "session wording generalized (no 'Claude session' in AGENTS.md)"
+fi
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

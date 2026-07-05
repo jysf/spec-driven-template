@@ -204,7 +204,9 @@ frame → design → build → verify → ship
                    └───────┘ (verify sends back on punch list)
 ```
 
-**In this variant**, use **separate Claude sessions** for each cycle.
+**In this variant**, use **separate sessions** for each cycle (this variant
+assumes one agent — Claude by default — playing every role in fresh sessions;
+on another agent, read "session" as "fresh session/agent", see docs/porting.md).
 A fresh session prevents design-phase context from contaminating build
 decisions, and a fresh verify session catches drift a continuation
 session wouldn't.
@@ -347,7 +349,7 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ### During **build**
 
-Start a **new Claude session**. Do not continue from the design session.
+Start a **new session**. Do not continue from the design session.
 
 Before writing code:
 1. Read the spec's `## Implementation Context` section.
@@ -371,7 +373,7 @@ When done:
 
 ### During **verify**
 
-Start **another new Claude session**. Do not reuse build session.
+Start **another new session**. Do not reuse build session.
 
 Check: acceptance criteria met? tests pass? no decision drift? no
 constraint violations? non-trivial choices have DEC-*? build reflection

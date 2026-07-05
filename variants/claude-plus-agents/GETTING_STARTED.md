@@ -32,7 +32,7 @@ the example `PROJ-001-example-mvp` project. Then come back.
 
 **Goal:** one-paragraph frame for what you want this repo to become. Go/kill decision.
 
-1. Open a Claude session.
+1. Open a session.
 2. Copy **Prompt 1a: PROJECT FRAME** from `FIRST_SESSION_PROMPTS.md`.
 3. Fill in your raw idea, paste into Claude.
 4. Claude produces a frame + go/kill recommendation.

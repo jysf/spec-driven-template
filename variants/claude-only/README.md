@@ -48,7 +48,7 @@ overwrites, so they're always a current snapshot.
 
 Because Claude plays every role, context contamination is the biggest risk. Four habits keep it at bay:
 
-1. **New Claude session per cycle** (especially design → build and build → verify)
+1. **New session per cycle** (especially design → build and build → verify)
 2. **The spec file is the source of truth** between sessions — no "as I said earlier"
 3. **Weekly review is non-optional** (`just weekly-review`)
 4. **Honest confidence values** on decisions

@@ -65,15 +65,16 @@ without cheap fresh contexts might not have.
 - **The `claude-only` variant's premise** — "separate cheap sessions, same agent
   per cycle" — assumes a tool with cheap fresh contexts. An agent without that
   will find the per-cycle-session ritual awkward; the spec still carries all the
-  context, so the work is unaffected, only the ceremony.
-- **Some prompt wording** in `FIRST_SESSION_PROMPTS.md` still says "fresh Claude
-  session." It's harmless (read it as "fresh session/agent"); a later increment
-  (DEC-005 Phase 2) generalizes the wording and stamps `agents.*` from
-  `default_model`/`tier_map` automatically.
+  context, so the work is unaffected, only the ceremony. (This is the one
+  genuinely Claude-shaped assumption; the `claude-plus-agents` variant, with its
+  `handoff.to_agent`, is the more agent-neutral one.)
+- **Model ids are now stamped from your config**, not hardcoded — `new-spec` /
+  `new-patch` fill `agents.*` (and the plus-agents `handoff.from_agent`) from the
+  `tier_map`, so a scaffolded spec already carries your models, not Claude's.
 
 ## Status
 
-**Phase 1 (this release):** the `agent`/`cost` config block + a `cost-audit` that
-honors `metering_source`. **Phase 2 (planned, DEC-005):** `new-spec`/`new-patch`
-stamp `agents.*` from the config, and the prompt wording is generalized. Until
-then, set the config and edit `agents.*` / prompt wording by hand where it matters.
+**Fully implemented** (DEC-005, v0.5.25–v0.5.26): the `agent`/`cost` config block,
+a `cost-audit` that honors `metering_source`, `agents.*` stamped from the config,
+and generalized session wording. Set the config in `.repo-context.yaml` and you're
+running on your agent — nothing here is left to edit by hand.

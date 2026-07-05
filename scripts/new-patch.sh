@@ -55,6 +55,9 @@ sed_inplace "s|PROJ-XXX|${PROJECT_ID}|g" "$PATCH_FILE"
 sed_inplace "s|<the shipped behavior this fixes>|${TITLE_ESC}|g" "$PATCH_FILE"
 sed_inplace "s|__TODAY__|$(today)|g" "$PATCH_FILE"
 sed_inplace "s|__REPO_ID__|${REPO_ID_ESC}|g" "$PATCH_FILE"
+# Stamp the build/verify models from .repo-context tier_map (DEC-005).
+sed_inplace "s|__IMPLEMENTER_MODEL__|$(get_tier_model build)|g" "$PATCH_FILE"
+sed_inplace "s|__VERIFIER_MODEL__|$(get_tier_model verify)|g" "$PATCH_FILE"
 
 # Cycle-prompt dir, mirroring specs/prompts/.
 mkdir -p "${PROJECT_DIR}/patches/prompts"

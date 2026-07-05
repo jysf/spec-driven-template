@@ -77,6 +77,10 @@ sed_inplace "s|PROJ-XXX|${PROJECT_ID}|g" "$SPEC_FILE"
 sed_inplace "s|<Short Title>|${TITLE_ESC}|g" "$SPEC_FILE"
 sed_inplace "s|__TODAY__|$(today)|g" "$SPEC_FILE"
 sed_inplace "s|__REPO_ID__|${REPO_ID_ESC}|g" "$SPEC_FILE"
+# Stamp the design/build models from .repo-context tier_map (DEC-005). Model
+# ids are alphanumeric+hyphen, so no sed-escaping needed.
+sed_inplace "s|__ARCHITECT_MODEL__|$(get_tier_model design)|g" "$SPEC_FILE"
+sed_inplace "s|__IMPLEMENTER_MODEL__|$(get_tier_model build)|g" "$SPEC_FILE"
 
 # Scaffold the timeline file alongside the spec. Architect appends
 # cycle lines as it designs them; executors update status markers.

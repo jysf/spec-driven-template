@@ -11,7 +11,7 @@ Step-by-step walkthrough for your first project. Assumes you just ran `just init
 - Claude API access (Pro, Team, Enterprise, or API key).
 - A Git repo. Branch protection on `main` recommended.
 - `just` installed (`brew install just` on macOS, `cargo install just` elsewhere).
-- **Most important:** a commitment to starting a NEW Claude session for each phase.
+- **Most important:** a commitment to starting a NEW session for each phase.
 
 ---
 
@@ -32,7 +32,7 @@ Explore. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
 
 **Goal:** one-paragraph frame for what you want this repo to become.
 
-1. Open a fresh Claude session.
+1. Open a fresh session.
 2. Copy **Prompt 1a: PROJECT FRAME** from `FIRST_SESSION_PROMPTS.md`.
 3. Paste your raw idea. Claude returns a frame + go/kill.
 
@@ -117,12 +117,12 @@ prompts.
 
 ---
 
-## Step 7 — BUILD (fresh Claude session!)
+## Step 7 — BUILD (fresh session!)
 
-> **CRITICAL:** start a NEW Claude session. Don't continue from design.
+> **CRITICAL:** start a NEW session. Don't continue from design.
 
 1. Create the branch: `git checkout -b feat/spec-001-<slug>`.
-2. Fresh Claude session.
+2. Fresh session.
 3. Copy **Prompt 3: BUILD** from `FIRST_SESSION_PROMPTS.md`.
 4. Paste spec ID and slug. Claude reads the spec (including its
    Implementation Context) and implements.
@@ -133,7 +133,7 @@ prompts.
 
 ## Step 8 — VERIFY (another fresh session!)
 
-> **ALSO CRITICAL:** start another NEW Claude session.
+> **ALSO CRITICAL:** start another NEW session.
 
 1. Fresh session.
 2. Copy **Prompt 4: VERIFY**.
@@ -187,7 +187,7 @@ Once a week, always: `just weekly-review`. Without a second agent pushing back, 
 
 ## Common first-week stumbles
 
-**Reusing the same Claude session for design AND build.** Start a new one. It's not wasteful.
+**Reusing the same session for design AND build.** Start a new one. It's not wasteful.
 
 **Spec's Implementation Context section is too short.** It should list every decision, constraint, and prior spec the build session needs. If it feels redundant, you're doing it right — the build session has no design context.
 

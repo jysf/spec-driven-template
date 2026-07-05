@@ -18,8 +18,8 @@ repo:
   id: __REPO_ID__
 
 handoff:
-  from_agent: claude-opus-4-7
-  to_agent: null                   # filled when HANDOFF is created
+  from_agent: __ARCHITECT_MODEL__  # from .repo-context tier_map.design (DEC-005)
+  to_agent: null                   # filled when HANDOFF is created (any agent — see docs/porting.md)
   created_at: null
 
 references:

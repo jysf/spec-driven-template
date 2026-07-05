@@ -19,8 +19,8 @@ repo:
   id: __REPO_ID__
 
 agents:
-  architect: claude-opus-4-7
-  implementer: claude-opus-4-7     # usually same Claude, different session
+  architect: __ARCHITECT_MODEL__     # from .repo-context tier_map.design (DEC-005)
+  implementer: __IMPLEMENTER_MODEL__  # tier_map.build; the build agent updates it with the real model
   created_at: __TODAY__
 
 references:
