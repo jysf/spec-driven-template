@@ -58,17 +58,36 @@ Adopt a **documented sub-agent / delegated-execution mode** — a named set of
 orchestration rules + template slots, applicable whenever build/verify is
 delegated to a fresh sub-agent (both variants). Five mechanisms:
 
+> **This builds on the existing `HANDOFF-*` artifact, it does not replace it.**
+> The `claude-plus-agents` variant already has the delegation contract — a
+> handoff with `handoff.to_agent` (already values like `kilo-code`,
+> `factory-droid`) and `handoff.status: pending → accepted → completed |
+> rejected`. This DEC adds the *orchestration discipline* around that contract:
+> the rules below are what must hold **before an orchestrator flips
+> `handoff.status` to `completed`** (or, in `claude-only`, before it advances the
+> spec's `task.cycle`). The handoff is the "what"; this DEC is the "how you trust
+> it."
+
 ### 1. Reconcile over self-report (the load-bearing rule)
 
-**Never advance a cycle on a sub-agent's self-report alone.** After a
-build/verify sub-agent returns, the orchestrator reconciles the *claimed* result
-against actual **`git log` + disk state** (branch exists, commit present, gate
-actually ran, the spec's `## Failing Tests` files exist) before advancing. This
-generalizes the contract's existing "trust git over timeline markers" to "trust
-git/disk over **any** agent self-report." Promote to AGENTS.md as a first-class
-orchestration rule (agent-agnostic, highest value). A small `_lib.sh` helper can
-assert the mechanical parts (e.g. "commit on the expected branch, spec files
-present").
+**Never advance a cycle — or mark a handoff `completed` — on a sub-agent's
+self-report alone.** After a build/verify sub-agent returns, the orchestrator
+reconciles the *claimed* result against actual **`git log` + disk state** (branch
+exists, commit present, gate actually ran, the spec's `## Failing Tests` files
+exist) before advancing. This generalizes the contract's existing "trust git over
+timeline markers" to "trust git/disk over **any** agent self-report." Promote to
+AGENTS.md as a first-class orchestration rule (agent-agnostic, highest value). A
+small `_lib.sh` helper can assert the mechanical parts (e.g. "commit on the
+expected branch, spec files present").
+
+**Includes a named recovery procedure.** Sub-agents die mid-cycle (API overloads,
+kills) — observed twice per run in both dogfood projects. When they do, the
+orchestrator: (a) reconciles the partial output against disk/git; (b) finishes the
+**mechanical remainder** in the main loop (never re-runs the whole cycle); and
+(c) attributes cost to the sub-agent's **metered portion** (its `subagent_tokens`),
+recording the main-loop finish as a separate null-with-note session. This turns
+an ad-hoc save into a documented, cost-honest step — and is the same reconcile
+check, applied to a partial rather than a complete result.
 
 ### 2. One sub-agent, no interleaved tree ops — with worktree isolation as the fix
 
@@ -118,14 +137,16 @@ fills the truth.
 
 ## §5 — Relationship to non-Claude portability
 
-Rules 1, 2, 4, 5 are **agent-agnostic**. Rule 3 (model config) is the seam that
-couples to Claude today: model-ids (`claude-opus-4-8`/`claude-sonnet-4-6`), the
-`$/M` rate, and the metering source (`subagent_tokens` / `/cost`) are all
-Claude-specific, and `cost-audit` is a hard gate with **no source** on another
-platform. Both harvests independently name this. **Recommendation:** spin a
-separate **portability** decision that parameterizes model-id, the `$/M` rate,
-and the metering source behind config, and makes the model-tier map pluggable —
-and have this DEC's rule 3 consume that config rather than re-specify it.
+Rules 1, 2, 4, 5 are **agent-agnostic** (and the handoff's `handoff.to_agent`
+field is *already* agent-agnostic — `kilo-code`, `factory-droid`). Rule 3 (model
+config) is the seam that couples to Claude today: model-ids
+(`claude-opus-4-8`/`claude-sonnet-4-6`), the `$/M` rate, and the metering source
+(`subagent_tokens` / `/cost`) are all Claude-specific, and `cost-audit` is a hard
+gate with **no source** on another platform. Both harvests independently name
+this. This is now [**DEC-005**](DEC-005-agent-portability.md) (proposed) — it
+parameterizes model-id, the `$/M` rate, and the metering source behind config and
+makes the model-tier map pluggable; **rule 3 here consumes that config rather than
+re-specifying it.**
 
 ## Open questions
 
@@ -138,3 +159,8 @@ and have this DEC's rule 3 consume that config rather than re-specify it.
    (like `cost-audit`), or does its judgment-laden nature keep it a convention?
 4. **Dev-dep boundary** — what exactly counts as "clearly trivial" (dev-only?
    types/test-only?) so rule 4 doesn't erode the deps constraint.
+5. **Environment reliability is out of scope but real** — background-dispatched
+   sub-agents sometimes can't obtain a Bash permission at all, and overloads are
+   frequent. The template can't fix the harness; it can only assume less (the
+   reconcile + recovery procedure above is the mitigation). Worth naming so it
+   isn't silently assumed away.
