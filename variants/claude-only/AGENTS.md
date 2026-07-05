@@ -45,6 +45,12 @@ binds PROJ-002 as well.
 
 **Specs do not cross project boundaries.**
 
+**IDs are globally unique and continuous across the repo.** `STAGE-*` and
+`SPEC-*` numbers keep counting up across projects — they do **not** restart at
+001 per project. If PROJ-001 ends at `STAGE-006` / `SPEC-037`, PROJ-002 begins
+at `STAGE-007` / `SPEC-038`. `just new-stage` / `just new-spec` assign the next
+number repo-wide, so an ID unambiguously identifies one artifact anywhere.
+
 ---
 
 ## 3. Business Value

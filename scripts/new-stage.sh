@@ -18,7 +18,10 @@ fi
 PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
 PROJECT_ID=$(basename "$PROJECT_DIR" | awk -F- '{print $1"-"$2}')
 
-STAGE_ID=$(next_id STAGE "${PROJECT_DIR}/stages")
+# STAGE ids are continuous across the whole repo (next_id defaults to a
+# repo-wide scan), so a new project keeps counting up rather than restarting
+# at 001. See AGENTS.md (Work Hierarchy).
+STAGE_ID=$(next_id STAGE)
 SLUG=$(slugify "$TITLE")
 STAGE_FILE="${PROJECT_DIR}/stages/${STAGE_ID}-${SLUG}.md"
 
@@ -31,6 +34,9 @@ if [ ! -f "$TEMPLATE" ]; then
     die "Template not found: ${TEMPLATE}. Did init run correctly?"
 fi
 
+# A hand-created project (copied from project-brief.md) may not have a stages/
+# dir yet; create it so scaffolding works without a separate new-project step.
+mkdir -p "${PROJECT_DIR}/stages"
 cp "$TEMPLATE" "$STAGE_FILE"
 
 sed_inplace() {

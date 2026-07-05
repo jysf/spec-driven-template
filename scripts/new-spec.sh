@@ -25,10 +25,17 @@ if [ -z "$STAGE_FILE" ]; then
     die "Stage not found in ${PROJECT_ID}: ${STAGE_ID}"
 fi
 
-SPEC_ID=$(next_id SPEC "${PROJECT_DIR}/specs")
+# SPEC ids are continuous across the whole repo (next_id defaults to a
+# repo-wide scan), so specs keep counting up across projects rather than
+# restarting at 001. See AGENTS.md (Work Hierarchy).
+SPEC_ID=$(next_id SPEC)
 SLUG=$(slugify "$TITLE")
 SPEC_FILE="${PROJECT_DIR}/specs/${SPEC_ID}-${SLUG}.md"
 VARIANT=$(get_variant)
+
+# A hand-created project may not have a specs/ dir yet; create it so
+# scaffolding works without a separate new-project step.
+mkdir -p "${PROJECT_DIR}/specs"
 
 if [ -f "$SPEC_FILE" ]; then
     die "Spec file already exists: ${SPEC_FILE}"

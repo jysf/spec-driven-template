@@ -2,6 +2,45 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — Repo-wide continuous STAGE/SPEC numbering (v0.5.20)
+
+From dogfood feedback (a second project restarted numbering at `001` instead of
+continuing). `next_id` already defaulted to a repo-wide scan; the two call-sites
+were narrowing it per-project.
+
+### Changed
+
+- **`new-stage` / `new-spec` assign IDs continuously across the whole repo.**
+  Dropped the per-project search dir so both use `next_id`'s repo-wide default:
+  with PROJ-001 at `STAGE-006` / `SPEC-037`, a stage in PROJ-002 is `STAGE-007`
+  and its first spec is `SPEC-038` — IDs are globally unique and no longer
+  restart per project. Existing files are untouched. (`scripts/new-stage.sh`,
+  `scripts/new-spec.sh`.)
+- **Documented the convention** in both variants' `AGENTS.md` (Work Hierarchy)
+  and `GETTING_STARTED.md` (project-ship step), and in the `stage.md` template
+  comment (`# stable, zero-padded, continuous across the repo`).
+
+### Fixed
+
+- **`new-stage` / `new-spec` now `mkdir -p` their target dir.** A hand-created
+  project (copied from `project-brief.md`, so only `brief.md` exists) no longer
+  fails with `cp: … No such file or directory` when it has no `stages/`/`specs/`
+  dir yet.
+- **Reconciled `KNOWN_LIMITATIONS.md`** with the v0.5.19 `archive-spec` change
+  (it now performs the mechanical backlog flip + `**Count:**` recompute; only the
+  judgment-laden list curation stays manual), and expanded the
+  `get_active_project` note (it's status-blind — a shipped project can stay
+  "active"; filed as a candidate improvement, not made because it changes the
+  selection every command sees).
+
+### Notes
+
+- +1 test check (now 150): a stage in a fresh second project continues the
+  repo-wide count instead of restarting at `001` (also exercises the `mkdir -p`).
+- Backward-compatible: no files move; only newly-assigned IDs change. If a
+  per-project scheme is ever wanted it can become a documented
+  `.repo-context.yaml` toggle, but continuous is the default and the only mode.
+
 ## 2026-06-27 — P1 dogfood fixes: silent-failure bugs + ship bookkeeping (v0.5.19)
 
 The first fixes harvested through the new Signals registry, from two shipped

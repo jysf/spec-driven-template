@@ -172,7 +172,10 @@ When all specs shipped: **Prompt 1d: STAGE SHIP**. Claude drafts stage reflectio
 
 When all stages shipped: **Prompt 1e: PROJECT SHIP**. Claude drafts project reflection.
 
-Then plan PROJ-002 with Step 2.
+Then plan PROJ-002 with Step 2. Its `STAGE-*` / `SPEC-*` numbers **continue** from
+where PROJ-001 left off (they're repo-wide and continuous, not per-project) — so
+if PROJ-001 ended at `STAGE-006` / `SPEC-037`, PROJ-002 starts at `STAGE-007` /
+`SPEC-038`.
 
 ---
 

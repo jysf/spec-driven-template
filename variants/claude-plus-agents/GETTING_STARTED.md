@@ -196,7 +196,10 @@ When all stages in your project have shipped:
 3. Append to `projects/PROJ-001-*/brief.md`. Update project status to `shipped`.
 4. Commit.
 
-5. Plan the next project (PROJ-002) with Step 2.
+5. Plan the next project (PROJ-002) with Step 2. Its `STAGE-*` / `SPEC-*`
+   numbers **continue** from where PROJ-001 left off (they're repo-wide and
+   continuous, not per-project) — if PROJ-001 ended at `STAGE-006` / `SPEC-037`,
+   PROJ-002 starts at `STAGE-007` / `SPEC-038`.
 
 ---
 

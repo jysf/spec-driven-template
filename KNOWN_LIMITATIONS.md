@@ -15,13 +15,16 @@ If you add this command later, give it the same shape as `new-stage`:
 accept a title, next-id a PROJ ID, copy the template, substitute
 `PROJ-XXX` and `__TODAY__`.
 
-## `new-spec` and `archive-spec` don't auto-update the parent stage backlog
+## Stage-backlog editing is partly automated
 
-The stage's `## Spec Backlog` markdown list and the `**Count:**` line
-are written by a human (or by Claude). The scripts print a reminder
-but don't edit the stage file. This is deliberate — markdown list
-formatting is judgment-laden and a script that gets it wrong is worse
-than one that doesn't try.
+As of v0.5.19, `archive-spec` **does** perform the mechanical, low-risk part of
+the backlog update: it flips the spec's `- [ ] SPEC-NNN` line to
+`- [x] … (shipped on DATE)` and recomputes the `**Count:**` line, scoped to the
+`## Spec Backlog` section (falling back to a printed hint if the spec isn't
+listed). What stays manual is the *judgment-laden* part — writing/reordering
+backlog summaries and promoting "(not yet written)" bullets — which a script
+that gets it wrong is worse than one that doesn't try. `new-spec` still does not
+add a scaffolded spec to the backlog (the architect curates that list).
 
 ## `just init` is interactive-only
 
@@ -45,12 +48,21 @@ or `SPEC-10000`, behavior is undefined. The projected worst case at
 normal scale is one project with >999 specs, which would mean the
 stage-and-spec hierarchy is being misused.
 
-## `get_active_project` uses lexical-first heuristic
+## `get_active_project` uses a lexical-first, status-blind heuristic
 
 When multiple `PROJ-*` directories exist (not counting the example),
-`get_active_project` picks the lexically first one. Override with
-`export ACTIVE_PROJECT=PROJ-NNN-slug`. This is shown by `just info`
-but not prominently documented elsewhere.
+`get_active_project` picks the lexically first one **regardless of its
+`status`** — so a *shipped* project can stay "active" and a newer one is
+invisible to `just status` and default `new-spec`/`new-stage` resolution.
+Override with `export ACTIVE_PROJECT=PROJ-NNN-slug`, or pass the project id
+explicitly to `new-stage`/`new-spec` (which now resolve deterministically and
+hard-error on an ambiguous glob — v0.5.19). A status-aware default (prefer the
+highest-numbered `active`/`proposed` project) is a candidate improvement, not yet
+made because it would change the selection every command sees.
+
+Note: `STAGE-*`/`SPEC-*` **numbering** is repo-wide and continuous (v0.5.20), so
+it is unaffected by which project is "active" — new ids always continue from the
+global maximum.
 
 ## Templates exist in two copies (one per variant)
 

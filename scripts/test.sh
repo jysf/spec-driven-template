@@ -860,6 +860,24 @@ assert_cmd_fails "new-stage on an ambiguous PROJ-001 hard-errors" just new-stage
 rm -rf "projects/PROJ-001-decoy"
 
 # ============================================================
+# Repo-wide continuous numbering (v0.5.20)
+# ============================================================
+# A stage created in a fresh SECOND project must CONTINUE the repo-wide count,
+# not restart at 001. Also exercises mkdir -p (the project has no stages/ dir).
+before=$(find projects -name 'STAGE-*.md' -not -path '*/done/*' 2>/dev/null \
+         | sed -E 's|.*/STAGE-0*([0-9]+).*|\1|' | sort -n | tail -n1)
+mkdir -p projects/PROJ-002-num-test
+just new-stage "Cross Proj" PROJ-002-num-test >/dev/null 2>&1
+newstage=$(ls projects/PROJ-002-num-test/stages/STAGE-*-cross-proj.md 2>/dev/null | head -n1)
+newnum=$(basename "$newstage" 2>/dev/null | sed -E 's|STAGE-0*([0-9]+).*|\1|')
+if [ -n "$newnum" ] && [ "$newnum" = "$((before + 1))" ]; then
+    pass "new-stage continues numbering repo-wide across projects (not restart at 001)"
+else
+    fail "expected STAGE-$((before + 1)), got STAGE-${newnum:-<none>} (repo max was ${before})"
+fi
+rm -rf projects/PROJ-002-num-test
+
+# ============================================================
 # Done
 # ============================================================
 echo ""
