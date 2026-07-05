@@ -3,7 +3,7 @@ insight:
   id: DEC-005
   type: architecture
   confidence: 0.7
-status: proposed            # proposed | accepted | superseded
+status: accepted            # proposed | accepted | superseded
 date: 2026-06-27
 deciders: [jysf, claude]
 supersedes: null
@@ -20,8 +20,13 @@ tags: [architecture, portability, cost, non-claude, config]
 
 # DEC-005: run on non-Claude agents — parameterize the model + cost seams
 
-> **This is the template's own decision log** (meta). **Status: proposed** — a
-> draft for review. It is the dependency named in
+> **This is the template's own decision log** (meta). **Status: accepted** —
+> **Phase 1 shipped in v0.5.25**: the `spec.agent`/`spec.cost` config block in
+> `.repo-context.yaml`, a `cost-audit` that honors `metering_source` (`none`
+> disables the gate), and `docs/porting.md`. **Phase 2 (pending):** `new-spec`/
+> `new-patch` stamp `agents.*` from `default_model`/`tier_map`, and the
+> "fresh Claude session" prompt wording is generalized (§3 below). It is the
+> dependency named in
 > [DEC-004 §5](DEC-004-subagent-execution-mode.md): DEC-004's rule 3 (model
 > config) consumes the config this decision defines. Builds on
 > [DEC-002](DEC-002-cost-convention.md) (the `cost.*` extension).

@@ -29,6 +29,23 @@ spec:
     database: "[REPLACE: e.g., postgres-16]"
     hosting: "[REPLACE: e.g., vercel]"
 
+  # Agent + cost model config (DEC-005). Defaults reproduce the Claude-Code
+  # workflow, so an existing instance changes nothing. A NON-Claude instance
+  # edits these once to run the template on another agent — see docs/porting.md.
+  agent:
+    default_model: claude-opus-4-7    # stamped into new specs/patches' agents.*
+    tier_map:                         # which model runs which cycle (pluggable)
+      design: claude-opus-4-7
+      build: claude-sonnet-4-6
+      verify: claude-opus-4-7
+  cost:
+    # How a real tokens_total is obtained. `just cost-audit` honors this:
+    #   subagent_tokens | api_usage | manual  -> gate enforced (real number required)
+    #   none                                   -> gate DISABLED (no token source here)
+    metering_source: subagent_tokens
+    rate_per_mtok: 6.60               # USD per 1M tokens for the estimate (DEC-002 basis)
+    currency: USD
+
   # Standard paths; do not change without also updating AGENTS.md.
   paths:
     agents_md: ./AGENTS.md

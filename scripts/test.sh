@@ -1073,6 +1073,30 @@ assert_contains "projects/_templates/patch.md" "Defect-catch-stage" \
     "patch reflection carries the defect-catch-stage tag"
 
 # ============================================================
+# DEC-005 Phase 1: agent/cost config + graceful cost-audit
+# ============================================================
+assert_contains ".repo-context.yaml" "metering_source" \
+    ".repo-context.yaml carries the DEC-005 cost config"
+assert_contains ".repo-context.yaml" "default_model" \
+    ".repo-context.yaml carries the DEC-005 agent config"
+assert_file "docs/porting.md"
+
+# A shipped patch with no cost normally FAILS cost-audit (metering enforced)...
+just new-patch "Metering Test" >/dev/null 2>&1
+MPID=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-metering-test.md 2>/dev/null | head -n1 | xargs -I{} basename {} | grep -oE 'PATCH-[0-9]+')
+just advance-cycle "$MPID" ship >/dev/null 2>&1
+assert_cmd_fails "cost-audit enforces cost by default (metering_source subagent_tokens)" just cost-audit
+# ...but with metering_source: none the gate is DISABLED (no token source).
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/metering_source: subagent_tokens/metering_source: none/' .repo-context.yaml; else sed -i 's/metering_source: subagent_tokens/metering_source: none/' .repo-context.yaml; fi
+if just cost-audit >/dev/null 2>&1; then
+    pass "cost-audit gate disabled when metering_source=none (DEC-005 non-Claude unblock)"
+else
+    fail "cost-audit still failed with metering_source=none"
+fi
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/metering_source: none/metering_source: subagent_tokens/' .repo-context.yaml; else sed -i 's/metering_source: none/metering_source: subagent_tokens/' .repo-context.yaml; fi
+rm -rf projects/PROJ-001-example-mvp/patches
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

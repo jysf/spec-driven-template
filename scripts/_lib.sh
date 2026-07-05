@@ -295,6 +295,24 @@ get_repo_id() {
     echo "${id:-my-app}"
 }
 
+# The cost metering source from .repo-context.yaml (spec.cost.metering_source).
+# Defaults to subagent_tokens (the Claude-Code default). `just cost-audit`
+# honors it: `none` means the platform exposes no token count, so the gate is
+# disabled rather than blocking on a number that can't exist (DEC-005).
+get_metering_source() {
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    [ -f "$ctx" ] || { echo "subagent_tokens"; return; }
+    local v
+    v=$(awk '
+        /^spec:/ { in_spec = 1; next }
+        /^[a-zA-Z]/ && in_spec { in_spec = 0 }
+        in_spec && /^  cost:/ { in_cost = 1; next }
+        in_spec && in_cost && /^  [a-zA-Z]/ { in_cost = 0 }
+        in_spec && in_cost && /^    metering_source:/ { print $2; exit }
+    ' "$ctx")
+    echo "${v:-subagent_tokens}"
+}
+
 # ---------------------------------------------------------------------
 # Report helpers — parse value and cost metadata from front-matter
 # and do portable date math. Keep pure bash + awk + date; no yq.

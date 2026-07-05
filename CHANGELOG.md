@@ -2,6 +2,40 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — DEC-005 Phase 1: run on non-Claude agents (config + graceful cost-audit) (v0.5.25)
+
+Implements Phase 1 of [DEC-005](docs/decisions/DEC-005-agent-portability.md)
+(now **accepted**). The template is ~70% agent-portable already (`AGENTS.md` is
+the cross-tool standard; `handoff.to_agent` is agent-agnostic); the coupling is
+concentrated in the model + cost layer, and the **cost gate is the one hard
+blocker** on a platform with no token meter. This parameterizes it.
+
+### Added
+
+- **`spec.agent` + `spec.cost` config in `.repo-context.yaml`** (both variants):
+  `agent.default_model`, `agent.tier_map` (design/build/verify), and
+  `cost.{metering_source, rate_per_mtok, currency}`. Defaults reproduce the
+  Claude-Code workflow, so **existing instances change nothing**.
+- **`docs/porting.md`** (both variants) — how to run the template on a non-Claude
+  agent (point the tool at `AGENTS.md`, set the config, pick a `metering_source`),
+  what ports cleanly, and what's still Claude-shaped.
+
+### Changed
+
+- **`just cost-audit` honors `spec.cost.metering_source`** (new
+  `get_metering_source` in `_lib.sh`). `subagent_tokens` / `api_usage` / `manual`
+  keep the gate enforced; **`none` disables it** — so a platform that exposes no
+  token count no longer fails every shipped spec on an impossible number. This is
+  the change that unblocks a non-Claude run.
+
+### Notes
+
+- +5 test checks (now 181): the config + porting doc survive init, cost-audit
+  still enforces by default, and `metering_source: none` disables the gate.
+- **Phase 2 (pending, DEC-005):** `new-spec`/`new-patch` stamp `agents.*` from
+  `default_model`/`tier_map`, and the "fresh Claude session" prompt wording is
+  generalized. Until then, edit `agents.*` / wording by hand where it matters.
+
 ## 2026-06-27 — Runtime coverage: behavioral pre-flight + defect-catch-stage (v0.5.24)
 
 From the bragfile three-project retrospective (40/42 shipped, one supersession,

@@ -26,7 +26,15 @@ apiVersion: contextcore.io/v2 ✅      kind: RepoContext ✅
 metadata.repo: { id ✅, name ◦, purpose ◦, url ◦ }
 metadata.business: { criticality ◦ enum{critical,high,medium,low}, owner ◦, contacts[] ◦ }
 spec.stack: { language, runtime, framework, database, hosting }  ◦
+spec.agent: { default_model ◦, tier_map{design,build,verify} ◦ }              # DEC-005
+spec.cost:  { metering_source ◦ enum{subagent_tokens,api_usage,manual,none}, rate_per_mtok ◦, currency ◦ }  # DEC-005
 ```
+
+`spec.agent` / `spec.cost` (DEC-005) parameterize the model + cost seams so the
+template runs on a non-Claude agent by config, not a fork. Defaults reproduce the
+Claude-Code workflow. `just cost-audit` honors `spec.cost.metering_source`:
+`none` disables the gate (no token source on the platform); anything else keeps
+it enforced. See `docs/porting.md`.
 
 ## `projects/PROJ-*/brief.md` — a project
 

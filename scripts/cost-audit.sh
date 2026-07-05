@@ -23,6 +23,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
 require_initialized
+
+# DEC-005: with no token meter on this platform, tokens_total can't exist, so
+# the gate would block on an impossible number. Honor the configured metering
+# source — `none` disables the gate (cost is still captured where possible).
+METERING=$(get_metering_source)
+if [ "$METERING" = none ]; then
+    info "cost-audit: metering_source=none — this platform exposes no token count, so the cost gate is disabled (DEC-005). Capture cost where you can; see docs/cost-tracking.md."
+    exit 0
+fi
+
 project=$(get_active_project)
 project_dir="${REPO_ROOT}/projects/${project}"
 
