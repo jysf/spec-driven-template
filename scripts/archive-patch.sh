@@ -36,4 +36,6 @@ mkdir -p "$DONE_DIR"
 TARGET="${DONE_DIR}/$(basename "$PATCH_FILE")"
 mv "$PATCH_FILE" "$TARGET"
 success "Archived: ${PATCH_FILE} → ${TARGET}"
+# Recompute cost.totals from the recorded sessions (same as archive-spec).
+write_cost_totals "$TARGET"
 echo "${DIM}No stage bookkeeping — a patch attaches to the project, not a stage (DEC-003).${RESET}"

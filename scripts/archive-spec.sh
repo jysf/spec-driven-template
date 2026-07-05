@@ -40,6 +40,10 @@ TARGET="${DONE_DIR}/${SPEC_BASENAME}"
 mv "$SPEC_FILE" "$TARGET"
 success "Archived: ${SPEC_FILE} → ${TARGET}"
 
+# Recompute cost.totals from the recorded sessions so the rollup is never stale
+# (the non-judgment-laden half of ship bookkeeping — dogfood harvest).
+write_cost_totals "$TARGET"
+
 # Co-archive the timeline file if one exists. The timeline is an
 # artifact of this spec's cycle history and belongs next to the spec
 # it describes.

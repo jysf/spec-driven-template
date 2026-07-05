@@ -402,6 +402,29 @@ count_cost_sessions() {
     ' "$file"
 }
 
+# Recompute cost.totals in place from cost.sessions[] (the non-judgment-laden
+# half of ship bookkeeping — crustyimg/zany harvest). Rewrites the three
+# 4-space totals fields; leaves sessions untouched. The 4-space indent
+# disambiguates totals.estimated_usd from a session's 6-space estimated_usd.
+write_cost_totals() {
+    local file="$1"
+    local tok usd cnt
+    tok=$(sum_cost_tokens_for_spec "$file")
+    usd=$(sum_cost_usd_for_spec "$file")
+    cnt=$(count_cost_sessions "$file")
+    awk -v tok="$tok" -v usd="$usd" -v cnt="$cnt" '
+        /^---$/ { fm = !fm; print; next }
+        fm && /^cost:/ { in_cost = 1 }
+        fm && in_cost && /^[a-zA-Z_]/ && !/^cost:/ { in_cost = 0 }
+        in_cost && /^  totals:/ { in_tot = 1; print; next }
+        in_cost && in_tot && /^  [a-zA-Z_]/ { in_tot = 0 }
+        in_tot && /^    tokens_total:/  { print "    tokens_total: " tok;  next }
+        in_tot && /^    estimated_usd:/ { print "    estimated_usd: " usd; next }
+        in_tot && /^    session_count:/ { print "    session_count: " cnt; next }
+        { print }
+    ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
+
 # --- Cost-capture audit helpers (AGENTS.md §4; docs/cost-tracking.md) ----
 #
 # Specs that predate the cost-capture process; real per-cycle token counts

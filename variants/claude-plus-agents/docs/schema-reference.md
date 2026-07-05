@@ -124,6 +124,10 @@ constraints[]: { id ✅, rule ✅, severity ✅ enum{blocking,warning,advisory},
                  paths[] ✅, added_by ✅, added_at ✅, rationale ✅ }
 ```
 
+`severity` is about **enforcement**, not planning priority. Canonical mapping
+from a critical/high/medium/low rating: `critical`/`high` → **blocking**,
+`medium` → **warning**, `low` → **advisory** (also in the `constraints.yaml` header).
+
 `guidance/questions.yaml` is the same model with `guidance.type = question`.
 
 ## `guidance/signals.yaml` — the typed feedback ledger (template extension)

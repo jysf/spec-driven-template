@@ -967,6 +967,102 @@ assert_contains "$weekly_file" "## Patches" "report-weekly includes a Patches se
 rm -rf projects/PROJ-001-example-mvp/patches
 
 # ============================================================
+# Harvest backlog fixes (v0.5.23)
+# ============================================================
+
+# cost.totals auto-compute: archive-spec recomputes totals from cost.sessions.
+cat > projects/PROJ-001-example-mvp/specs/SPEC-777-cost-rollup.md <<'COSTSPEC'
+---
+task:
+  id: SPEC-777
+  type: chore
+  cycle: ship
+  complexity: S
+project:
+  id: PROJ-001
+  stage: STAGE-001
+repo:
+  id: bragfile-test
+cost:
+  sessions:
+    - cycle: build
+      tokens_total: 5000
+      estimated_usd: 0.03
+    - cycle: verify
+      tokens_total: 3000
+      estimated_usd: 0.02
+  totals:
+    tokens_total: 0
+    estimated_usd: 0
+    session_count: 0
+---
+# SPEC-777: cost rollup test
+COSTSPEC
+just archive-spec SPEC-777 >/dev/null 2>&1
+ROLLUP="projects/PROJ-001-example-mvp/specs/done/SPEC-777-cost-rollup.md"
+if grep -qE "^    tokens_total: 8000\$" "$ROLLUP" && grep -qE "^    session_count: 2\$" "$ROLLUP"; then
+    pass "archive-spec recomputes cost.totals from sessions (8000 tok / 2 sessions)"
+else
+    fail "cost.totals not recomputed: $(grep -A3 'totals:' "$ROLLUP" 2>/dev/null)"
+fi
+rm -f "$ROLLUP"
+
+# decisions-audit: parent/child nesting is info, not a scope warning.
+cat > decisions/DEC-101-parent.md <<'PAR'
+---
+insight:
+  id: DEC-101
+  type: decision
+created_at: 2026-06-27
+affected_scope:
+  - src/engine/**
+---
+# DEC-101: parent
+PAR
+cat > decisions/DEC-102-child.md <<'CHI'
+---
+insight:
+  id: DEC-102
+  type: decision
+created_at: 2026-06-27
+affected_scope:
+  - src/engine/rng.ts
+---
+# DEC-102: child
+CHI
+nest_out=$(just decisions-audit 2>&1)
+if printf '%s\n' "$nest_out" | grep -q "nested scope" && ! printf '%s\n' "$nest_out" | grep -qE "[1-9][0-9]* scope warning"; then
+    pass "decisions-audit treats parent/child nesting as info, not a conflict"
+else
+    fail "decisions-audit nesting unexpected: $nest_out"
+fi
+rm -f decisions/DEC-101-parent.md decisions/DEC-102-child.md
+
+# decisions-audit: a bare-name affected_scope (no separator/wildcard) warns.
+cat > decisions/DEC-103-bare.md <<'BARE'
+---
+insight:
+  id: DEC-103
+  type: decision
+created_at: 2026-06-27
+affected_scope:
+  - _headers
+---
+# DEC-103: bare scope
+BARE
+bare_out=$(just decisions-audit 2>&1)
+if printf '%s\n' "$bare_out" | grep -q "has no path separator or wildcard"; then
+    pass "decisions-audit warns on a bare-name affected_scope (false-confidence guard)"
+else
+    fail "decisions-audit bare-name unexpected: $bare_out"
+fi
+rm -f decisions/DEC-103-bare.md
+
+# severity vocab mapping survives init (both the yaml header and schema-reference).
+assert_contains "guidance/constraints.yaml" "critical, high -> blocking" \
+    "constraints.yaml documents the severity mapping (critical/high -> blocking)"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

@@ -115,19 +115,22 @@ glob_prefix() {
     printf '%s' "$1" | sed -E -e 's/[*?[].*$//' -e 's#/+$##'
 }
 
-# Heuristic: do two globs plausibly govern a common path? True when one
-# literal prefix is a path-prefix of the other. Wildcard-leading globs
-# (empty prefix) are skipped here to avoid flooding the overlap report;
-# --changed catches those precisely.
-prefixes_overlap() {
+# Classify two globs' literal-prefix relationship:
+#   "same" — equal prefix (two decisions rooted at the same path; worth a look)
+#   "nest" — one prefix strictly contains the other (a broad decision that
+#            deliberately contains a narrower one — intentional HIERARCHY, not a
+#            conflict; downgraded to info so it doesn't flood the report)
+#   ""     — no relationship (or a wildcard-leading glob with empty prefix;
+#            --changed catches those precisely)
+scope_relationship() {
     local a b
     a=$(glob_prefix "$1"); b=$(glob_prefix "$2")
-    [ -z "$a" ] && return 1
-    [ -z "$b" ] && return 1
-    [ "$a" = "$b" ] && return 0
-    case "$a" in "$b"/*) return 0 ;; esac
-    case "$b" in "$a"/*) return 0 ;; esac
-    return 1
+    [ -z "$a" ] && { echo ""; return; }
+    [ -z "$b" ] && { echo ""; return; }
+    if [ "$a" = "$b" ]; then echo "same"; return; fi
+    case "$a" in "$b"/*) echo "nest"; return ;; esac
+    case "$b" in "$a"/*) echo "nest"; return ;; esac
+    echo ""
 }
 
 # Is a decision "active"? Active = not superseded by another decision.
@@ -334,6 +337,22 @@ for file in "${DEC_FILES[@]}"; do
     is_active "$file" && ACTIVE_FILES+=("$file")
 done
 
+# affected_scope hygiene: a bare name (no path separator AND no wildcard) almost
+# never matches a nested repo path, so the decision silently governs nothing —
+# false confidence, worse than noise (zany harvest: `['_headers']` never matched
+# the real `public/_headers`).
+for file in "${ACTIVE_FILES[@]}"; do
+    idc=$(get_insight_id "$file")
+    while IFS= read -r g; do
+        [ -n "$g" ] || continue
+        case "$g" in
+            *[/*?]*) : ;;   # has a path separator or a wildcard — fine
+            *) warn "${idc}: affected_scope '${g}' has no path separator or wildcard — it likely matches nothing (did you mean 'dir/${g}' or '**/${g}'?)"
+               warnings=$((warnings + 1)) ;;
+        esac
+    done < <(get_affected_scope "$file")
+done
+
 n=${#ACTIVE_FILES[@]}
 for ((x = 0; x < n; x++)); do
     fa="${ACTIVE_FILES[$x]}"
@@ -353,19 +372,25 @@ for ((x = 0; x < n; x++)); do
         done < <(get_affected_scope "$fb")
         [ "${#globs_b[@]}" -eq 0 ] && continue
 
-        overlap=""
+        rel=""; pair=""
         for ga in "${globs_a[@]}"; do
             for gb in "${globs_b[@]}"; do
-                if prefixes_overlap "$ga" "$gb"; then
-                    overlap="${ga} ~ ${gb}"
-                    break 2
-                fi
+                r=$(scope_relationship "$ga" "$gb")
+                if [ "$r" = same ]; then rel=same; pair="${ga} == ${gb}"; break 2; fi
+                if [ "$r" = nest ] && [ -z "$rel" ]; then rel=nest; pair="${ga} / ${gb}"; fi
             done
         done
-        if [ -n "$overlap" ]; then
-            warn "${ida} and ${idb} both govern overlapping scope (${overlap})"
+        if [ "$rel" = same ]; then
+            # Two decisions rooted at the SAME scope — the genuine "which one
+            # governs?" case; keep it a warning.
+            warn "${ida} and ${idb} govern the same scope (${pair})"
             echo "      ${DIM}confirm they don't contradict; if one wins, mark the other superseded${RESET}"
             warnings=$((warnings + 1))
+        elif [ "$rel" = nest ]; then
+            # A broad decision that deliberately contains a narrower one —
+            # hierarchy, not a conflict. Info, not a warning (fixes the noise a
+            # broad src/engine/** parent produced against its children).
+            info "${ida} / ${idb}: nested scope (${pair}) — hierarchy, not a conflict"
         fi
     done
 done

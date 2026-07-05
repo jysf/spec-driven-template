@@ -10,6 +10,12 @@
 #   - added_by: human | claude | <agent-id>
 #   - added_at: YYYY-MM-DD
 #   - rationale: why (link to DEC-XXX preferred)
+#
+# Severity is about ENFORCEMENT, not planning priority. If a plan rates a
+# constraint critical/high/medium/low, map it to a severity here:
+#   critical, high -> blocking   (a violation fails the gate; must not merge)
+#   medium         -> warning    (flagged; should fix, does not block)
+#   low            -> advisory   (opt-in / nice-to-have)
 
 constraints:
   - id: no-secrets-in-code

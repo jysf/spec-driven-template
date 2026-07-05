@@ -2,6 +2,42 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — Harvest backlog: cost rollup, audit hygiene, severity map (v0.5.23)
+
+The smaller-but-worthwhile items from the crustyimg + zany-animal-slots harvest.
+
+### Fixed
+
+- **`archive-spec` / `archive-patch` now recompute `cost.totals`** from the
+  recorded `cost.sessions` (new `write_cost_totals` in `_lib.sh`) — the
+  non-judgment-laden half of the ship-bookkeeping debt (the other half, the
+  backlog `Count:`, landed in v0.5.19). The rollup can no longer go stale.
+- **`decisions-audit` stops flagging intentional scope nesting as a conflict.**
+  A broad decision that deliberately contains a narrower one (e.g.
+  `src/engine/**` over `src/engine/rng.ts`) is now reported as **info**
+  ("nested scope — hierarchy, not a conflict"), not a warning — killing the
+  standing noise (zany saw 19+). Two decisions at the **same** scope still warn.
+- **`decisions-audit` guards against a false-confidence `affected_scope`.** A
+  bare-name entry with no path separator or wildcard (e.g. `_headers`, which
+  never matched the real `public/_headers`) now warns — silently governing
+  nothing is worse than noise.
+
+### Added
+
+- **A canonical severity mapping** in both variants' `constraints.yaml` header
+  and `docs/schema-reference.md`: `critical`/`high` → `blocking`, `medium` →
+  `warning`, `low` → `advisory` — so a plan's critical/high/medium/low rating
+  maps cleanly onto the enforcement enum (resolves the vocab mismatch zany hit).
+
+### Notes
+
+- +4 test checks (now 173): the `cost.totals` recompute, nesting-as-info vs
+  same-scope-warning, the bare-name `affected_scope` guard, and the severity
+  mapping surviving init.
+- Also in this release group: **DEC-004** (sub-agent / delegated-execution mode)
+  and **DEC-005** (non-Claude agent portability) — both **proposed** design
+  records, no functional change (docs/decisions/).
+
 ## 2026-06-27 — Patch lane visibility: `dash patches` lens + reports (v0.5.22)
 
 Completes the patch lane's v1 follow-up (the surfaces DEC-003 / v0.5.21 deferred).
