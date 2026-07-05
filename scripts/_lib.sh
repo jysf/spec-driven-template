@@ -80,6 +80,37 @@ get_active_project() {
     basename "$first"
 }
 
+# Resolve a project id/name to its directory, deterministically.
+#   $1 = optional PROJ-NNN, a full dir name, or empty (→ active project).
+# Empty reuses get_active_project (which already skips the example project).
+# A PROJ-NNN glob that matches more than one directory is a HARD ERROR, not a
+# silent `head -n1` — that silent pick stamped the wrong project when the
+# example and a real project shared a number (verified: zany-animal-slots #1).
+resolve_project_dir() {
+    local pid="${1:-}"
+    if [ -z "$pid" ]; then
+        echo "${REPO_ROOT}/projects/$(get_active_project)"
+        return
+    fi
+    # Exact directory name wins (unambiguous by construction).
+    if [ -d "${REPO_ROOT}/projects/${pid}" ]; then
+        echo "${REPO_ROOT}/projects/${pid}"
+        return
+    fi
+    local matches count
+    matches=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "${pid}-*" 2>/dev/null | sort)
+    count=$(printf '%s' "$matches" | grep -c . || true)
+    if [ "$count" -eq 0 ]; then
+        die "Project not found: ${pid}"
+    fi
+    if [ "$count" -gt 1 ]; then
+        die "Ambiguous project id '${pid}' — matches multiple directories:
+$(printf '%s\n' "$matches" | sed 's|.*/|  - |')
+Pass the full directory name (e.g. ${pid}-<slug>) to disambiguate."
+    fi
+    printf '%s\n' "$matches"
+}
+
 # Return the next ID for a given prefix (SPEC, STAGE, PROJ, DEC, HANDOFF)
 # across the entire repo (or within a project, for SPEC/STAGE/HANDOFF).
 # Usage: next_id SPEC ./projects/PROJ-001-foo
@@ -138,9 +169,15 @@ sed_escape_replacement() {
 # Usage: find_spec SPEC-001
 find_spec() {
     local spec_id="$1"
+    # Exclude *-timeline.md (shares the SPEC-NNN-* prefix), archived specs
+    # (done/), and cycle-prompt files (prompts/SPEC-NNN-<cycle>.md, which also
+    # share the prefix). Without the prompts/ exclusion, advance-cycle/
+    # archive-spec could resolve to a prompt file that has no front-matter and
+    # silently no-op (verified downstream: zany-animal-slots #7).
     find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*.md" \
         -not -name '*-timeline.md' \
-        -not -path '*/done/*' 2>/dev/null | head -n1
+        -not -path '*/done/*' \
+        -not -path '*/prompts/*' 2>/dev/null | head -n1
 }
 
 # Find the timeline file paired with a spec. Returns empty if none.

@@ -801,6 +801,65 @@ assert_contains "FIRST_SESSION_PROMPTS.md" "disposition_at: project-close" \
     "project-close prompt wires the signal disposition ritual"
 
 # ============================================================
+# P1 fixes (v0.5.19) — from crustyimg + zany-animal-slots dogfood feedback
+# ============================================================
+
+# Cost-schema drift: the prompt cost snippets must record tokens_total (the
+# field cost-audit reads), not tokens_input/tokens_output (following the old
+# snippets verbatim guaranteed a cost-audit failure — zany #8).
+if grep -qE '^[[:space:]]+tokens_input:' FIRST_SESSION_PROMPTS.md; then
+    fail "FIRST_SESSION_PROMPTS still has tokens_input in a cost snippet (cost-audit drift)"
+else
+    pass "cost snippets converged on tokens_total (no tokens_input/output drift)"
+fi
+assert_contains "FIRST_SESSION_PROMPTS.md" "tokens_total: <REAL combined count" \
+    "build cost snippet records tokens_total (the field cost-audit reads)"
+
+# find_spec must exclude specs/prompts/: advance-cycle should hit the real spec,
+# never a same-prefixed cycle-prompt file with no front-matter (zany #7).
+just new-stage "P1 Stage" >/dev/null 2>&1
+P1_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p1-stage.md 2>/dev/null | head -n1)
+P1_STAGE_ID=$(basename "$P1_STAGE" 2>/dev/null | grep -oE 'STAGE-[0-9]+')
+just new-spec "P1 Spec" "$P1_STAGE_ID" >/dev/null 2>&1
+P1_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p1-spec.md 2>/dev/null | head -n1)
+P1_SPEC_ID=$(basename "$P1_SPEC" 2>/dev/null | grep -oE 'SPEC-[0-9]+')
+# Plant a look-alike prompt file with NO front-matter (the exact trap).
+mkdir -p "$(dirname "$P1_SPEC")/prompts"
+printf '# %s build prompt\nno front-matter here\n' "$P1_SPEC_ID" \
+    > "$(dirname "$P1_SPEC")/prompts/${P1_SPEC_ID}-build.md"
+just advance-cycle "$P1_SPEC_ID" build >/dev/null 2>&1
+if grep -qE "^  cycle: build" "$P1_SPEC"; then
+    pass "advance-cycle edits the real spec, not the prompts/ look-alike (find_spec fix)"
+else
+    fail "advance-cycle did not advance the real spec (find_spec prompts/ regression)"
+fi
+
+# archive-spec must perform the backlog edit it advertises (zany #9 / crustyimg):
+# flip the entry to [x] shipped and recompute **Count:**.
+awk -v id="$P1_SPEC_ID" '
+    { print }
+    /^## Spec Backlog/ && !seen { print ""; print "- [ ] " id " (build) — p1 backlog test"; seen=1 }
+' "$P1_STAGE" > "$P1_STAGE.tmp" && mv "$P1_STAGE.tmp" "$P1_STAGE"
+just advance-cycle "$P1_SPEC_ID" ship >/dev/null 2>&1
+just archive-spec "$P1_SPEC_ID" >/dev/null 2>&1
+if grep -qE "^- \[x\] ${P1_SPEC_ID} \(shipped on ${today}\)" "$P1_STAGE"; then
+    pass "archive-spec flips the backlog entry to [x] shipped (with date)"
+else
+    fail "archive-spec did not update the backlog entry: $(grep "$P1_SPEC_ID" "$P1_STAGE")"
+fi
+if grep -qE '^\*\*Count:\*\* [1-9][0-9]* shipped / [0-9]+ active / [0-9]+ pending' "$P1_STAGE"; then
+    pass "archive-spec recomputes the **Count:** line"
+else
+    fail "archive-spec did not recompute Count: $(grep '\*\*Count' "$P1_STAGE")"
+fi
+
+# Deterministic project resolution: an ambiguous PROJ-NNN glob is a HARD ERROR,
+# not a silent head -n1 (zany #1). Create a decoy sharing PROJ-001's number.
+mkdir -p "projects/PROJ-001-decoy/stages"
+assert_cmd_fails "new-stage on an ambiguous PROJ-001 hard-errors" just new-stage "x" PROJ-001
+rm -rf "projects/PROJ-001-decoy"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

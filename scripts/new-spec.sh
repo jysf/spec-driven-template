@@ -16,16 +16,8 @@ if [ -z "$TITLE" ] || [ -z "$STAGE_ID" ]; then
     die "Usage: just new-spec \"title\" STAGE-NNN [PROJ-NNN]"
 fi
 
-if [ -z "$PROJECT_ID" ]; then
-    PROJECT_ID=$(get_active_project | sed -E 's/-.*//')
-    # get_active_project returns PROJ-001-slug; we only want PROJ-001
-    PROJECT_ID=$(get_active_project | awk -F- '{print $1"-"$2}')
-fi
-
-PROJECT_DIR=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "${PROJECT_ID}-*" | head -n1)
-if [ -z "$PROJECT_DIR" ]; then
-    die "Project not found: ${PROJECT_ID}"
-fi
+PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
+PROJECT_ID=$(basename "$PROJECT_DIR" | awk -F- '{print $1"-"$2}')
 
 # Verify stage exists in this project
 STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | head -n1)

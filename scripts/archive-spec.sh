@@ -58,9 +58,45 @@ if [ -n "$STAGE_ID" ]; then
     if [ -n "$STAGE_FILE" ]; then
         echo ""
         echo "Parent stage: ${STAGE_ID} (${STAGE_FILE})"
-        echo "${DIM}Remember to update the stage's Spec Backlog section manually:"
-        echo "  - Change '[ ] ${SPEC_ID}' to '[x] ${SPEC_ID} (shipped on $(today))'"
-        echo "  - Update the count summary at the bottom of the backlog.${RESET}"
+        SHIP_DATE=$(today)
+        # Is this spec listed as an open "[ ] SPEC-NNN" item in the backlog?
+        HAS_ENTRY=$(awk -v sid="$SPEC_ID" '
+            /^## Spec Backlog/ { inbl=1; next }
+            /^## / { if (inbl) inbl=0 }
+            inbl && $0 ~ ("^-[[:space:]]*\\[[[:space:]]\\][[:space:]]*" sid "([^0-9]|$)") { print "yes"; exit }
+        ' "$STAGE_FILE")
+        if [ "$HAS_ENTRY" = "yes" ]; then
+            # Flip that entry to "[x] … (shipped on DATE)" and recompute the
+            # **Count:** line from the (updated) backlog — the bookkeeping the
+            # help text used to only *describe*. Scoped to the Spec Backlog
+            # section so it never touches look-alike lines elsewhere.
+            awk -v sid="$SPEC_ID" -v date="$SHIP_DATE" '
+                /^## Spec Backlog/ { inbl=1; print; next }
+                /^## / { if (inbl) inbl=0 }
+                {
+                    if (inbl && $0 ~ /^-[[:space:]]*\[/) {
+                        if ($0 ~ ("^-[[:space:]]*\\[[[:space:]]\\][[:space:]]*" sid "([^0-9]|$)")) {
+                            sub(/\[[[:space:]]\]/, "[x]")
+                            if ($0 ~ /\([^)]*\)/) sub(/\([^)]*\)/, "(shipped on " date ")")
+                            else $0 = $0 " (shipped on " date ")"
+                        }
+                        if ($0 ~ /^-[[:space:]]*\[x\]/) shipped++
+                        else if ($0 ~ /SPEC-[0-9]/) active++
+                        else pending++
+                        print; next
+                    }
+                    if (inbl && $0 ~ /^\*\*Count:\*\*/) {
+                        printf "**Count:** %d shipped / %d active / %d pending\n", shipped, active, pending
+                        next
+                    }
+                    print
+                }
+            ' "$STAGE_FILE" > "${STAGE_FILE}.tmp" && mv "${STAGE_FILE}.tmp" "$STAGE_FILE"
+            success "Updated ${STAGE_ID} backlog: ${SPEC_ID} → shipped; **Count:** recomputed."
+        else
+            echo "${DIM}${SPEC_ID} isn't an open '[ ] ${SPEC_ID}' item in the backlog —"
+            echo "  add or update it by hand if needed (e.g. '[x] ${SPEC_ID} (shipped on ${SHIP_DATE})').${RESET}"
+        fi
     fi
 fi
 

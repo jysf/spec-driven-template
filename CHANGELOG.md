@@ -2,6 +2,55 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — P1 dogfood fixes: silent-failure bugs + ship bookkeeping (v0.5.19)
+
+The first fixes harvested through the new Signals registry, from two shipped
+projects (crustyimg — 43 specs/9 stages; zany-animal-slots — non-CRUD frontend).
+All four were verified still-live against the current template before fixing.
+
+### Fixed
+
+- **`find_spec` now excludes `specs/prompts/`.** A cycle-prompt file
+  (`prompts/SPEC-NNN-<cycle>.md`) shares the `SPEC-NNN-*` prefix, so
+  `advance-cycle` / `archive-spec` could resolve to it, "succeed" against a file
+  with no front-matter, and silently leave the real spec stuck (zany #7). Also
+  **`advance-cycle` now hard-errors** when the resolved file has no `task.cycle`
+  front-matter instead of no-op'ing with a blank old-cycle. (`scripts/_lib.sh`,
+  `scripts/advance-cycle.sh`.)
+- **`archive-spec` performs the stage-backlog edit it advertised.** It now flips
+  the spec's `- [ ] SPEC-NNN` line to `- [x] … (shipped on DATE)` and recomputes
+  the `**Count:**` line, scoped to the `## Spec Backlog` section — the manual
+  step every ship used to require, and the single biggest source of ship
+  bookkeeping error across three projects (zany #9, crustyimg, bragfile). Falls
+  back to a hint if the spec isn't listed. (`scripts/archive-spec.sh`.)
+- **Cost-schema drift fixed in the prompts.** The inline cost snippets in
+  `FIRST_SESSION_PROMPTS.md` (design/build/ship, both variants) recorded
+  `tokens_input`/`tokens_output`, but the `cost-audit` gate and
+  `cycle_tokens_total` read a single **`tokens_total`** — so following the
+  prompts verbatim guaranteed a `cost-audit` failure (zany #8). Snippets now
+  record `tokens_total`, matching `spec.md`, `cost-snippet.md`, AGENTS §4, and
+  the gate. (The reporting lib still sums legacy input/output for old specs.)
+- **Deterministic project resolution.** `new-stage` / `new-spec` resolved the
+  project via `find -name "PROJ-NNN-*" | head -n1`, which silently picked the
+  wrong directory when the example and a real project shared a number (zany #1).
+  New shared `resolve_project_dir` helper: empty → active project; an exact dir
+  name wins; an ambiguous `PROJ-NNN` glob is a **hard error** naming the matches.
+  (`scripts/_lib.sh`, `scripts/new-stage.sh`, `scripts/new-spec.sh`.)
+
+### Notes
+
+- +6 test checks (now 149): the cost-snippet drift guard, `find_spec` prompts/
+  exclusion (advance-cycle hits the real spec past a planted look-alike),
+  `archive-spec` backlog flip + `**Count:**` recompute, and the ambiguous-project
+  hard error.
+- Raw feedback captured in `feedback/2026-07-03-crustyimg-proj-001.md` and
+  `feedback/2026-07-03-zany-animal-slots-proj-001.md`. Deferred, higher-altitude
+  threads from the same harvest (a stakes-based lightweight lane; a documented
+  sub-agent / delegated-execution mode; contract-tests-as-guards) each warrant
+  their own DEC — not folded into this bug-fix batch.
+- Already-fixed items were NOT re-flagged (e.g. the `just test` → `template-selftest`
+  collision, fixed in v0.5.16).
+
 ## 2026-06-19 — Signals registry + close-disposition ritual (v0.5.18)
 
 Closes a structural asymmetry: **coding** lessons had a forcing function

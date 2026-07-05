@@ -372,8 +372,7 @@ report cost, null fields + a notes line.
   - cycle: design
     agent: <your model, e.g. claude-opus-4-7>
     interface: <claude-code | claude-ai | api | ollama | other>
-    tokens_input: <from usage if known, else null>
-    tokens_output: <same>
+    tokens_total: <from usage if known, else null>   # ONE combined count — the field cost-audit reads
     estimated_usd: <best available, or null>
     duration_minutes: <estimate>
     recorded_at: <YYYY-MM-DD>
@@ -446,8 +445,7 @@ When done:
      - cycle: build
        agent: <your model>
        interface: <claude-code | claude-ai | api | ollama | other>
-       tokens_input: <best available>
-       tokens_output: <best available>
+       tokens_total: <REAL combined count — cost-audit requires it on build/verify>
        estimated_usd: <best available>
        duration_minutes: <estimate>
        recorded_at: <YYYY-MM-DD>
@@ -567,7 +565,7 @@ After I paste:
 - Append a ship cost session entry to `cost.sessions` (same format
   as Design, `cycle: ship`).
 - Compute `cost.totals` from the session entries:
-  * `tokens_total` = sum(tokens_input + tokens_output) across
+  * `tokens_total` = sum(each session's `tokens_total`) across
     sessions, skipping nulls
   * `estimated_usd` = sum(estimated_usd) skipping nulls
   * `session_count` = len(sessions) (include sessions with null

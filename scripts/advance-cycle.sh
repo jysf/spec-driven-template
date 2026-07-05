@@ -27,6 +27,14 @@ fi
 
 OLD_CYCLE=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+cycle:/{print $2; exit}' "$SPEC_FILE" 2>/dev/null || echo "unknown")
 
+# Guard: refuse to "advance" a file that has no task.cycle front-matter. Before
+# find_spec excluded prompts/, this command could resolve to a cycle-prompt file
+# (no front-matter), report success with a blank old-cycle, and leave the real
+# spec stuck (verified: zany-animal-slots #7). Fail loudly instead.
+if [ -z "$OLD_CYCLE" ] || [ "$OLD_CYCLE" = "unknown" ]; then
+    die "No task.cycle front-matter in ${SPEC_FILE} — refusing to advance (resolved a non-spec file?)."
+fi
+
 update_frontmatter_scalar "$SPEC_FILE" "task.cycle" "$NEW_CYCLE"
 
 success "Advanced ${SPEC_ID}: ${OLD_CYCLE} → ${NEW_CYCLE}"
