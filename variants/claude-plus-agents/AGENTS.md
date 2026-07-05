@@ -363,6 +363,35 @@ the wrong branch). `git worktree add <path> <branch>`, work there, commit +
 push, then `git worktree remove`. Always check `git branch --show-current`
 before any commit.
 
+### Delegated execution (sub-agents) — DEC-004
+
+This variant delegates build/verify to a separate implementer/reviewer agent via
+`HANDOFF-*`. Three rules keep that delegation honest:
+
+1. **Reconcile over self-report — never flip `handoff.status` to `completed` (or
+   advance `task.cycle`) on the sub-agent's word alone.** After it reports, verify
+   the *claimed* result against actual **git + disk** state:
+   - `git log <base>..HEAD` and `git ls-remote origin <branch>` — are the commits
+     actually there (locally *and* pushed)?
+   - the spec's `## Failing Tests` files exist on disk, and the gate actually ran?
+
+   Trust git/disk over **any** agent self-report or timeline marker — both lie (a
+   truncated report can claim "done" with the commit or push missing; agents have
+   reported "pushed" while `origin` was still at the prior SHA). **If the sub-agent
+   dies mid-cycle:** reconcile the partial output, finish the *mechanical remainder*
+   in the coordinator loop (don't re-run the whole cycle), and attribute cost to
+   the sub-agent's metered portion (`subagent_tokens`), recording the coordinator
+   finish as a separate null-with-note cost session.
+2. **One sub-agent at a time; no interleaved tree ops.** Launch exactly one
+   build/verify sub-agent, then do **no** git/tree operations in the shared
+   checkout — no `new-spec`, `checkout`, or commits, and don't design the next
+   spec — until it reports complete and its branch is merged. The structural fix
+   is per-agent `git worktree` isolation (the worktree habit above).
+3. **Set the sub-agent's model explicitly** from `.repo-context.yaml`
+   `spec.agent.tier_map` (design/build/verify) — don't rely on a default (a silent
+   Opus default is a ~6× cost surprise). `new-spec`/`new-patch` stamp `agents.*` /
+   `handoff.from_agent` from it (DEC-005).
+
 ---
 
 ## 14. Domain Glossary

@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-06-27 — DEC-004 Phase 1: delegated-execution (sub-agent) rules (v0.5.27)
+
+Implements Phase 1 of [DEC-004](docs/decisions/DEC-004-subagent-execution-mode.md)
+(now **accepted**). Both shipped dogfood projects delegated build/verify to fresh
+sub-agents — notably under `claude-only` running the Agent tool, not just
+`claude-plus-agents` — and surfaced a failure class the template never documented:
+truncated self-reports that claim "done" with the commit missing, shared-tree
+corruption, and silent model defaults. This ships the orchestration discipline.
+
+### Added
+
+- **A "Delegated execution (sub-agents)" section** in both variants' `AGENTS.md`
+  (claude-only §16, claude-plus-agents §13):
+  1. **Reconcile over self-report** — never advance a cycle (or flip
+     `handoff.status: completed`) on a sub-agent's word; verify against `git log`
+     / `git ls-remote` + disk first (the exact commands are in the rule). Trust
+     git/disk over any self-report or timeline marker. Includes the **die-mid-cycle
+     recovery** procedure (reconcile the partial output → finish the mechanical
+     remainder in the main loop → attribute cost to the metered `subagent_tokens`).
+  2. **One sub-agent at a time; no interleaved tree ops** until it reports and its
+     branch is merged (the shared-tree hazard; worktree isolation is the fix).
+  3. **Set the sub-agent's model explicitly** from `spec.agent.tier_map` — no
+     silent Opus default (a ~6× surprise). Consumes DEC-005's config.
+
+### Notes
+
+- +2 test checks (now 187): the delegated-execution section + the reconcile rule
+  survive init. Documentation only — no script/command change.
+- **Pending** (DEC-004): rule 4 (sanctioned trivial-dev-dep + DEC path), rule 5
+  (per-instance toolchain-brief slot), and Phase 3 (mechanical worktree isolation).
+  A `_lib.sh` reconcile helper was judged low-value — the rule already ships the
+  mechanical `git` commands.
+
 ## 2026-06-27 — DEC-005 Phase 2: config-driven models + generalized wording (v0.5.26)
 
 Finishes [DEC-005](docs/decisions/DEC-005-agent-portability.md) (now **fully

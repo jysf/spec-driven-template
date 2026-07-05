@@ -1134,6 +1134,14 @@ else
 fi
 
 # ============================================================
+# DEC-004 Phase 1: delegated-execution rules in AGENTS.md
+# ============================================================
+assert_contains "AGENTS.md" "Delegated execution" \
+    "AGENTS.md documents the delegated-execution sub-agent rules"
+assert_contains "AGENTS.md" "Reconcile over self-report" \
+    "AGENTS.md carries the reconcile-over-self-report rule (DEC-004)"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

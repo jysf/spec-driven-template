@@ -3,7 +3,7 @@ insight:
   id: DEC-004
   type: architecture
   confidence: 0.7
-status: proposed            # proposed | accepted | superseded
+status: accepted            # proposed | accepted | superseded
 date: 2026-06-27
 deciders: [jysf, claude]
 supersedes: null
@@ -18,11 +18,18 @@ tags: [architecture, process, methodology, sub-agents, delegation, orchestration
 
 # DEC-004: a documented sub-agent / delegated-execution mode
 
-> **This is the template's own decision log** (meta). **Status: proposed** — a
-> fleshed-out draft for review. It formalizes a whole failure class the template
-> was never written for. Related: the non-Claude portability track (see §5) is
-> spun out to a future decision; the patch lane ([DEC-003](DEC-003-patch-lane.md))
-> inherits the same reconcile-over-self-report rule.
+> **This is the template's own decision log** (meta). **Status: accepted.**
+> **Phase 1 shipped in v0.5.27:** rules 1–3 (reconcile-over-self-report + the
+> die-mid-cycle recovery, the one-sub-agent shared-tree discipline, and explicit
+> per-cycle model config consuming DEC-005's `tier_map`) are documented as a
+> "Delegated execution" section in both variants' `AGENTS.md`. **Pending:** rule 4
+> (sanctioned trivial-dev-dep + DEC path), rule 5 (per-instance toolchain-brief
+> slot), and Phase 3 (mechanical per-agent worktree isolation). The non-Claude
+> portability track (§5) shipped as [DEC-005](DEC-005-agent-portability.md); the
+> patch lane ([DEC-003](DEC-003-patch-lane.md)) inherits the reconcile rule.
+> On the helper open question (#2): a `_lib.sh` reconcile helper was judged
+> low-value — the rule ships the exact `git log`/`git ls-remote` commands, which
+> is the mechanical part; a wrapper adds little.
 
 ## Context
 

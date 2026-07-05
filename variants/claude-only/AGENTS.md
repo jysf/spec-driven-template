@@ -437,6 +437,35 @@ risk. Five habits keep it at bay:
    work there, commit + push, then `git worktree remove`. Always check
    `git branch --show-current` before any commit.
 
+### Delegated execution (sub-agents) — DEC-004
+
+When you delegate a build or verify cycle to a fresh sub-agent (e.g. via the
+Agent tool), three rules keep the delegation honest:
+
+1. **Reconcile over self-report — never advance a cycle on a sub-agent's word
+   alone.** After it returns, verify the *claimed* result against actual **git +
+   disk** state before you advance `task.cycle`:
+   - `git log <base>..HEAD` — are the commits actually there?
+   - the spec's `## Failing Tests` files exist on disk, and the gate actually ran?
+
+   Trust git/disk over **any** agent self-report or timeline marker — both lie:
+   a truncated report can claim "done" with the commit, tests, or gate still
+   missing. **If the sub-agent dies mid-cycle** (overloads/kills happen): reconcile
+   the partial output, finish the *mechanical remainder* in the main loop (don't
+   re-run the whole cycle), and attribute cost to the sub-agent's metered portion
+   (its `subagent_tokens`), recording the main-loop finish as a separate
+   null-with-note cost session.
+2. **One sub-agent at a time; no interleaved tree ops.** Launch exactly one
+   build/verify sub-agent, then do **no** git/tree operations — no `new-spec`,
+   `checkout`, or commits, and don't design the next spec — until it reports
+   complete and its branch is merged. Sub-agents share this working tree and are
+   auto-backgrounded; interleaving corrupts a branch. The structural fix is
+   per-agent `git worktree` isolation (habit 5 above).
+3. **Set the sub-agent's model explicitly** from `.repo-context.yaml`
+   `spec.agent.tier_map` (design/build/verify) — don't rely on a default (a
+   silent Opus default is a ~6× cost surprise). `new-spec`/`new-patch` already
+   stamp `agents.*` from it (DEC-005).
+
 ---
 
 ## 17. Confidence Discipline
