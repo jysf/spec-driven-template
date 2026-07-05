@@ -51,12 +51,12 @@ constraints:
     rationale: "TDD discipline; provides automatic verification of acceptance criteria."
 
   - id: no-new-top-level-deps-without-decision
-    rule: "Do not add a new top-level dependency (package.json, pyproject.toml, etc.) without first emitting a DEC-XXX file justifying the choice."
+    rule: "Do not add a new top-level RUNTIME dependency (package.json, pyproject.toml, etc.) without first emitting a DEC-XXX file justifying the choice. Exception (DEC-004 rule 4): a build cycle MAY add a clearly-trivial DEV-only dependency (types packages, test utilities — never a runtime dep) AND author its DEC in the same pass, with no stop-and-ask, so a non-interactive sub-agent isn't driven to a workaround."
     severity: warning
     paths: ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"]
     added_by: claude
     added_at: 2026-04-19
-    rationale: "Dependencies are forever. Force deliberation."
+    rationale: "Dependencies are forever — force deliberation on runtime choices. But a hard stop-and-ask on a trivial dev/types dep drives a non-interactive build sub-agent to a workaround review must undo (DEC-004 rule 4, e.g. the @types/node stub). Sanctioning the dev-only + DEC-in-one-pass path keeps the constraint's teeth for real (runtime) deps while unblocking delegated build."
 
   - id: one-spec-per-pr
     rule: "Each PR must reference exactly one SPEC-XXX in its description. Bundled changes are rejected."

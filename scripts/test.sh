@@ -1142,6 +1142,28 @@ assert_contains "AGENTS.md" "Reconcile over self-report" \
     "AGENTS.md carries the reconcile-over-self-report rule (DEC-004)"
 
 # ============================================================
+# DEC-004 Phase 2: dev-dep sanction (rule 4) + toolchain-brief slot (rule 5)
+# ============================================================
+# Rule 5: the toolchain-brief slot ships and survives init.
+assert_file "guidance/toolchain-brief.md"
+assert_contains "guidance/toolchain-brief.md" "Toolchain Brief" \
+    "toolchain-brief.md is the per-repo toolchain-facts stub"
+# AGENTS "During build" tells the agent to read it, and Pointers + the dir
+# diagram surface it.
+assert_contains "AGENTS.md" "guidance/toolchain-brief\.md" \
+    "AGENTS.md references the toolchain brief (During build + Pointers)"
+assert_contains "AGENTS.md" "toolchain-brief\.md.*DEC-004" \
+    "AGENTS.md dir diagram lists toolchain-brief.md (DEC-004)"
+# The delegated-execution section now carries all five rules.
+assert_contains "AGENTS.md" "five rules keep" \
+    "delegated-execution section grows to five rules (DEC-004 Phase 2)"
+# Rule 4: the deps constraint carves out the trivial DEV-only + DEC exception.
+assert_contains "guidance/constraints.yaml" "DEV-only dependency" \
+    "deps constraint sanctions a trivial DEV-only dep in one build pass (rule 4)"
+assert_contains "guidance/constraints.yaml" "top-level RUNTIME dependency" \
+    "deps constraint scopes its hard gate to runtime deps (rule 4)"
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

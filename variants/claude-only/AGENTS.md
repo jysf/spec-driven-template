@@ -165,6 +165,7 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── guidance/                          # Repo-level rules (across all projects)
 │   ├── constraints.yaml
 │   ├── questions.yaml
+│   ├── toolchain-brief.md             # Per-repo toolchain facts for cold build agents (DEC-004)
 │   └── signals.yaml                   # Typed feedback ledger (see docs/signals.md)
 ├── decisions/                         # Repo-level DEC-* (across all projects)
 ├── feedback/                          # Raw inbound feedback captures (triaged into signals.yaml)
@@ -356,7 +357,11 @@ Before writing code:
 2. Read every `DEC-*` it references.
 3. Read the parent `STAGE-*.md` and project `brief.md`.
 4. Read `/guidance/constraints.yaml`.
-5. If anything is ambiguous, add to `/guidance/questions.yaml` and stop.
+5. Read `/guidance/toolchain-brief.md` — the per-repo toolchain facts (test
+   framework, lint quirks, runtime globals, installed dev utilities, gotchas) a
+   cold build agent otherwise re-derives loop by loop. **When delegating build
+   to a sub-agent, inject this brief into its prompt** (DEC-004 rule 5).
+6. If anything is ambiguous, add to `/guidance/questions.yaml` and stop.
 
 When done:
 1. Fill in spec's `## Build Completion` (including reflection).
@@ -440,7 +445,7 @@ risk. Five habits keep it at bay:
 ### Delegated execution (sub-agents) — DEC-004
 
 When you delegate a build or verify cycle to a fresh sub-agent (e.g. via the
-Agent tool), three rules keep the delegation honest:
+Agent tool), five rules keep the delegation honest:
 
 1. **Reconcile over self-report — never advance a cycle on a sub-agent's word
    alone.** After it returns, verify the *claimed* result against actual **git +
@@ -465,6 +470,18 @@ Agent tool), three rules keep the delegation honest:
    `spec.agent.tier_map` (design/build/verify) — don't rely on a default (a
    silent Opus default is a ~6× cost surprise). `new-spec`/`new-patch` already
    stamp `agents.*` from it (DEC-005).
+4. **Sanction a trivial dev-dep + its DEC in one build pass.** A non-interactive
+   sub-agent can't stop-and-ask, so the `no-new-top-level-deps-without-decision`
+   constraint carves out an exception: a build cycle MAY add a clearly-trivial
+   **DEV-only** dependency (types packages, test utilities — **never** a runtime
+   dep) and author its DEC in the same pass. This keeps the constraint's teeth
+   for real (runtime) choices while sparing you the `@types/node`-stub workaround.
+5. **Inject the toolchain brief into the sub-agent's prompt.** A cold sub-agent
+   re-imports generic tool-priors and wastes loops rediscovering this repo's
+   specifics. Give it `/guidance/toolchain-brief.md` (test framework + assertion
+   lib, lint/format quirks, runtime globals, installed dev utilities, gotchas) so
+   it doesn't. The template ships the slot; the instance fills the truth — keep
+   the brief current or a sub-agent will trust a stale fact.
 
 ---
 
@@ -486,6 +503,7 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
+- Toolchain brief (per-repo facts for cold build agents): `/guidance/toolchain-brief.md` (DEC-004 rule 5)
 - Signals (typed feedback ledger): `/guidance/signals.yaml` (browse `just dash signals`; ritual + bar in `docs/signals.md`)
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
 - Recommended (optional) tools: `/guidance/recommended-tools.md`

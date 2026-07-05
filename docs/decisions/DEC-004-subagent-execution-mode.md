@@ -10,6 +10,8 @@ supersedes: null
 superseded_by: null
 affected_scope:
   - "variants/*/AGENTS.md"
+  - "variants/*/guidance/constraints.yaml"
+  - "variants/*/guidance/toolchain-brief.md"
   - "variants/*/FIRST_SESSION_PROMPTS.md"
   - "variants/*/projects/_templates/spec.md"
   - "scripts/_lib.sh"
@@ -22,11 +24,18 @@ tags: [architecture, process, methodology, sub-agents, delegation, orchestration
 > **Phase 1 shipped in v0.5.27:** rules 1–3 (reconcile-over-self-report + the
 > die-mid-cycle recovery, the one-sub-agent shared-tree discipline, and explicit
 > per-cycle model config consuming DEC-005's `tier_map`) are documented as a
-> "Delegated execution" section in both variants' `AGENTS.md`. **Pending:** rule 4
-> (sanctioned trivial-dev-dep + DEC path), rule 5 (per-instance toolchain-brief
-> slot), and Phase 3 (mechanical per-agent worktree isolation). The non-Claude
-> portability track (§5) shipped as [DEC-005](DEC-005-agent-portability.md); the
-> patch lane ([DEC-003](DEC-003-patch-lane.md)) inherits the reconcile rule.
+> "Delegated execution" section in both variants' `AGENTS.md`. **Phase 2 shipped
+> in v0.5.28:** rule 4 (the `no-new-top-level-deps-without-decision` constraint
+> now sanctions a clearly-trivial DEV-only dep + its DEC in one build pass) and
+> rule 5 (`guidance/toolchain-brief.md` — the per-instance toolchain-brief slot,
+> referenced from AGENTS.md "During build" / Pointers / the directory diagram);
+> the Delegated-execution section now carries all five rules. **Still deferred:**
+> Phase 3 (mechanical per-agent `git worktree` isolation) — rule 2's "one
+> sub-agent, no interleaved tree ops" covers the hazard as convention, and open
+> question #1 (is mechanical worktree management worth the bash-3.2 complexity?)
+> is unresolved, so it stays deferred, not dropped. The non-Claude portability
+> track (§5) shipped as [DEC-005](DEC-005-agent-portability.md); the patch lane
+> ([DEC-003](DEC-003-patch-lane.md)) inherits the reconcile rule.
 > On the helper open question (#2): a `_lib.sh` reconcile helper was judged
 > low-value — the rule ships the exact `git log`/`git ls-remote` commands, which
 > is the mechanical part; a wrapper adds little.

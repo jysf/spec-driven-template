@@ -173,6 +173,7 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── guidance/                          # Repo-level rules (across all projects)
 │   ├── constraints.yaml
 │   ├── questions.yaml
+│   ├── toolchain-brief.md             # Per-repo toolchain facts for cold build agents (DEC-004)
 │   └── signals.yaml                   # Typed feedback ledger (see docs/signals.md)
 ├── decisions/                         # Repo-level DEC-* (across all projects)
 ├── feedback/                          # Raw inbound feedback captures (triaged into signals.yaml)
@@ -366,7 +367,7 @@ before any commit.
 ### Delegated execution (sub-agents) — DEC-004
 
 This variant delegates build/verify to a separate implementer/reviewer agent via
-`HANDOFF-*`. Three rules keep that delegation honest:
+`HANDOFF-*`. Five rules keep that delegation honest:
 
 1. **Reconcile over self-report — never flip `handoff.status` to `completed` (or
    advance `task.cycle`) on the sub-agent's word alone.** After it reports, verify
@@ -391,6 +392,18 @@ This variant delegates build/verify to a separate implementer/reviewer agent via
    `spec.agent.tier_map` (design/build/verify) — don't rely on a default (a silent
    Opus default is a ~6× cost surprise). `new-spec`/`new-patch` stamp `agents.*` /
    `handoff.from_agent` from it (DEC-005).
+4. **Sanction a trivial dev-dep + its DEC in one build pass.** The implementer
+   can't stop-and-ask mid-run, so the `no-new-top-level-deps-without-decision`
+   constraint carves out an exception: a build cycle MAY add a clearly-trivial
+   **DEV-only** dependency (types packages, test utilities — **never** a runtime
+   dep) and author its DEC in the same pass. This keeps the constraint's teeth
+   for real (runtime) choices while sparing the `@types/node`-stub workaround.
+5. **Inject the toolchain brief into the handoff / implementer prompt.** A cold
+   implementer re-imports generic tool-priors and wastes loops rediscovering this
+   repo's specifics. Give it `/guidance/toolchain-brief.md` (test framework +
+   assertion lib, lint/format quirks, runtime globals, installed dev utilities,
+   gotchas) so it doesn't. The template ships the slot; the instance fills the
+   truth — keep the brief current or the implementer will trust a stale fact.
 
 ---
 
@@ -409,7 +422,11 @@ Before writing code:
 2. Read the linked `SPEC-*.md`, `STAGE-*.md`, and the project's `brief.md`.
 3. Read every `DEC-*` listed in the handoff's references.
 4. Read `/guidance/constraints.yaml`; check rules for paths you'll touch.
-5. If anything is ambiguous, add to `/guidance/questions.yaml` and stop.
+5. Read `/guidance/toolchain-brief.md` — the per-repo toolchain facts (test
+   framework, lint quirks, runtime globals, installed dev utilities, gotchas) a
+   cold implementer otherwise re-derives loop by loop. **The coordinator injects
+   this brief into the handoff / implementer prompt** (DEC-004 rule 5).
+6. If anything is ambiguous, add to `/guidance/questions.yaml` and stop.
 
 When done:
 1. Fill in the handoff's `## Completion` section (including reflection).
@@ -501,6 +518,7 @@ should land between 0.7 and 0.95.
 
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
+- Toolchain brief (per-repo facts for cold build agents): `/guidance/toolchain-brief.md` (DEC-004 rule 5)
 - Signals (typed feedback ledger): `/guidance/signals.yaml` (browse `just dash signals`; ritual + bar in `docs/signals.md`)
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
 - Recommended (optional) tools: `/guidance/recommended-tools.md`

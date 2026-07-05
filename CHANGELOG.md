@@ -2,6 +2,42 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-05 — DEC-004 Phase 2: dev-dep sanction + toolchain-brief slot (v0.5.28)
+
+Completes Phase 2 of [DEC-004](docs/decisions/DEC-004-subagent-execution-mode.md)
+— rules 4 and 5, both additive. Phase 1 (v0.5.27) documented the reconcile /
+one-sub-agent / explicit-model rules; the two remaining failure classes from the
+dogfood harvests were a non-interactive build sub-agent that **can't stop to
+author a DEC** (so a hard deps constraint drove it to a `@types/node`-stub
+workaround) and a **cold sub-agent re-deriving the same toolchain mismatches**
+every run (~10 wasted loops). This ships the two slots that close them.
+
+### Added
+
+- **`guidance/toolchain-brief.md`** (both variants) — a REPLACE stub of the
+  per-repo toolchain facts a cold build sub-agent needs: package manager, test
+  framework + assertion lib, lint/format quirks, runtime globals, installed dev
+  utilities (don't re-add), and known gotchas. The template ships the slot; the
+  instance fills the truth. Referenced from AGENTS.md §15 "During build" (read it
+  before coding; inject it into a delegated sub-agent's prompt), the §18/§17
+  Pointers, and the §7 directory-structure diagram. (DEC-004 rule 5.)
+
+### Changed
+
+- **`no-new-top-level-deps-without-decision` constraint** (both variants'
+  `guidance/constraints.yaml`) now scopes the hard gate to **runtime** deps and
+  carves out an explicit exception: a build cycle MAY add a clearly-trivial
+  **DEV-only** dependency (types packages, test utilities — never a runtime dep)
+  **and author its DEC in the same pass**, with no stop-and-ask. Keeps the
+  constraint's teeth for real choices while unblocking a non-interactive build
+  sub-agent. (DEC-004 rule 4.)
+- **The "Delegated execution (sub-agents)" AGENTS.md section** (both variants)
+  grows from three rules to five — rules 4 (dev-dep sanction) and 5 (inject the
+  toolchain brief) join the Phase 1 trio.
+- **[DEC-004](docs/decisions/DEC-004-subagent-execution-mode.md)** status note
+  updated: Phase 2 done; Phase 3 (mechanical per-agent worktree isolation)
+  stays deferred.
+
 ## 2026-06-27 — DEC-004 Phase 1: delegated-execution (sub-agent) rules (v0.5.27)
 
 Implements Phase 1 of [DEC-004](docs/decisions/DEC-004-subagent-execution-mode.md)
