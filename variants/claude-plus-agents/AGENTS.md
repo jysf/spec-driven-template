@@ -340,6 +340,23 @@ spec. DECs are stable repo-level records; specs come and go.
   Shape-check and behavior-check are *different checks* — neither substitutes for
   the other. The defect class that escapes design→build→verify is disproportionately
   operational/runtime, not spec-logic; this is where to catch it.
+- **Design-time probe / measure-before-build (design-time).** When a spec's
+  implementation depends on the *actual* behavior of a load-bearing external — a
+  library's real API signature, a tool resolving on the **pinned** toolchain, the
+  true version floor, a config field the engine actually reads — or when it
+  **tunes toward a measurable target**, probe or measure the real thing **against
+  the real pinned tree during design**, and record the verified facts (the exact
+  calls, the baseline number) in the spec's `## Implementation Context` / the
+  handoff (or the governing `DEC-*`). Two recurring moves: (1) **probe the real
+  API/tool** — don't trust the model's prior; the pinned version's signature may
+  differ (a wrong assumed call is then caught at design, not mid-build); (2)
+  **measure the baseline now** so the target and the change are grounded in
+  numbers, not guesses. When you do, build collapses to a near bit-for-bit
+  *transcription* instead of a discovery loop — the strongest efficiency lesson
+  from the dogfood (recurring across projects, highest single-lesson frequency).
+  Complementary verify move — **adversarial mutation:** revert the change and
+  confirm the guard *fails*; it both proves the test has teeth and surfaces
+  dead/no-op config (a field the engine never reads).
 
 ---
 

@@ -344,6 +344,12 @@ When writing:
 - Target S or M. Split L.
 - Testable acceptance criteria.
 - Concrete failing tests: paths + assertions.
+- Design-time probe / measure-before-build (§12): before writing the
+  failing tests, probe the REAL API/tool of any load-bearing dependency
+  against the pinned tree (don't trust priors — the pinned version's
+  signature may differ), and for any measurable target take the baseline
+  NOW. Record the verified calls / baseline number in Implementation
+  Context. This turns build into transcription, not discovery.
 - Set project.stage to STAGE-MMM in front-matter.
 - Fill the "## Implementation Context" section carefully. The build
   session won't have design-session context; this section must be

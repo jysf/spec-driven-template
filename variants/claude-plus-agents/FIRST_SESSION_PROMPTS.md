@@ -381,6 +381,12 @@ When writing the spec:
 - Target complexity S or M. If L, split into multiple specs first.
 - Acceptance criteria must be testable.
 - Failing tests must be concrete: file paths + what each asserts.
+- Design-time probe / measure-before-build (§12): before writing the
+  failing tests, probe the REAL API/tool of any load-bearing dependency
+  against the pinned tree (don't trust priors — the pinned version's
+  signature may differ), and for any measurable target take the baseline
+  NOW. Record the verified calls / baseline number in the spec + handoff.
+  This turns build into transcription, not discovery.
 - List applicable decisions and constraints in front-matter references.
 - If you make NEW decisions while writing, emit
   /decisions/DEC-NNN-<slug>.md files for each.

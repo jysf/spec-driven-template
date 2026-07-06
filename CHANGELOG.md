@@ -2,6 +2,28 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — Codify the design-time probe / measure-before-build (v0.6.6)
+
+Harvest signal #2 — the **highest-frequency single lesson** across the dogfood
+(N=17/43 in one project, convergent with another). Codifies it as a first-class
+design-cycle convention. Docs-only.
+
+### Added
+
+- **AGENTS.md §12** (both variants) gains a **"Design-time probe /
+  measure-before-build"** convention, sibling to behavioral pre-flight: when a
+  spec depends on a load-bearing external's *actual* behavior (real API
+  signature, tool resolution on the pinned toolchain, version floor, a config
+  field the engine reads) or tunes toward a measurable target, **probe/measure
+  the real thing against the pinned tree during design** and record the verified
+  calls / baseline in `## Implementation Context` (or the DEC). Build then
+  collapses to a near bit-for-bit *transcription* instead of a discovery loop.
+  Includes the complementary verify move (**adversarial mutation** — revert and
+  confirm the guard fails; proves test teeth + surfaces dead/no-op config).
+- The **SPEC-design prompt** (`FIRST_SESSION_PROMPTS.md` Prompt 2b, both
+  variants) reinforces it at the point of use — probe/measure *before* writing
+  the failing tests.
+
 ## 2026-07-06 — Multi-wave correctness: status-aware resolver + shipped_at (v0.6.5)
 
 Two fixes from the 2026-07-06 three-project dogfood harvest

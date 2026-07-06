@@ -1191,6 +1191,11 @@ assert_contains "projects/_templates/spec.md" "Where was the worst defect caught
     "spec ship reflection carries the defect-catch-stage tag"
 assert_contains "projects/_templates/patch.md" "Defect-catch-stage" \
     "patch reflection carries the defect-catch-stage tag"
+# Design-time probe / measure-before-build convention (harvest #2, N=17).
+assert_contains "AGENTS.md" "Design-time probe" \
+    "AGENTS.md §12 carries the design-time-probe / measure-before-build convention"
+assert_contains "FIRST_SESSION_PROMPTS.md" "measure-before-build" \
+    "the SPEC-design prompt reinforces measure-before-build (harvest #2)"
 
 # ============================================================
 # DEC-005 Phase 1: agent/cost config + graceful cost-audit
