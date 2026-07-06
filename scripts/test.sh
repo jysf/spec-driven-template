@@ -1164,6 +1164,64 @@ assert_contains "guidance/constraints.yaml" "top-level RUNTIME dependency" \
     "deps constraint scopes its hard gate to runtime deps (rule 4)"
 
 # ============================================================
+# DEC-006 (v0.5.29): release-spec template + runtime pre-flight
+# ============================================================
+# The template ships in _templates and survives init.
+assert_file "projects/_templates/release-spec.md"
+assert_contains "projects/_templates/release-spec.md" "type: release" \
+    "release-spec template uses task.type: release"
+assert_contains "projects/_templates/release-spec.md" "Release Pre-Flight" \
+    "release-spec template carries the pre-flight checklist"
+# All six generic categories are present (category-level, DEC-006).
+for cat in "tag integrity" "Artifact trust on a clean host" \
+           "Distribution-channel trust" "Data isolation" \
+           "Runtime smoke on a clean host" "Rollback"; do
+    if grep -qiE "$cat" "projects/_templates/release-spec.md"; then
+        pass "release pre-flight covers: ${cat}"
+    else
+        fail "release pre-flight missing category: ${cat}"
+    fi
+done
+
+# `just new-release-spec` scaffolds a task.type: release spec into a stage.
+just new-release-spec "Test Release" STAGE-002 >/dev/null 2>&1
+REL_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-test-release.md 2>/dev/null | head -n1)
+if [ -n "$REL_FILE" ]; then
+    pass "new-release-spec scaffolds a release spec"
+else
+    fail "new-release-spec did not scaffold a SPEC-*-test-release.md"
+fi
+assert_contains "$REL_FILE" "type: release" "scaffolded release spec is task.type: release"
+assert_contains "$REL_FILE" "stage: STAGE-002" "release spec attaches to its stage"
+# The --release flag on new-spec.sh is the primitive (wrapper just forwards it).
+just new-spec "Flag Release" STAGE-002 --release >/dev/null 2>&1
+FLAG_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-flag-release.md 2>/dev/null | head -n1)
+assert_contains "$FLAG_FILE" "type: release" "--release flag on new-spec scaffolds a release spec"
+
+# validate treats a release spec as first-class (it uses the standard spec path).
+if just validate >/dev/null 2>&1; then
+    pass "validate passes with release specs present (first-class)"
+else
+    fail "validate failed with a well-formed release spec present"
+fi
+
+# status recognizes releases: [release] tag (human) + task.type in --json.
+rel_status_out=$(just status 2>&1)
+if printf '%s\n' "$rel_status_out" | grep -q "\[release\]"; then
+    pass "status tags release specs with [release]"
+else
+    fail "status did not tag the release spec"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just status --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); ss=d["data"]["specs"]; assert any(s.get("task.type")=="release" for s in ss)' \
+        && pass "status --json exposes task.type=release" || fail "status --json missing task.type=release"
+fi
+# Clean up the release specs so the final repo state is undisturbed.
+rm -f "$REL_FILE" "$FLAG_FILE" \
+    projects/PROJ-001-example-mvp/specs/SPEC-*-test-release-timeline.md \
+    projects/PROJ-001-example-mvp/specs/SPEC-*-flag-release-timeline.md
+
+# ============================================================
 # Done
 # ============================================================
 echo ""

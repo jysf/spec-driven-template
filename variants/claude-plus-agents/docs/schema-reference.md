@@ -57,7 +57,7 @@ value_contribution: { advances ◦, delivers[] ◦, explicitly_does_not[] ◦ }
 ## `projects/PROJ-*/specs/SPEC-*.md` — a spec (the unit `just validate` gates)
 
 ```
-task: { id ✅, type ✅ enum{epic,story,task,bug,chore}, cycle ✅ enum{frame,design,build,verify,ship},
+task: { id ✅, type ✅ enum{epic,story,task,bug,chore,release}, cycle ✅ enum{frame,design,build,verify,ship},
         blocked ◦, priority ◦, complexity ✅ enum{S,M,L} }
 project: { id ✅, stage ✅ }            repo.id ✅
 agents: { architect ◦, implementer ◦, created_at ◦ }
@@ -70,6 +70,12 @@ The **required structural set** `just validate` enforces: `task.id`,
 `task.type`, `task.cycle` (valid enum), `task.complexity` (valid enum),
 `project.id`, `project.stage`, `repo.id`. Files under `specs/prompts/` and
 `*-timeline.md` are not specs and are skipped.
+
+A **release spec** (`task.type: release`, DEC-006) is a spec subtype: it reuses
+this exact schema (so `validate` / `cost-audit` / `status` treat it as a normal
+spec — `status` tags it `[release]` and exposes `task.type` in `--json`) and
+adds a generic runtime **pre-flight checklist** in the body. Scaffold it with
+`just new-release-spec "vX.Y.Z" STAGE-NNN` (or `just new-spec … --release`).
 
 ## `projects/PROJ-*/patches/PATCH-*.md` — a patch (the patch lane, DEC-003)
 

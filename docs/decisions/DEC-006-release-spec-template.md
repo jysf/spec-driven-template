@@ -2,8 +2,8 @@
 insight:
   id: DEC-006
   type: architecture
-  confidence: 0.7
-status: proposed            # proposed | accepted | superseded
+  confidence: 0.8
+status: accepted            # proposed | accepted | superseded
 date: 2026-06-27
 deciders: [jysf, claude]
 supersedes: null
@@ -11,18 +11,39 @@ superseded_by: null
 affected_scope:
   - "variants/*/projects/_templates/release-spec.md"
   - "scripts/new-spec.sh"
+  - "scripts/status.sh"
+  - "scripts/_lib.sh"
+  - "justfile"
   - "variants/*/AGENTS.md"
+  - "variants/*/docs/schema-reference.md"
 tags: [architecture, process, release, runtime, template]
 ---
 
 # DEC-006: a release-spec template with a generic runtime/operational pre-flight
 
-> **This is the template's own decision log** (meta). **Status: proposed** — a
-> draft for review. It is upstream-candidate **B** from the bragfile
+> **This is the template's own decision log** (meta). **Status: accepted —
+> shipped in v0.5.29.** It is upstream-candidate **B** from the bragfile
 > three-project retrospective (`feedback/2026-07-04-bragfile-three-project-retro.md`).
 > Complements the design-time **behavioral pre-flight** convention shipped in
 > v0.5.24 (AGENTS §12): that is the *general* discipline; this is the
 > *release-specific* checklist instance of it.
+>
+> **What shipped:** `projects/_templates/release-spec.md` (both variants) with
+> the six generic pre-flight categories; a `--release` flag on `new-spec` (+ the
+> `just new-release-spec` wrapper) that scaffolds it as a `task.type: release`
+> spec; `status` recognition (a `[release]` tag in the human view, `task.type`
+> in `--json`, via a new `get_spec_type` in `_lib.sh`); an AGENTS "During ship"
+> pointer; and `schema-reference.md` documenting the type. **Open questions,
+> resolved:** (1) new `release` type over plain `chore` — chose `release` for
+> legibility, mirroring how `patch` became first-class (DEC-003). (2) a `--release`
+> flag over a separate recipe — chose the flag as the primitive, with a thin
+> `new-release-spec` wrapper for ergonomics (just's positional binding makes a
+> bare flag awkward on the recipe). (3)/(4) which categories are universal and
+> whether to gate — kept all six as a **checklist**, category-level not
+> command-level, with a `Delivery shapes` line + per-item `N/A` so a pure web
+> service can skip desktop-only OS-trust; **not gated** (`validate` accepts a
+> release-spec through the standard spec path but does not enforce checklist
+> content) since the checks are host-specific and judgment-laden.
 
 ## Context
 

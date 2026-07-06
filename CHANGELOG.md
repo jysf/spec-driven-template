@@ -2,6 +2,50 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-05 — DEC-006: release-spec template + runtime pre-flight (v0.5.29)
+
+Accepts and builds [DEC-006](docs/decisions/DEC-006-release-spec-template.md)
+(upstream-candidate B from the bragfile three-project retrospective). Across the
+dogfood projects, **every defect that escaped design→build→verify was
+operational/runtime**, and the release-phase subclass was especially consistent
+(dual-tag-on-the-same-commit, Gatekeeper quarantine, package-manager trust
+gates, a dev binary migrating the prod DB). Each was earned in production then
+codified after the fact — and each is portable. This puts the checklist in the
+template so every project inherits it instead of re-earning it. Additive.
+
+### Added
+
+- **`projects/_templates/release-spec.md`** (both variants) — a spec-shaped
+  template for a release cut whose `## Release Pre-Flight` carries the six
+  generic, portable categories: (1) version/tag integrity, (2) artifact trust on
+  a clean host, (3) distribution-channel trust, (4) data isolation, (5) runtime
+  smoke on a clean host, (6) rollback/uninstall. Kept **category-level, not
+  command-level** — the instance fills the tool-specific command per its stack
+  (same "template ships the slot, instance fills the truth" principle as the
+  toolchain brief). A `Delivery shapes` line + per-item `N/A` lets a pure web
+  service skip desktop-only OS-trust. The plus-agents copy uses the `handoff:`
+  block; the claude-only copy uses `agents:`.
+- **`just new-release-spec "vX.Y.Z" STAGE-NNN`** — ergonomic wrapper over the new
+  **`--release`** flag on `new-spec` (the flag is the primitive; either works).
+  It scaffolds a `task.type: release` spec.
+- **`get_spec_type`** in `_lib.sh` — reads `task.type`, scoped to the `task:`
+  block.
+
+### Changed
+
+- **`status`** now recognizes releases: the human "Specs by cycle" view tags a
+  release spec `[release]`, and `--json` exposes `task.type` on every spec.
+- **AGENTS.md "During ship"** (both variants) gains a pointer: a release is its
+  own spec — scaffold it with `new-release-spec` and run the pre-flight before
+  publishing.
+- **`docs/schema-reference.md`** documents the `release` `task.type` and the
+  release-spec subtype (reuses the spec schema; `validate`/`cost-audit`/`status`
+  treat it first-class).
+- **[DEC-006](docs/decisions/DEC-006-release-spec-template.md)** flipped to
+  **accepted** (confidence 0.7→0.8); its four open questions resolved in the doc
+  (release type over chore; flag-plus-wrapper; checklist not gate; categories
+  generic with per-shape N/A).
+
 ## 2026-07-05 — DEC-004 Phase 2: dev-dep sanction + toolchain-brief slot (v0.5.28)
 
 Completes Phase 2 of [DEC-004](docs/decisions/DEC-004-subagent-execution-mode.md)

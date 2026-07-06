@@ -384,6 +384,20 @@ get_spec_cycle() {
     ' "$file"
 }
 
+# Extract a spec's task.type from front-matter (e.g. release, patch, story).
+# Scoped to the task: block so it can't pick up a stray `type:` elsewhere.
+# Usage: get_spec_type path/to/spec.md
+get_spec_type() {
+    local file="$1"
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^task:/ { intask = 1; next }
+        intask && /^[^[:space:]]/ { intask = 0 }
+        intask && /^[[:space:]]+type:/ { print $2; exit }
+    ' "$file"
+}
+
 # Sum tokens across cost.sessions[] entries. Null fields are skipped;
 # prints an integer (0 if empty/missing). Session-scalar fields live at
 # 6-space indent; totals (which also has tokens_total) lives at 4-space

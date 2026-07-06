@@ -181,6 +181,8 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── projects/                          # Waves of work
 │   ├── _templates/                    # Shared templates
 │   │   ├── spec.md
+│   │   ├── release-spec.md            # Release cut + runtime pre-flight (DEC-006)
+│   │   ├── patch.md                   # The patch lane (DEC-003)
 │   │   ├── stage.md
 │   │   ├── handoff.md
 │   │   └── project-brief.md
@@ -492,6 +494,14 @@ Then:
   **impact** (the outcome / who's better off), not the output. The ship
   Reflection and the spec's `value_link` are the raw material.
 - Commit.
+
+**Cutting a release?** A release is its own spec — scaffold it with
+`just new-release-spec "vX.Y.Z" STAGE-NNN` (or `just new-spec … --release`). It
+carries a generic runtime **pre-flight checklist** (tag integrity, artifact
+trust on a clean host, channel trust, data isolation, runtime smoke, rollback —
+DEC-006); fill in the tool-specific command for each before you publish. Every
+defect that escaped design→build→verify across the dogfood projects was
+operational/runtime, so don't skip it.
 
 ---
 

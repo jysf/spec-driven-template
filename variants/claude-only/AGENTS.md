@@ -173,6 +173,8 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── projects/                          # Waves of work
 │   ├── _templates/                    # Shared templates
 │   │   ├── spec.md
+│   │   ├── release-spec.md            # Release cut + runtime pre-flight (DEC-006)
+│   │   ├── patch.md                   # The patch lane (DEC-003)
 │   │   ├── stage.md
 │   │   └── project-brief.md
 │   ├── PROJ-001-<slug>/
@@ -407,6 +409,14 @@ Append `## Reflection` to spec. Three answers. Append a ship cost
 session entry, then compute `cost.totals`. Then
 `just archive-spec SPEC-NNN`. If stage backlog is complete, run the
 Stage Ship prompt.
+
+**Cutting a release?** A release is its own spec — scaffold it with
+`just new-release-spec "vX.Y.Z" STAGE-NNN` (or `just new-spec … --release`).
+It carries a generic runtime **pre-flight checklist** (tag integrity, artifact
+trust on a clean host, channel trust, data isolation, runtime smoke, rollback —
+DEC-006); fill in the tool-specific command for each before you publish. Every
+defect that escaped design→build→verify across the dogfood projects was
+operational/runtime, so don't skip it.
 
 If Reflection Q2 surfaces a template/constraint/decision change you're
 **not** making this session, don't let it evaporate — record it in

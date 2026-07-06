@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # scripts/new-spec.sh — scaffold a new spec.
-# Usage: new-spec.sh "short title" STAGE-NNN [PROJ-NNN]
+# Usage: new-spec.sh "short title" STAGE-NNN [PROJ-NNN] [--release]
+#
+# --release scaffolds from release-spec.md (task.type: release) instead of
+# spec.md — a release cut with the generic runtime pre-flight checklist
+# (DEC-006). `just new-release-spec` is the ergonomic wrapper for it.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,12 +12,26 @@ source "${SCRIPT_DIR}/_lib.sh"
 
 require_initialized
 
+# Pull the --release flag out of the arg list (it may appear anywhere), then
+# treat the rest as the positional TITLE / STAGE-NNN / PROJ-NNN.
+RELEASE=0
+positional=()
+for a in "$@"; do
+    case "$a" in
+        --release) RELEASE=1 ;;
+        *) positional+=("$a") ;;
+    esac
+done
+# bash 3.2 + set -u: expanding an empty array is an "unbound variable" error,
+# so guard the expansion.
+set -- ${positional[@]+"${positional[@]}"}
+
 TITLE="${1:-}"
 STAGE_ID="${2:-}"
 PROJECT_ID="${3:-}"
 
 if [ -z "$TITLE" ] || [ -z "$STAGE_ID" ]; then
-    die "Usage: just new-spec \"title\" STAGE-NNN [PROJ-NNN]"
+    die "Usage: just new-spec \"title\" STAGE-NNN [PROJ-NNN] [--release]"
 fi
 
 PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
@@ -41,9 +59,10 @@ if [ -f "$SPEC_FILE" ]; then
     die "Spec file already exists: ${SPEC_FILE}"
 fi
 
-# Choose template based on variant
-if [ "$VARIANT" = "claude-plus-agents" ]; then
-    TEMPLATE="${REPO_ROOT}/projects/_templates/spec.md"
+# Choose template: a release cut uses release-spec.md (task.type: release,
+# DEC-006); everything else uses the standard spec.md. Both variants ship both.
+if [ "$RELEASE" = "1" ]; then
+    TEMPLATE="${REPO_ROOT}/projects/_templates/release-spec.md"
 else
     TEMPLATE="${REPO_ROOT}/projects/_templates/spec.md"
 fi
@@ -111,6 +130,11 @@ mkdir -p "$PROMPTS_DIR"
 
 success "Created ${SPEC_FILE}"
 success "Created ${TIMELINE_FILE}"
+if [ "$RELEASE" = "1" ]; then
+    echo ""
+    echo "Release spec (DEC-006): fill in the ## Release Pre-Flight checklist with"
+    echo "the tool-specific command for each generic category before you ship."
+fi
 echo ""
 echo "Next steps:"
 echo "  1. Fill in the spec with Claude (use Prompt 2b: SPEC from FIRST_SESSION_PROMPTS.md)"

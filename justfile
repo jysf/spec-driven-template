@@ -78,6 +78,12 @@ status *ARGS:
 new-spec TITLE STAGE_ID PROJECT_ID="":
     @./scripts/new-spec.sh "{{TITLE}}" "{{STAGE_ID}}" "{{PROJECT_ID}}"
 
+# Scaffold a release spec (DEC-006): a release cut with the generic runtime
+# pre-flight checklist. Same as `new-spec --release`.
+# Usage: just new-release-spec "short title" STAGE-NNN [PROJ-NNN]
+new-release-spec TITLE STAGE_ID PROJECT_ID="":
+    @./scripts/new-spec.sh "{{TITLE}}" "{{STAGE_ID}}" "{{PROJECT_ID}}" --release
+
 # Scaffold a new stage. Usage: just new-stage "short title" [PROJ-NNN]
 new-stage TITLE PROJECT_ID="":
     @./scripts/new-stage.sh "{{TITLE}}" "{{PROJECT_ID}}"

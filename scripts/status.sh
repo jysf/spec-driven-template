@@ -20,6 +20,7 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
         sid=$(basename "$f" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
         name=$(basename "$f" .md)
         cyc=$(get_spec_cycle "$f"); [ -n "$cyc" ] || cyc="?"
+        typ=$(get_spec_type "$f"); [ -n "$typ" ] || typ="story"
         u=$(sum_cost_usd_for_spec "$f"); t=$(sum_cost_tokens_for_spec "$f")
         case "$f" in
             */specs/done/*) shipped=true ;;
@@ -36,6 +37,7 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
         fi
         specs_json+=("$(json_obj \
             "task.id" "$(json_qs "$sid")" \
+            "task.type" "$(json_qs "$typ")" \
             "task.cycle" "$(json_qs "$cyc")" \
             shipped "$shipped" \
             "cost.tokens_total" "$t" \
@@ -144,7 +146,8 @@ if [ -d "$specs_dir" ]; then
             spec_cycle=$(awk '/^---$/{f=!f; next} f && /^[[:space:]]+cycle:/{print $2; exit}' "$f" 2>/dev/null || echo "")
             if [ "$spec_cycle" = "$cycle" ]; then
                 count=$((count + 1))
-                names="${names}    - $(basename "$f" .md)\n"
+                tag=""; [ "$(get_spec_type "$f")" = "release" ] && tag=" ${DIM}[release]${RESET}"
+                names="${names}    - $(basename "$f" .md)${tag}\n"
             fi
         done
         # Also count done/ as ship
@@ -152,7 +155,8 @@ if [ -d "$specs_dir" ]; then
             for f in "${specs_dir}/done"/SPEC-*.md; do
                 [ -f "$f" ] || continue
                 count=$((count + 1))
-                names="${names}    - $(basename "$f" .md) ${DIM}(archived)${RESET}\n"
+                tag=""; [ "$(get_spec_type "$f")" = "release" ] && tag=" ${DIM}[release]${RESET}"
+                names="${names}    - $(basename "$f" .md)${tag} ${DIM}(archived)${RESET}\n"
             done
         fi
         printf "  ${BOLD}%-8s${RESET} (%d)\n" "$cycle" "$count"
