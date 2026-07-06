@@ -2,6 +2,28 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-05 — Quick wins: two dash lenses + stricter changelog guard (v0.6.2)
+
+Small additive ergonomics — two new read-lenses and a tightened release guard.
+
+### Added
+
+- **`just dash constraints`** — the repo-level rules from
+  `guidance/constraints.yaml`, grouped by severity (blocking first) with paths +
+  rule text. `--json` emits `constraint.*` names. (`emit_constraints_tsv` /
+  `count_blocking_constraints` in `_lib.sh`.)
+- **`just dash handoffs`** — delegation handoffs (`HANDOFF-*.md`) grouped by
+  status (`pending | accepted | completed | rejected`), showing spec + from→to.
+  Meaningful in the `claude-plus-agents` variant; an empty view in `claude-only`.
+  `--json` emits `handoff.*` names. Both lenses are surfaced in `just dash help`.
+
+### Changed
+
+- **Stricter CHANGELOG drift-guard** (`scripts/test.sh`): beyond "VERSION appears
+  somewhere," the newest `## … (vX.Y.Z)` header must now *be* the current
+  `VERSION` (catches a bump whose new entry was never added on top), and every
+  versioned header must be unique (no duplicate release sections).
+
 ## 2026-07-05 — DEC-007: default versioning scheme (CalVer), overridable (v0.6.1)
 
 Gives scaffolded apps a versioning convention that "just works," with semver as

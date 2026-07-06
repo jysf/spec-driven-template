@@ -732,6 +732,24 @@ if grep -qE "v${ver}([^0-9]|\$)" CHANGELOG.md; then
 else
     fail "VERSION ${ver} not found in CHANGELOG.md (version/changelog drift)"
 fi
+# Stricter drift guard (v0.6.2): the NEWEST `## … (vX.Y.Z)` header must be the
+# current VERSION — catches a VERSION bump whose new entry was never added on top
+# (the old top would still "appear" and pass the weaker check above). And every
+# versioned header must be unique — no accidental duplicate release sections.
+newest_hdr_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' CHANGELOG.md \
+    | head -n1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//')
+if [ "$newest_hdr_ver" = "$ver" ]; then
+    pass "newest CHANGELOG header is the current VERSION (v${ver} on top)"
+else
+    fail "newest CHANGELOG header is v${newest_hdr_ver:-∅}, not VERSION ${ver}"
+fi
+dup_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' CHANGELOG.md \
+    | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort | uniq -d | head -n1)
+if [ -z "$dup_ver" ]; then
+    pass "no duplicate versioned CHANGELOG headers"
+else
+    fail "duplicate CHANGELOG header for version ${dup_ver}"
+fi
 
 # ============================================================
 # DEC-007 (v0.6.1): app versioning scheme (calver default) + next-version
@@ -1009,6 +1027,35 @@ assert_contains "$weekly_file" "## Patches" "report-weekly includes a Patches se
 
 # Remove the test patch so the shipped-without-cost file can't affect later runs.
 rm -rf projects/PROJ-001-example-mvp/patches
+
+# ============================================================
+# dash constraints + dash handoffs lenses (v0.6.2)
+# ============================================================
+# constraints lens: severity-grouped view of guidance/constraints.yaml.
+dc=$(just dash constraints 2>&1)
+if printf '%s\n' "$dc" | grep -qE "^Constraints \([0-9]+ total" \
+   && printf '%s\n' "$dc" | grep -q "no-secrets-in-code"; then
+    pass "dash constraints lists rules by severity"
+else
+    fail "dash constraints output unexpected: $dc"
+fi
+json_ok "dash constraints --json"   just dash constraints --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash constraints --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="constraints" and d["data"]["total"]>=1 and "constraint.severity" in d["data"]["constraints"][0]' \
+        && pass "dash constraints --json (constraint.* payload)" || fail "dash constraints --json wrong/invalid"
+fi
+# handoffs lens: claude-only has none → the empty view + a valid empty --json.
+dh=$(just dash handoffs 2>&1)
+if printf '%s\n' "$dh" | grep -qE "^Handoffs \(0 open / 0 total\)"; then
+    pass "dash handoffs shows the empty view in claude-only"
+else
+    fail "dash handoffs output unexpected: $dh"
+fi
+json_ok "dash handoffs --json"   just dash handoffs --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash handoffs --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="handoffs" and d["data"]["total"]==0 and d["data"]["handoffs"]==[]' \
+        && pass "dash handoffs --json (empty array in claude-only)" || fail "dash handoffs --json wrong/invalid"
+fi
 
 # ============================================================
 # Harvest backlog fixes (v0.5.23)

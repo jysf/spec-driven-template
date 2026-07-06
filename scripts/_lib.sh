@@ -979,3 +979,29 @@ emit_signals_tsv() {
 count_open_signals() {
     emit_signals_tsv | awk -F'\t' '$3=="open" || $3=="watch"' | wc -l | tr -d ' '
 }
+
+# Emit constraints as TSV: id<TAB>severity<TAB>paths<TAB>added_by<TAB>rule.
+# Powers the `just dash constraints` lens. One record per line; `val()` strips
+# the `key:` prefix and surrounding quotes (rule/paths never contain tabs).
+emit_constraints_tsv() {
+    local f="${1:-${REPO_ROOT}/guidance/constraints.yaml}"
+    [ -f "$f" ] || return 0
+    awk '
+        function val(s){ sub(/^[^:]*:[[:space:]]*/,"",s); gsub(/^"|"$/,"",s); return s }
+        function emit(){ if (have) printf "%s\t%s\t%s\t%s\t%s\n", id, sev, paths, by, rule }
+        /^constraints:/ { inc=1; next }
+        !inc { next }
+        /^[a-zA-Z_]/ { inc=0 }
+        /^[[:space:]]*-[[:space:]]*id:/ { emit(); id=val($0); sev=""; paths=""; by=""; rule=""; have=1; next }
+        /^[[:space:]]+severity:/ { sev=val($0); next }
+        /^[[:space:]]+paths:/    { paths=val($0); next }
+        /^[[:space:]]+added_by:/ { by=val($0); next }
+        /^[[:space:]]+rule:/     { rule=val($0); next }
+        END { emit() }
+    ' "$f"
+}
+
+# Count blocking constraints (severity: blocking).
+count_blocking_constraints() {
+    emit_constraints_tsv | awk -F'\t' '$2=="blocking"' | wc -l | tr -d ' '
+}

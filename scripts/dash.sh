@@ -17,6 +17,8 @@
 #   just dash questions  open questions (what's blocking)
 #   just dash signals    the typed feedback ledger (what's queued / un-adopted)
 #   just dash patches    the patch lane by cycle (DEC-003)
+#   just dash constraints repo-level rules by severity (guidance/constraints.yaml)
+#   just dash handoffs   delegation handoffs by status (plus-agents)
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
@@ -30,27 +32,31 @@ case "$lens" in
     next)      shift; exec "${SCRIPT_DIR}/backlog.sh" "$@" ;;
     future)    shift; exec "${SCRIPT_DIR}/roadmap.sh" "$@" ;;
     ledger)    shift; exec "${SCRIPT_DIR}/specs-by-stage.sh" "$@" ;;
-    decisions) shift; exec "${SCRIPT_DIR}/decisions-view.sh" "$@" ;;
-    questions) shift; exec "${SCRIPT_DIR}/questions-view.sh" "$@" ;;
-    signals)   shift; exec "${SCRIPT_DIR}/signals-view.sh" "$@" ;;
-    patches)   shift; exec "${SCRIPT_DIR}/patches-view.sh" "$@" ;;
+    decisions)   shift; exec "${SCRIPT_DIR}/decisions-view.sh" "$@" ;;
+    questions)   shift; exec "${SCRIPT_DIR}/questions-view.sh" "$@" ;;
+    signals)     shift; exec "${SCRIPT_DIR}/signals-view.sh" "$@" ;;
+    patches)     shift; exec "${SCRIPT_DIR}/patches-view.sh" "$@" ;;
+    constraints) shift; exec "${SCRIPT_DIR}/constraints-view.sh" "$@" ;;
+    handoffs)    shift; exec "${SCRIPT_DIR}/handoffs-view.sh" "$@" ;;
     help|-h|--help)
         cat <<'EOF'
 just dash [lens] [--json]
-  (no lens)  stitched dashboard: now + future + recorded cost + governance flags
-  now        where are things now?             (= just status)
-  next       what are we NOT working on next?  (= just backlog)
-  future     what's coming?                    (= just roadmap)
-  ledger     every spec, all history           (= just specs-by-stage)
-  decisions  browse DEC-* (confidence, active/superseded, scope)
-  questions  open questions from guidance/questions.yaml (what's blocking)
-  signals    the typed feedback ledger (guidance/signals.yaml) — what's queued / un-adopted
-  patches    the patch lane by cycle (patch|verify|ship), DEC-003
-  --json     machine-readable output (works on the dashboard and every lens)
+  (no lens)   stitched dashboard: now + future + recorded cost + governance flags
+  now         where are things now?             (= just status)
+  next        what are we NOT working on next?  (= just backlog)
+  future      what's coming?                    (= just roadmap)
+  ledger      every spec, all history           (= just specs-by-stage)
+  decisions   browse DEC-* (confidence, active/superseded, scope)
+  questions   open questions from guidance/questions.yaml (what's blocking)
+  signals     the typed feedback ledger (guidance/signals.yaml) — what's queued / un-adopted
+  patches     the patch lane by cycle (patch|verify|ship), DEC-003
+  constraints repo-level rules from guidance/constraints.yaml, by severity
+  handoffs    delegation handoffs (HANDOFF-*.md) by status (plus-agents)
+  --json      machine-readable output (works on the dashboard and every lens)
 EOF
         exit 0 ;;
     ""|--json) : ;;  # no lens → stitched dashboard (human or, with --json, JSON)
-    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | help, or no arg for the dashboard)" ;;
+    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | constraints | handoffs | help, or no arg for the dashboard)" ;;
 esac
 
 project=$(get_active_project)
