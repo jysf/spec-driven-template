@@ -40,6 +40,19 @@ TARGET="${DONE_DIR}/${SPEC_BASENAME}"
 mv "$SPEC_FILE" "$TARGET"
 success "Archived: ${SPEC_FILE} → ${TARGET}"
 
+# Stamp a top-level `shipped_at: DATE` into the front-matter (harvest signal #3).
+# Ship dates previously lived only in git tags / timeline / cost blocks, so
+# per-spec cycle-time and time-to-value weren't computable from the spec itself.
+# Pairs with the `created_at` the scaffold already records. Idempotent: skip if
+# one is already present (archive-spec won't re-run on an archived spec anyway).
+SHIP_DATE=$(today)
+if ! grep -qE '^shipped_at:' "$TARGET"; then
+    awk -v d="$SHIP_DATE" '
+        /^---$/ { fm++; if (fm == 2) print "shipped_at: " d; print; next }
+        { print }
+    ' "$TARGET" > "${TARGET}.tmp" && mv "${TARGET}.tmp" "$TARGET"
+fi
+
 # Recompute cost.totals from the recorded sessions so the rollup is never stale
 # (the non-judgment-laden half of ship bookkeeping — dogfood harvest).
 write_cost_totals "$TARGET"
@@ -62,7 +75,7 @@ if [ -n "$STAGE_ID" ]; then
     if [ -n "$STAGE_FILE" ]; then
         echo ""
         echo "Parent stage: ${STAGE_ID} (${STAGE_FILE})"
-        SHIP_DATE=$(today)
+        # SHIP_DATE was computed above (shipped_at stamp) and is reused here.
         # Is this spec listed as an open "[ ] SPEC-NNN" item in the backlog?
         HAS_ENTRY=$(awk -v sid="$SPEC_ID" '
             /^## Spec Backlog/ { inbl=1; next }

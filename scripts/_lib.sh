@@ -60,17 +60,46 @@ get_variant() {
 # Find the active project directory. Default heuristic: the lexically first
 # project folder that doesn't start with PROJ-ZZZZ-archive or similar.
 # Users can override by setting ACTIVE_PROJECT env var.
+# Read project.status from a project directory's brief.md
+# (active | proposed | shipped | cancelled | on_hold), empty if unset/absent.
+# Uses field-2 so a trailing "# comment" on the status line is tolerated.
+get_project_status() {
+    local brief="${1}/brief.md"
+    [ -f "$brief" ] || { echo ""; return; }
+    awk '
+        /^---$/ { f = !f; next }
+        f && /^project:/ { inp = 1; next }
+        f && inp && /^[a-zA-Z_]/ { inp = 0 }
+        f && inp && /^[[:space:]]+status:/ { print $2; exit }
+    ' "$brief" 2>/dev/null
+}
+
 get_active_project() {
     if [ -n "${ACTIVE_PROJECT:-}" ]; then
         echo "${ACTIVE_PROJECT}"
         return
     fi
-    # Look for the first PROJ-* directory that isn't the example.
-    local first
-    first=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "PROJ-*" 2>/dev/null \
-            | grep -v "example" | sort | head -n1)
+    # Non-example PROJ-* dirs, lowest number first.
+    local dirs
+    dirs=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "PROJ-*" 2>/dev/null \
+           | grep -v "example" | sort)
+    # Prefer a project explicitly marked `status: active`. Without this, a
+    # SHIPPED earlier wave silently captures every default-scoped command once a
+    # second project exists — `just status`/`cost-audit`/`backlog` would target
+    # the finished project and never inspect the active wave (the multi-wave
+    # hazard; 2026-07-06 harvest signal #1). Among several active, the
+    # lowest-numbered wins, for determinism.
+    local d first=""
+    while IFS= read -r d; do
+        [ -n "$d" ] || continue
+        if [ "$(get_project_status "$d")" = "active" ]; then first="$d"; break; fi
+    done <<EOF
+${dirs}
+EOF
+    # No project marked active → fall back to the lowest-numbered non-example.
+    [ -n "$first" ] || first=$(printf '%s\n' "$dirs" | head -n1)
+    # Still nothing → fall back to the example project.
     if [ -z "$first" ]; then
-        # Fall back to the example if nothing else exists.
         first=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "PROJ-*" 2>/dev/null \
                 | sort | head -n1)
     fi

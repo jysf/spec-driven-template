@@ -46,9 +46,12 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
     done < <(find_all_specs "$ACTIVE_PROJECT_DIR")
     [ "${#specs_json[@]}" -gt 0 ] && specs_arr=$(json_arr "${specs_json[@]}") || specs_arr="[]"
     [ "${#missing_specs[@]}" -gt 0 ] && missing_arr=$(json_arr "${missing_specs[@]}") || missing_arr="[]"
-    total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/ && !/\/prompts\//' | wc -l | tr -d ' ')
-    shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/' | wc -l | tr -d ' ')
-    total_decisions=$(find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
+    # `|| true`: a bare/new active project may have no specs/ dir yet — find then
+    # exits non-zero and `pipefail` would abort. wc still prints 0, so counts are
+    # correct; we just don't want the non-zero to kill the report.
+    total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/ && !/\/prompts\//' | wc -l | tr -d ' ' || true)
+    shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/' | wc -l | tr -d ' ' || true)
+    total_decisions=$(find "${REPO_ROOT}/decisions" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
     # Patches (the patch lane, DEC-003) — same task.* attribute names as specs.
     patches_json=()
     while IFS= read -r f; do
@@ -272,9 +275,10 @@ fi
 echo ""
 
 # --- Summary counts ---
-total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
-shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
-total_decisions=$(find "$decisions_dir" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ')
+# `|| true`: tolerate a bare active project with no specs/ dir (see --json path).
+total_specs=$(find "${ACTIVE_PROJECT_DIR}/specs" -name "SPEC-*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
+shipped_specs=$(find "${ACTIVE_PROJECT_DIR}/specs/done" -name "SPEC-*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
+total_decisions=$(find "$decisions_dir" -name "DEC-*.md" 2>/dev/null | wc -l | tr -d ' ' || true)
 echo "${BOLD}Summary${RESET}"
 echo "  Total specs in ${ACTIVE_PROJECT}:     ${total_specs}"
 echo "  Shipped (archived):                   ${shipped_specs}"

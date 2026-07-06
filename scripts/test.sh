@@ -165,6 +165,10 @@ archive_out=$(just archive-spec SPEC-002 2>&1)
 ARCHIVED="projects/PROJ-001-example-mvp/specs/done/SPEC-002-test-spec.md"
 assert_file "$ARCHIVED"
 assert_no_file "$SPEC_FILE"
+# archive-spec stamps a top-level shipped_at (harvest #3) so time-to-value /
+# cycle-time are computable from the spec itself.
+assert_contains "$ARCHIVED" "^shipped_at: [0-9]{4}-[0-9]{2}-[0-9]{2}$" \
+    "archive-spec stamps shipped_at into the front-matter"
 # The stage-shipped message must be an observation, not a completion
 # claim — the stage's backlog may still list unwritten specs.
 if printf '%s\n' "$archive_out" | grep -qE "All specs for .* are shipped\."; then
@@ -1364,6 +1368,46 @@ if [ "$HAVE_PY3" = 1 ]; then
     just report weekly --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="report-weekly" and "shipped_this_week" in d["data"] and "week" in d["data"]' \
         && pass "report weekly --json (week + shipped envelope)" || fail "report weekly --json wrong/invalid"
 fi
+
+# ============================================================
+# Multi-wave resolver: get_active_project prefers status:active (harvest #1)
+# ============================================================
+# Two non-example waves: the LOWER-numbered one is shipped, the higher active.
+# The old resolver (lowest-numbered non-example) would wrongly pick the shipped
+# wave; the fix must pick the active one. Placed last + cleaned up so the extra
+# projects don't perturb earlier checks.
+mkdir -p projects/PROJ-050-old-wave projects/PROJ-051-new-wave
+cat > projects/PROJ-050-old-wave/brief.md <<'BRIEF'
+---
+project:
+  id: PROJ-050
+  status: shipped
+repo:
+  id: test
+---
+# PROJ-050 old wave
+BRIEF
+cat > projects/PROJ-051-new-wave/brief.md <<'BRIEF'
+---
+project:
+  id: PROJ-051
+  status: active
+repo:
+  id: test
+---
+# PROJ-051 new wave
+BRIEF
+if [ "$HAVE_PY3" = 1 ]; then
+    ap=$(just status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["active_project"])')
+    assert_eq "$ap" "PROJ-051-new-wave" "resolver prefers status:active over lowest-numbered (harvest #1)"
+fi
+# A trailing comment on status: must not defeat the resolver (field-2 parse).
+sed_inplace_portable 's/^  status: active/  status: active   # current wave/' projects/PROJ-051-new-wave/brief.md
+if [ "$HAVE_PY3" = 1 ]; then
+    ap2=$(just status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["active_project"])')
+    assert_eq "$ap2" "PROJ-051-new-wave" "resolver tolerates a trailing comment on status:"
+fi
+rm -rf projects/PROJ-050-old-wave projects/PROJ-051-new-wave
 
 # ============================================================
 # Done

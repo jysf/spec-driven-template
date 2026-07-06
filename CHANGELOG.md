@@ -2,6 +2,41 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — Multi-wave correctness: status-aware resolver + shipped_at (v0.6.5)
+
+Two fixes from the 2026-07-06 three-project dogfood harvest
+([docs/harvests/](docs/harvests/2026-07-06-three-project-dogfood-harvest.md)),
+both prerequisites for trustworthy multi-wave and value/time reporting.
+
+### Fixed
+
+- **`get_active_project` was status-blind (harvest #1, high-impact).** It picked
+  the lowest-numbered non-example project and ignored `status`, so the moment a
+  second wave existed, every default-scoped command (`just status`, `cost-audit`,
+  `backlog`, reports) silently targeted the *shipped* earlier project and never
+  inspected the active wave — `cost-audit` would run green on the wrong project.
+  The resolver now prefers a project marked `status: active` (lowest-numbered
+  among several; falls back to lowest-numbered, then the example). New
+  `get_project_status` helper (field-2 parse → tolerates a trailing comment).
+
+### Added
+
+- **`archive-spec` now stamps a top-level `shipped_at: DATE` (harvest #3).** Ship
+  dates previously lived only in git tags / timeline / cost blocks, so per-spec
+  cycle-time and time-to-value weren't computable from the spec. Now they are —
+  the plumbing DEC-009 (time-to-value) builds on.
+
+### Docs
+
+- **`docs/harvests/2026-07-06-three-project-dogfood-harvest.md`** — the durable
+  triaged record (field-validation of the recent cycle, the ranked still-open
+  backlog, and the business-value / time-to-value findings).
+- **[DEC-009](docs/decisions/DEC-009-business-value-metrics.md) (proposed)** — a
+  thin measurable-value layer (one headline `value_metric` per stage, a
+  metric-*derivation* aid to be validated on the next project's frame, and
+  time-to-value computed from the new `shipped_at` + `created_at`). Design-first;
+  awaits review + a real project to ground the derivation step.
+
 ## 2026-07-06 — DEC-008: build provenance — trace a build to its commit (v0.6.4)
 
 Every project can now stamp its builds so a user (or an external report reader)
