@@ -790,6 +790,31 @@ assert_contains "projects/_templates/release-spec.md" "just next-version" \
     "release-spec references just next-version (DEC-007)"
 
 # ============================================================
+# DEC-008 (v0.6.4): build provenance stamp (just build-info)
+# ============================================================
+# build-info emits a provenance stamp: a non-empty ref line + the details. The
+# ref is a real git-describe when a repo is reachable and "unknown" otherwise —
+# assert structure, not the value, so the check is environment-agnostic.
+bi=$(just build-info 2>&1)
+if [ -n "$(printf '%s\n' "$bi" | head -1)" ] \
+   && printf '%s\n' "$bi" | grep -q "built_at:" \
+   && printf '%s\n' "$bi" | grep -q "commit:"; then
+    pass "build-info emits a stamp (ref line + commit + built_at)"
+else
+    fail "build-info output unexpected: $bi"
+fi
+json_ok "build-info --json"   just build-info --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just build-info --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="build-info"; ks=set(d["data"].keys()); assert {"ref","commit","commit_short","dirty","built_at"} <= ks' \
+        && pass "build-info --json (ref/commit/dirty/built_at)" || fail "build-info --json wrong/invalid"
+fi
+# The release-spec pre-flight now requires build provenance, and the guide docs it.
+assert_contains "projects/_templates/release-spec.md" "build provenance" \
+    "release-spec pre-flight requires build provenance (DEC-008)"
+assert_contains "docs/versioning.md" "Build provenance" \
+    "versioning.md documents build provenance + injection (DEC-008)"
+
+# ============================================================
 # Accomplishment-logging guidance survives init
 # ============================================================
 assert_contains "guidance/recommended-tools.md" "Accomplishment logging" \

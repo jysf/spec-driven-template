@@ -418,6 +418,30 @@ get_next_version() {
     esac
 }
 
+# --- Build provenance (DEC-008): trace an artifact back to its source commit ---
+# so a user (or an external report reader) knows exactly what they're looking at.
+# All degrade to "unknown"/0 outside a git repo (e.g. a fresh scaffold).
+
+# Human-friendly ref: nearest tag + distance + short SHA (git describe), or just
+# the short SHA when there are no tags; suffixed `-dirty` if the tree is dirty.
+build_ref() {
+    git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1 || { echo "unknown"; return; }
+    git -C "${REPO_ROOT}" describe --tags --always --dirty 2>/dev/null || echo "unknown"
+}
+# Full commit SHA.
+build_commit() {
+    git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || echo "unknown"
+}
+# Short commit SHA.
+build_commit_short() {
+    git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "unknown"
+}
+# 1 if the working tree has uncommitted changes, else 0 (also 0 outside git).
+build_dirty() {
+    git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1 || { echo 0; return; }
+    [ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ] && echo 1 || echo 0
+}
+
 # ---------------------------------------------------------------------
 # Report helpers — parse value and cost metadata from front-matter
 # and do portable date math. Keep pure bash + awk + date; no yq.

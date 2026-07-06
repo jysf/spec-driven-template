@@ -75,10 +75,15 @@ stack** (the template ships the slot, the instance fills the truth — same
 principle as the toolchain brief). Mark categories that don't apply to this
 release's delivery shape as `N/A` with one word why.
 
-- [ ] **1. Version / tag integrity** — exactly one release tag points at the
-      release commit; the version baked into the artifact matches the tag; no
-      stale or duplicate tag sits on the same commit.
-      - Command / evidence: <REPLACE — e.g. `git tag --points-at HEAD`>
+- [ ] **1. Version / tag integrity & build provenance** — exactly one release tag points
+      at the release commit; the version baked into the artifact matches the tag;
+      no stale or duplicate tag on the same commit. **And the shipped artifact
+      reports its own build provenance** (version + commit SHA) that matches the
+      release commit — `just build-info` is the stamp; it must be injected into
+      the build (DEC-008, `docs/versioning.md`). A user should be able to trace
+      exactly what they're running back to source.
+      - Command / evidence: <REPLACE — e.g. `git tag --points-at HEAD` and
+        `<app> --version` reports the `just build-info` ref>
 - [ ] **2. Artifact trust on a clean host** — a freshly-downloaded artifact is
       trusted by a machine that didn't build it (code-signing / notarization /
       OS quarantine — Gatekeeper, SmartScreen). "Does a stranger's machine run

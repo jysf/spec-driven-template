@@ -206,6 +206,13 @@ template-version *ARGS:
 next-version *ARGS:
     @./scripts/next-version.sh {{ARGS}}
 
+# The build provenance stamp (DEC-008): a string that traces a build back to its
+# exact source commit (git-describe + SHA + dirty flag). Inject it into your
+# artifact at build time so users know exactly what they're running — see
+# docs/versioning.md "Build provenance". `--json` for machine-readable.
+build-info *ARGS:
+    @./scripts/build-info.sh {{ARGS}}
+
 # Scaffolds a throwaway repo in a temp dir and runs the template's full suite
 # (init -> cycle -> reports -> audits). Maintainers only: works from the
 # pre-init template root; after `just init` it fails early by design.

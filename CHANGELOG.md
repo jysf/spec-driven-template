@@ -2,6 +2,32 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — DEC-008: build provenance — trace a build to its commit (v0.6.4)
+
+Every project can now stamp its builds so a user (or an external report reader)
+knows exactly what they're running — traceable back to the source commit. Pairs
+with the versioning scheme (DEC-007): DEC-007 = "what version," DEC-008 = "which
+exact source." Additive. See
+[DEC-008](docs/decisions/DEC-008-build-provenance.md).
+
+### Added
+
+- **`just build-info`** (`scripts/build-info.sh`; `build_ref` / `build_commit` /
+  `build_commit_short` / `build_dirty` in `_lib.sh`) — emits a `git describe`-style
+  ref (nearest tag + commits-since + short SHA, `-dirty` if the tree is dirty)
+  plus the full commit, dirty flag, and build timestamp. `--json` supported.
+  Degrades to `unknown` outside a git repo.
+- **A "Build provenance" section in `docs/versioning.md`** (both variants) — the
+  rule (always inject the stamp into the artifact at build time so `<app>
+  --version` reports it) and a per-delivery-shape injection table (ldflags /
+  generated build-info file / OCI label / `BUILD_INFO` sidecar).
+
+### Changed
+
+- **The release-spec's tag-integrity pre-flight** (both variants) now requires
+  the shipped artifact to report a build provenance matching the release commit —
+  checked at every release, not assumed.
+
 ## 2026-07-06 — report --json: machine-readable report envelopes (v0.6.3)
 
 Extends the DEC-001 §2 `--json` contract to the reports, so they can feed

@@ -63,3 +63,34 @@ just next-version --json   # { "scheme": "calver", "next": "v2026.07.0" }
 
 Use it when you cut a release (fill the release-spec's `Version / tag` line),
 then tag the release commit with that version.
+
+## Build provenance — trace a build back to its commit (DEC-008)
+
+A version number isn't enough: a user (or an external report reader) should be
+able to trace the exact **build** they're running back to its **source commit**.
+`just build-info` emits that stamp:
+
+```bash
+just build-info          # v2026.07.0-3-gabc1234   (+ commit, dirty, built_at)
+just build-info --json   # { "ref": "...", "commit": "...", "dirty": false, ... }
+```
+
+`ref` is `git describe` style — the nearest tag, commits-since, and short SHA,
+with a `-dirty` suffix if the working tree had uncommitted changes. It degrades
+to `unknown` outside a git repo.
+
+**The rule: always inject this stamp into the artifact at build time**, so the
+running thing can report its own provenance (`<app> --version` → the ref + SHA).
+Because the template is language-agnostic it ships the *stamp*, not the wiring —
+inject it the way your ecosystem does:
+
+| Delivery shape | Inject via |
+|---|---|
+| Go binary | `-ldflags "-X main.build=$(just build-info | head -1)"` |
+| Node / TS | write a generated `src/build-info.ts` in the build step (`BUILD=$(just build-info --json)`) |
+| Python | a generated `_build.py` / `importlib.metadata` at package time |
+| Container | `LABEL org.opencontainers.image.revision=$(just build-info | head -1)` + a `BUILD_INFO` file |
+| Anything | emit a `BUILD_INFO` file next to the artifact and read it at runtime |
+
+The release-spec's **tag-integrity** pre-flight checks this: a shipped artifact
+must report a provenance that matches the release commit.
