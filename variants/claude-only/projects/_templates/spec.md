@@ -19,6 +19,10 @@ repo:
   id: __REPO_ID__
 
 agents:
+  # architect ≠ implementer here is the intended design/build TIER split
+  # (tier_map, DEC-005) — e.g. opus for design, sonnet for build. It is NOT
+  # context contamination; a verify session should not flag the differing models
+  # as evidence the design session leaked into build.
   architect: __ARCHITECT_MODEL__     # from .repo-context tier_map.design (DEC-005)
   implementer: __IMPLEMENTER_MODEL__  # tier_map.build; the build agent updates it with the real model
   created_at: __TODAY__

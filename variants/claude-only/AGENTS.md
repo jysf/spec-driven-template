@@ -207,6 +207,12 @@ frame → design → build → verify → ship
                    └───────┘ (verify sends back on punch list)
 ```
 
+**`frame` is optional — most specs start at `design`.** By the time a task
+reaches `just new-spec` it has usually already passed go/no-go at the
+stage/backlog level, so `frame` is redundant (across the dogfood it went unused —
+0 of 100+ specs). Use it only when a spec's very existence is genuinely in
+question; otherwise begin at `design`.
+
 **In this variant**, use **separate sessions** for each cycle (this variant
 assumes one agent — Claude by default — playing every role in fresh sessions;
 on another agent, read "session" as "fresh session/agent", see docs/porting.md).

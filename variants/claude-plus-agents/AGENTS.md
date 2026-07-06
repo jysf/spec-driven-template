@@ -218,6 +218,12 @@ frame → design → build → verify → ship
                    └───────┘ (verify sends back on punch list)
 ```
 
+**`frame` is optional — most specs start at `design`.** By the time a task
+reaches `just new-spec` it has usually already passed go/no-go at the
+stage/backlog level, so `frame` is redundant (across the dogfood it went unused —
+0 of 100+ specs). Use it only when a spec's very existence is genuinely in
+question; otherwise begin at `design`.
+
 Projects and stages have lighter lifecycles (not full cycles):
 
 - **Project status:** `proposed | active | shipped | cancelled`

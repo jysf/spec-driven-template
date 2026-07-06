@@ -2,6 +2,21 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — Harvest quick wins: frame optional + agents-fields clarity (v0.6.9)
+
+Two small doc clarifications from the harvest. Docs-only.
+
+### Changed
+
+- **`frame` is documented optional** (harvest #12) — AGENTS.md §8 Cycle Model
+  (both variants) notes most specs start at `design`; `frame` went unused across
+  the dogfood (0 of 100+ specs). Use it only when a spec's existence is genuinely
+  in question. Not removed (non-breaking), just clarified.
+- **`agents.architect` ≠ `agents.implementer` is the intended design/build tier
+  split, not contamination** (harvest #13) — the claude-only `spec.md` agents
+  block now says so, so a verify session stops misreading the differing tier_map
+  models (DEC-005) as evidence the design session leaked into build.
+
 ## 2026-07-06 — cost-audit flags implausibly-low metered cost (v0.6.8)
 
 Harvest signal #5. A session-limited sub-agent can return an implausibly small

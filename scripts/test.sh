@@ -1207,6 +1207,12 @@ assert_contains "AGENTS.md" "Design-time probe" \
     "AGENTS.md §12 carries the design-time-probe / measure-before-build convention"
 assert_contains "FIRST_SESSION_PROMPTS.md" "measure-before-build" \
     "the SPEC-design prompt reinforces measure-before-build (harvest #2)"
+# frame is documented optional (harvest #12: 0/122 specs used it).
+assert_contains "AGENTS.md" "\`frame\` is optional" \
+    "cycle model documents frame as optional (harvest #12)"
+# agents.* tier fields clarified as NOT contamination (harvest #13).
+assert_contains "projects/_templates/spec.md" "context contamination" \
+    "spec agents block clarifies tier split isn't contamination (harvest #13)"
 
 # ============================================================
 # DEC-005 Phase 1: agent/cost config + graceful cost-audit
