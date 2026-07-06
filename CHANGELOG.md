@@ -2,6 +2,22 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — cost-audit flags implausibly-low metered cost (v0.6.8)
+
+Harvest signal #5. A session-limited sub-agent can return an implausibly small
+`subagent_tokens` (662 for a full verify); that passes the non-null cost gate and
+silently deflates cost totals — a real cost-integrity hole (and a hazard for any
+future value/ROI number derived from cost).
+
+### Added
+
+- **`just cost-audit` now emits an advisory** when a shipped spec/patch records a
+  metered-cycle `tokens_total` that is positive but below `COST_IMPLAUSIBLE_FLOOR`
+  (default 1000, override via env). It **does not fail the gate** — a low number
+  might be legitimate — but surfaces it so truncated metering isn't trusted
+  silently. New `spec_implausible_cost_cycles` in `_lib.sh` (reuses
+  `cycle_tokens_total`).
+
 ## 2026-07-06 — Release pre-flight: two-phase cut + evidence timing (v0.6.7)
 
 Harvest signal #6 (fresh, from bragfile's v0.3.1 cut). A release session

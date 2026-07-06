@@ -37,6 +37,7 @@ project=$(get_active_project)
 project_dir="${REPO_ROOT}/projects/${project}"
 
 offenders=0
+warnings=()
 while IFS= read -r f; do
     [ -n "$f" ] || continue
     case "$f" in *-timeline.md) continue ;; esac
@@ -54,6 +55,8 @@ while IFS= read -r f; do
         printf "  %-58s missing cost on: %s\n" "$name" "$missing"
         offenders=$((offenders + 1))
     fi
+    imp=$(spec_implausible_cost_cycles "$f")
+    [ -n "$imp" ] && warnings+=("${name}: ${imp}")
 done < <(find_all_specs "$project_dir")
 
 # Patches (DEC-003) are gated the same way, but their metered cycles are
@@ -74,7 +77,21 @@ while IFS= read -r f; do
         printf "  %-58s missing cost on: %s\n" "$name" "$missing"
         offenders=$((offenders + 1))
     fi
+    imp=$(spec_implausible_cost_cycles "$f" patch verify)
+    [ -n "$imp" ] && warnings+=("${name}: ${imp}")
 done < <(find_all_patches "$project_dir")
+
+# Advisory (does NOT fail the gate): implausibly-low metered cost is a strong
+# hint that sub-agent metering was truncated (e.g. a session-limit deflated
+# subagent_tokens) — the number passes the non-null gate but silently
+# undercounts. Surface it so cost/value rollups aren't quietly wrong (#5).
+if [ "${#warnings[@]}" -gt 0 ]; then
+    echo ""
+    warn "cost-audit: implausibly-low metered cost (< ${COST_IMPLAUSIBLE_FLOOR} tokens) — sub-agent metering may have been truncated; verify these numbers:"
+    for w in ${warnings[@]+"${warnings[@]}"}; do
+        echo "    ${w}"
+    done
+fi
 
 if [ "$offenders" -gt 0 ]; then
     echo ""

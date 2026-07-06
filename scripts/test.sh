@@ -578,6 +578,17 @@ else
     fail "cost-audit failed after recording real cost"
 fi
 
+# #5 (harvest): implausibly-low metered cost is flagged as ADVISORY — surfaced
+# but does NOT fail the gate (sub-agent metering can be silently truncated).
+sed_inplace_portable 's/tokens_total: 120000/tokens_total: 500/' "$ARCHIVED"
+if ca_out=$(just cost-audit 2>&1); then ca_rc=0; else ca_rc=$?; fi
+if [ "$ca_rc" = 0 ] && printf '%s\n' "$ca_out" | grep -q "implausibly-low"; then
+    pass "cost-audit flags implausibly-low metered cost (advisory, non-blocking; harvest #5)"
+else
+    fail "cost-audit did not warn on implausibly-low cost (rc=${ca_rc}): ${ca_out}"
+fi
+sed_inplace_portable 's/tokens_total: 500/tokens_total: 120000/' "$ARCHIVED"
+
 # specs-by-stage now shows the cost column header and a recorded-cost total.
 sbs_cost=$(just specs-by-stage 2>&1)
 if printf '%s\n' "$sbs_cost" | grep -qE "cost \(usd · tokens\)"; then

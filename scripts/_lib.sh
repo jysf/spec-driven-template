@@ -672,6 +672,29 @@ spec_missing_cost_cycles() {
     echo "${out# }"
 }
 
+# Metered cycles whose tokens_total is present but IMPLAUSIBLY LOW (below
+# COST_IMPLAUSIBLE_FLOOR). This catches sub-agent metering that was silently
+# truncated — e.g. a session-limit cut `subagent_tokens` to a tiny number (662
+# for a full verify), which passes the non-null gate and deflates cost totals
+# (2026-07-06 harvest signal #5). Advisory only. Emits `cycle(value)` tokens.
+COST_IMPLAUSIBLE_FLOOR="${COST_IMPLAUSIBLE_FLOOR:-1000}"
+spec_implausible_cost_cycles() {
+    local file="$1"; shift
+    local out="" c t
+    local cycles="$*"
+    [ -n "$cycles" ] || cycles="build verify"
+    for c in $cycles; do
+        t=$(cycle_tokens_total "$file" "$c")
+        case "$t" in
+            ''|null|*[!0-9]*) : ;;   # absent / null / non-numeric → skip
+            *) if [ "$t" -gt 0 ] && [ "$t" -lt "$COST_IMPLAUSIBLE_FLOOR" ]; then
+                   out="${out} ${c}(${t})"
+               fi ;;
+        esac
+    done
+    echo "${out# }"
+}
+
 # Extract value_link from a spec's front-matter. Empty string if null
 # or missing.
 extract_value_link() {
