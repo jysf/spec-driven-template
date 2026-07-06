@@ -496,12 +496,15 @@ Then:
 - Commit.
 
 **Cutting a release?** A release is its own spec — scaffold it with
-`just new-release-spec "vX.Y.Z" STAGE-NNN` (or `just new-spec … --release`). It
-carries a generic runtime **pre-flight checklist** (tag integrity, artifact
+`just new-release-spec "<version>" STAGE-NNN` (or `just new-spec … --release`).
+It carries a generic runtime **pre-flight checklist** (tag integrity, artifact
 trust on a clean host, channel trust, data isolation, runtime smoke, rollback —
 DEC-006); fill in the tool-specific command for each before you publish. Every
 defect that escaped design→build→verify across the dogfood projects was
-operational/runtime, so don't skip it.
+operational/runtime, so don't skip it. For the version to cut, run
+`just next-version` — it follows this app's `spec.version.scheme` (default
+`calver`; DEC-007). That app version lives in git tags; the top-level `VERSION`
+file is template provenance, not the app's version (see `docs/versioning.md`).
 
 ---
 
@@ -532,6 +535,7 @@ should land between 0.7 and 0.95.
 - Signals (typed feedback ledger): `/guidance/signals.yaml` (browse `just dash signals`; ritual + bar in `docs/signals.md`)
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
 - Recommended (optional) tools: `/guidance/recommended-tools.md`
+- Versioning (app scheme + `just next-version`): `/docs/versioning.md` (DEC-007)
 - Projects: `/projects/`
 - Templates: `/projects/_templates/`
 - What we're building (architecture): `/docs/architecture.md`

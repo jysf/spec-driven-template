@@ -46,6 +46,20 @@ spec:
     rate_per_mtok: 6.60               # USD per 1M tokens for the estimate (DEC-002 basis)
     currency: USD
 
+  # How THIS app versions its own releases (DEC-007). The release-spec (DEC-006)
+  # cuts tags in this scheme; `just next-version` suggests the next one.
+  #   calver    -> vYYYY.MM.PATCH (e.g. v2026.07.0) — date decides; ZERO judgment
+  #   semver    -> vMAJOR.MINOR.PATCH — for a library/public API whose number
+  #                must signal compatibility to consumers (you pick the bump)
+  #   monotonic -> vN (v1, v2, …) — simplest; just increment
+  # Default `calver` "just works"; switch only when a project genuinely needs it.
+  # NB: the top-level VERSION file is TEMPLATE PROVENANCE (which template version
+  # this repo was scaffolded from), NOT this app's version — the app version
+  # lives in git tags (and/or your ecosystem file). See docs/versioning.md.
+  version:
+    scheme: calver
+    # current: null                   # optional pin; else derived from git tags
+
   # Standard paths; do not change without also updating AGENTS.md.
   paths:
     agents_md: ./AGENTS.md

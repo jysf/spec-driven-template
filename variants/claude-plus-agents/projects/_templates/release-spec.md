@@ -57,10 +57,15 @@ out in this cut, and the version/tag you intend to publish.
 
 ## Release Scope
 
-- **Version / tag:** `vX.Y.Z` (the exact tag you will cut)
+- **Version / tag:** the exact tag you will cut, in this app's scheme
+  (`spec.version.scheme` in `.repo-context.yaml`; default `calver` →
+  `vYYYY.MM.PATCH`). Run `just next-version` for the suggested next tag. This is
+  the *app* version — NOT the top-level `VERSION` file (that's template
+  provenance). See `docs/versioning.md`.
 - **What's included:** the shipped specs / patches in this release
 - **Delivery shapes:** which of {binary · package · service · library} this
-  release produces — this decides which pre-flight categories below apply.
+  release produces — this decides which pre-flight categories below apply, and
+  which version scheme fits (semver for a library/public API; calver otherwise).
 
 ## Release Pre-Flight
 

@@ -198,6 +198,12 @@ info:
 template-version *ARGS:
     @./scripts/template-version.sh {{ARGS}}
 
+# Suggest this APP's next release version per spec.version.scheme (DEC-007).
+# Default calver → vYYYY.MM.PATCH. Distinct from `template-version` (which
+# reports the TEMPLATE this repo came from). `--json` for machine-readable.
+next-version *ARGS:
+    @./scripts/next-version.sh {{ARGS}}
+
 # Scaffolds a throwaway repo in a temp dir and runs the template's full suite
 # (init -> cycle -> reports -> audits). Maintainers only: works from the
 # pre-init template root; after `just init` it fails early by design.

@@ -734,6 +734,44 @@ else
 fi
 
 # ============================================================
+# DEC-007 (v0.6.1): app versioning scheme (calver default) + next-version
+# ============================================================
+# The config ships with the calver default, and the guide exists.
+assert_contains ".repo-context.yaml" "^    scheme: calver" \
+    "repo-context ships spec.version.scheme: calver (DEC-007 default)"
+assert_file "docs/versioning.md"
+assert_contains "docs/versioning.md" "template provenance" \
+    "versioning.md draws the app-version vs VERSION-file distinction"
+# next-version follows the scheme. The scratch repo has no git tags (no .git),
+# so calver degrades to this month's .0 — deterministic.
+nv_out=$(just next-version 2>&1)
+this_ym=$(date +%Y.%m)
+if printf '%s\n' "$nv_out" | grep -q "Scheme: calver" \
+   && printf '%s\n' "$nv_out" | grep -qF "Next:   v${this_ym}.0"; then
+    pass "next-version computes the calver default (v${this_ym}.0)"
+else
+    fail "next-version calver output wrong: ${nv_out}"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just next-version --json 2>/dev/null \
+        | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["data"]["scheme"]=="calver" and d["data"]["next"].startswith("v")' \
+        && pass "next-version --json carries scheme + next" || fail "next-version --json wrong"
+fi
+# The scheme is overridable: flip to monotonic → v1 (no tags), then restore.
+sed_inplace_portable 's/^    scheme: calver/    scheme: monotonic/' .repo-context.yaml
+nv_mono=$(just next-version 2>&1)
+if printf '%s\n' "$nv_mono" | grep -q "Scheme: monotonic" \
+   && printf '%s\n' "$nv_mono" | grep -qF "Next:   v1"; then
+    pass "next-version honors an overridden scheme (monotonic → v1)"
+else
+    fail "next-version monotonic override wrong: ${nv_mono}"
+fi
+sed_inplace_portable 's/^    scheme: monotonic/    scheme: calver/' .repo-context.yaml
+# The release-spec points at next-version / the scheme, not a bare vX.Y.Z.
+assert_contains "projects/_templates/release-spec.md" "just next-version" \
+    "release-spec references just next-version (DEC-007)"
+
+# ============================================================
 # Accomplishment-logging guidance survives init
 # ============================================================
 assert_contains "guidance/recommended-tools.md" "Accomplishment logging" \

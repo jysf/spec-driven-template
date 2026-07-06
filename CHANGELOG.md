@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-05 — DEC-007: default versioning scheme (CalVer), overridable (v0.6.1)
+
+Gives scaffolded apps a versioning convention that "just works," with semver as
+a per-project opt-in — the follow-on to the release-spec ([DEC-006](docs/decisions/DEC-006-release-spec-template.md)),
+which cut version tags but defined no scheme. Additive. See
+[DEC-007](docs/decisions/DEC-007-versioning-default.md).
+
+### Added
+
+- **`spec.version.scheme`** in `.repo-context.yaml` (both variants) —
+  `calver | semver | monotonic`, **default `calver`** (`vYYYY.MM.PATCH`, e.g.
+  `v2026.07.0`). CalVer needs no "major or minor?" judgment at release time,
+  which is why it's the default; it fits the app/service/CLI majority. semver is
+  the opt-in for a library/public API (chosen by delivery shape); monotonic
+  (`vN`) is the minimal-ceremony option.
+- **`just next-version`** (`scripts/next-version.sh`; `get_version_scheme` /
+  `get_next_version` in `_lib.sh`) — suggests the next app tag per scheme from
+  git tags (degrades to the scheme's first version with no tags / no git yet).
+  semver prints the current latest and defers the bump level to you. `--json`
+  supported.
+- **`docs/versioning.md`** (both variants) — the scheme, when to pick semver
+  (by delivery shape), and the app-version-vs-`VERSION`-file distinction.
+
+### Changed
+
+- **The `VERSION`-file overload is resolved by documentation:** `VERSION` is the
+  **template provenance** (which template version this repo was scaffolded from);
+  the *app* version lives in **git tags** / the ecosystem file. Stated in
+  `.repo-context.yaml`, `docs/versioning.md`, the release-spec `Release Scope`,
+  and AGENTS "During ship" + Pointers (both variants).
+- The release-spec's `Version / tag` line now points at `just next-version` and
+  the configured scheme instead of a bare `vX.Y.Z`.
+
 ## 2026-07-05 — DEC-001 Phase 3: report/review command consolidation (v0.6.0)
 
 Ships Phase 3 of [DEC-001](docs/decisions/DEC-001-interface-contract.md) — the

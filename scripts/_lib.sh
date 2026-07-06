@@ -352,6 +352,72 @@ get_tier_model() {
     echo "$v"
 }
 
+# The versioning scheme for THIS app's own releases (spec.version.scheme in
+# .repo-context.yaml; DEC-007). One of: calver | semver | monotonic. Falls back
+# to `calver` — the zero-judgment default. NB: the top-level VERSION file is
+# TEMPLATE provenance (which template version this repo was scaffolded from),
+# not the app version. See docs/versioning.md.
+get_version_scheme() {
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    [ -f "$ctx" ] || { echo "calver"; return; }
+    local v
+    v=$(awk '
+        /^spec:/ { in_spec = 1; next }
+        /^[a-zA-Z]/ && in_spec { in_spec = 0 }
+        in_spec && /^  version:/ { in_ver = 1; next }
+        in_spec && in_ver && /^  [a-zA-Z]/ { in_ver = 0 }
+        in_ver && /^    scheme:/ { print $2; exit }
+    ' "$ctx")
+    echo "${v:-calver}"
+}
+
+# Suggest this app's NEXT release version per the configured scheme (DEC-007).
+# Derives from existing git tags when present; degrades to the scheme's first
+# version when there are none (or this isn't a git repo yet). semver can't be
+# auto-bumped (the number is a compatibility promise), so it echoes the latest
+# tag (or v0.1.0) and the caller advises picking the level by hand.
+get_next_version() {
+    local scheme have_git=0
+    scheme=$(get_version_scheme)
+    git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1 && have_git=1
+    case "$scheme" in
+        calver)
+            local ym last_patch
+            ym=$(date +%Y.%m)
+            last_patch=-1
+            if [ "$have_git" = 1 ]; then
+                last_patch=$(git -C "${REPO_ROOT}" tag 2>/dev/null \
+                    | sed -n "s/^v\{0,1\}${ym}\.\([0-9][0-9]*\)$/\1/p" \
+                    | sort -n | tail -n1)
+                [ -n "$last_patch" ] || last_patch=-1
+            fi
+            echo "v${ym}.$((last_patch + 1))"
+            ;;
+        monotonic)
+            local last=0
+            if [ "$have_git" = 1 ]; then
+                last=$(git -C "${REPO_ROOT}" tag 2>/dev/null \
+                    | sed -n 's/^v\{0,1\}\([0-9][0-9]*\)$/\1/p' \
+                    | sort -n | tail -n1)
+                [ -n "$last" ] || last=0
+            fi
+            echo "v$((last + 1))"
+            ;;
+        semver)
+            local last=""
+            if [ "$have_git" = 1 ]; then
+                last=$(git -C "${REPO_ROOT}" tag 2>/dev/null \
+                    | sed -n 's/^v\{0,1\}\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' \
+                    | sort -t. -k1,1n -k2,2n -k3,3n | tail -n1)
+            fi
+            [ -n "$last" ] && echo "v${last}" || echo "v0.1.0"
+            ;;
+        *)
+            echo "v0.0.0"
+            ;;
+    esac
+}
+
 # ---------------------------------------------------------------------
 # Report helpers — parse value and cost metadata from front-matter
 # and do portable date math. Keep pure bash + awk + date; no yq.
