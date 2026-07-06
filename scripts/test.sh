@@ -1327,6 +1327,19 @@ just report-weekly >/dev/null 2>&1 && pass "report-weekly alias still works" || 
 # `review` is the consolidated weekly-review command.
 just review >/dev/null 2>&1 && pass "review works" || fail "review failed"
 
+# report --json (v0.6.3): a lean quantitative envelope on stdout, through the
+# namespace AND the bare-name aliases; the flag is stripped from the DATE arg.
+json_ok "report daily --json"    just report daily --json
+json_ok "report weekly --json"   just report weekly --json
+json_ok "report-daily --json"    just report-daily --json
+json_ok "report-weekly --json"   just report-weekly --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just report daily --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="report-daily" and "progress" in d["data"] and "cost" in d["data"]' \
+        && pass "report daily --json (progress + cost envelope)" || fail "report daily --json wrong/invalid"
+    just report weekly --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="report-weekly" and "shipped_this_week" in d["data"] and "week" in d["data"]' \
+        && pass "report weekly --json (week + shipped envelope)" || fail "report weekly --json wrong/invalid"
+fi
+
 # ============================================================
 # Done
 # ============================================================

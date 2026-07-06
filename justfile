@@ -107,20 +107,21 @@ new-patch TITLE PROJECT_ID="":
 archive-patch PATCH_ID:
     @./scripts/archive-patch.sh "{{PATCH_ID}}"
 
-#   just report daily          → curated daily report (reports/daily/YYYY-MM-DD.md)
-#   just report weekly [DATE]  → weekly report for the ISO week (reports/weekly/YYYY-WNN.md)
-#   just report status         → uncurated status snapshot (reports/daily/YYYY-MM-DD-status.md)
+#   just report daily [--json]         → curated daily report (reports/daily/YYYY-MM-DD.md)
+#   just report weekly [DATE] [--json] → weekly report for the ISO week (reports/weekly/YYYY-WNN.md)
+#   just report status                 → uncurated status snapshot (reports/daily/YYYY-MM-DD-status.md)
+# `--json` emits a lean quantitative envelope to stdout (skips the prose file).
 # `report-daily` / `report-weekly` remain permanent aliases (defined below).
 # One report namespace (DEC-001 §3, Phase 3): daily | weekly [DATE] | status.
-report SUB="" DATE="":
+report SUB="" *REST:
     @case "{{SUB}}" in \
-        daily)  ./scripts/report_daily.sh ;; \
-        weekly) ./scripts/report_weekly.sh "{{DATE}}" ;; \
+        daily)  ./scripts/report_daily.sh {{REST}} ;; \
+        weekly) ./scripts/report_weekly.sh {{REST}} ;; \
         status) mkdir -p reports/daily; \
             D="$(date +%Y-%m-%d)"; \
             { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
             echo "✓ Wrote reports/daily/$D-status.md" ;; \
-        *) echo "Usage: just report {daily | weekly [DATE] | status}" >&2; exit 2 ;; \
+        *) echo "Usage: just report {daily [--json] | weekly [DATE] [--json] | status}" >&2; exit 2 ;; \
     esac
 
 # Print the Weekly Review prompt with recent activity pre-loaded (DEC-001 §3).
@@ -129,14 +130,15 @@ review:
 
 # --- Permanent aliases (DEC-001 §3): muscle-memory wins over tidiness. ---
 
-# Alias for `just report daily`. Generate today's daily report.
-report-daily:
-    @./scripts/report_daily.sh
+# Alias for `just report daily`. Generate today's daily report (`--json` for the
+# quantitative envelope on stdout).
+report-daily *REST:
+    @./scripts/report_daily.sh {{REST}}
 
 # Alias for `just report weekly [DATE]`. Pass a YYYY-MM-DD to report on the ISO
-# week containing that date.
-report-weekly DATE="":
-    @./scripts/report_weekly.sh "{{DATE}}"
+# week containing that date (`--json` for the envelope on stdout).
+report-weekly *REST:
+    @./scripts/report_weekly.sh {{REST}}
 
 # The project dashboard — one read view, many lenses (DEC-001 §4). With no
 # argument it stitches a single overview (now + future + cost + flags). The

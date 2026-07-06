@@ -11,6 +11,18 @@ source "${SCRIPT_DIR}/_lib.sh"
 
 require_initialized
 
+# Pull --json out of the args (it may come before or instead of the DATE), so
+# the remaining positional is the optional anchor date.
+JSON_OUT=0
+_pos=()
+for a in "$@"; do
+    case "$a" in
+        --json) JSON_OUT=1 ;;
+        *) _pos+=("$a") ;;
+    esac
+done
+set -- ${_pos[@]+"${_pos[@]}"}
+
 # Accept an optional YYYY-MM-DD to report on that week; default today.
 ANCHOR_DATE="${1:-$(today)}"
 WEEK_ID=$(iso_week_number "$ANCHOR_DATE")
@@ -95,6 +107,28 @@ SHIPPED_COUNT=${#SHIPPED_FILES[@]}
 AVG_USD="0.00"
 if [ "$SHIPPED_COUNT" -gt 0 ]; then
     AVG_USD=$(awk -v t="$TOTAL_USD" -v n="$SHIPPED_COUNT" 'BEGIN{printf "%.2f", t/n}')
+fi
+
+# --- JSON output (DEC-001 §2): the week's quantitative envelope on stdout;
+# skips the prose file. ---
+if [ "$JSON_OUT" = 1 ]; then
+    ship_ids=()
+    for f in "${SHIPPED_FILES[@]:-}"; do
+        [ -n "$f" ] || continue
+        ship_ids+=("$(json_qs "$(basename "$f" | sed -E 's/^(SPEC-[0-9]+).*/\1/')")")
+    done
+    [ "${#ship_ids[@]}" -gt 0 ] && ships=$(json_arr "${ship_ids[@]}") || ships="[]"
+    shipped=$(json_obj count "$SHIPPED_COUNT" specs "$ships")
+    cost=$(json_obj "tokens_total" "$TOTAL_TOKENS" "estimated_usd" "$TOTAL_USD" "avg_usd_per_spec" "$AVG_USD")
+    data=$(json_obj \
+        week "$(json_qs "$WEEK_ID")" \
+        start "$(json_qs "$WEEK_START")" \
+        end "$(json_qs "$WEEK_END")" \
+        project "$(json_qs "$ACTIVE_PROJECT")" \
+        shipped_this_week "$shipped" \
+        cost_this_week "$cost")
+    json_emit report-weekly "$data"
+    exit 0
 fi
 
 # ---------- Write report ----------

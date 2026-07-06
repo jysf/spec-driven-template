@@ -32,6 +32,35 @@ if [ -n "$ACTIVE_STAGE_FILE" ]; then
     ACTIVE_STAGE_ID=$(echo "$ACTIVE_STAGE_NAME" | sed -E 's/^(STAGE-[0-9]+).*/\1/')
 fi
 
+# --- JSON output (DEC-001 §2): a lean quantitative envelope on stdout. Machine
+# consumers want the numbers, not the narrative, so --json skips the prose file. ---
+if [ "$(has_json_flag "$@")" = 1 ]; then
+    shipped_specs=0
+    [ -d "${SPECS_DIR}/done" ] && shipped_specs=$(find "${SPECS_DIR}/done" -type f -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/' | wc -l | tr -d ' ')
+    total_specs=$(find "${SPECS_DIR}" -type f -name "SPEC-*.md" 2>/dev/null | awk '!/-timeline\.md/ && !/\/prompts\//' | wc -l | tr -d ' ')
+    active_specs=$((total_specs - shipped_specs))
+    pct=0
+    [ "$total_specs" -gt 0 ] && pct=$(awk -v s="$shipped_specs" -v t="$total_specs" 'BEGIN{printf "%.0f", (s/t)*100}')
+    tot_tok=0; tot_usd="0.00"
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in *-timeline.md|*/prompts/*) continue ;; esac
+        t=$(sum_cost_tokens_for_spec "$f"); u=$(sum_cost_usd_for_spec "$f")
+        tot_tok=$((tot_tok + t)); tot_usd=$(awk -v a="$tot_usd" -v b="$u" 'BEGIN{printf "%.2f", a+b}')
+    done < <(find_all_specs "$ACTIVE_DIR")
+    thesis=$(get_project_thesis "$ACTIVE_DIR" || true)
+    progress=$(json_obj shipped "$shipped_specs" scaffolded "$total_specs" active "$active_specs" pct "$pct")
+    cost=$(json_obj "tokens_total" "$tot_tok" "estimated_usd" "$tot_usd")
+    data=$(json_obj \
+        date "$(json_qs "$TODAY")" \
+        project "$(json_qs "$ACTIVE_PROJECT")" \
+        progress "$progress" \
+        cost "$cost" \
+        thesis "$(json_qs "${thesis:-}")")
+    json_emit report-daily "$data"
+    exit 0
+fi
+
 # --- Write report ---
 {
     echo "# Daily report — ${TODAY}"

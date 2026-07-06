@@ -2,6 +2,26 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — report --json: machine-readable report envelopes (v0.6.3)
+
+Extends the DEC-001 §2 `--json` contract to the reports, so they can feed
+tooling / an external surface (not just the human prose file). Additive.
+
+### Added
+
+- **`just report daily --json`** and **`just report weekly [DATE] --json`** (and
+  the `report-daily` / `report-weekly` aliases) emit a lean quantitative envelope
+  to **stdout** and skip the prose file. Daily carries `{project, date, progress
+  (shipped/scaffolded/active/pct), cost (tokens_total/estimated_usd), thesis}`;
+  weekly carries `{week, start, end, project, shipped_this_week (count+specs),
+  cost_this_week (tokens/usd/avg)}`.
+
+### Changed
+
+- The `report` dispatcher and the two alias recipes now forward flags
+  (`*REST`), and `report_weekly.sh` separates `--json` from its optional `DATE`
+  arg — so `report weekly 2026-07-01 --json` and `report weekly --json` both work.
+
 ## 2026-07-05 — Quick wins: two dash lenses + stricter changelog guard (v0.6.2)
 
 Small additive ergonomics — two new read-lenses and a tightened release guard.
