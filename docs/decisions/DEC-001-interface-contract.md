@@ -10,6 +10,7 @@ supersedes: null
 superseded_by: null
 affected_scope:
   - "scripts/**"
+  - "justfile"
   - "variants/*/projects/_templates/**"
   - "variants/*/guidance/constraints.yaml"
 tags: [architecture, api, schema, tooling, cli]
@@ -22,6 +23,14 @@ tags: [architecture, api, schema, tooling, cli]
 > the template itself evolves. **Accepted 2026-06-18** — implementation
 > proceeds in phases (see Rollout); the cost-convention track is spun out to
 > [DEC-002](DEC-002-cost-convention.md).
+>
+> **Rollout status:** Phase 1 (schema doc, `validate`, `--json` + exit codes,
+> `dash`) and Phase 2 (shared validator + CI job) shipped. **Phase 3 shipped in
+> v0.6.0 (breaking):** `daily-status-report` → `report status` and
+> `weekly-review` → `review`, consolidated under the `report`/`review`
+> namespace; `report-daily` / `report-weekly` kept their bare names as permanent
+> aliases (muscle memory wins). Phase 4 (MCP server over `--json`) remains a
+> separate future decision.
 
 ## Context
 
@@ -232,7 +241,8 @@ at least one minor cycle. A fork would only make sense for a *different product*
   it). Ship as a minor (v5.x).
 - **Phase 2 (non-breaking):** migrate scripts to the shared validator; add a
   `validate` CI job alongside `cost-data`.
-- **Phase 3 (v6, breaking, aliased):** consolidate the `daily-status-report` /
-  `weekly-review` pair into the `report`/`review` namespace. `report-daily` /
-  `report-weekly` keep their bare names as permanent aliases.
+- **Phase 3 (v0.6.0, breaking, aliased) — SHIPPED:** consolidated the
+  `daily-status-report` / `weekly-review` pair into the `report`/`review`
+  namespace (`report status` / `review`). `report-daily` / `report-weekly` keep
+  their bare names as permanent aliases.
 - **Phase 4 (packaging):** MCP server over `--json` (separate decision).

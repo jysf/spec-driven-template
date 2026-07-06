@@ -442,7 +442,7 @@ risk. Five habits keep it at bay:
 2. **Never reference "as I said earlier"** in later cycles. The spec
    is the source of truth.
 3. **Weekly review is non-optional.** Without a second agent pushing
-   back, drift compounds silently. Run `just weekly-review`.
+   back, drift compounds silently. Run `just review`.
 4. **Honest confidence values on decisions.** See Section 17.
 5. **One git worktree per concurrent session.** If more than one session
    works on this repo at once, each MUST run in its own `git worktree`,

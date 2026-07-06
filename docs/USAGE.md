@@ -118,10 +118,13 @@ just specs-by-stage    # flat ledger: every spec by stage, ship date + complexit
 And periodic reflection / reporting:
 
 ```bash
-just weekly-review     # prints the weekly-review prompt with recent activity loaded
-just report-daily      # writes reports/daily/YYYY-MM-DD.md
-just report-weekly     # writes reports/weekly/YYYY-WNN.md
+just review            # prints the Weekly Review prompt with recent activity loaded
+just report daily      # writes reports/daily/YYYY-MM-DD.md
+just report weekly     # writes reports/weekly/YYYY-WNN.md
+just report status     # writes reports/daily/YYYY-MM-DD-status.md (uncurated snapshot)
 ```
+`report-daily` / `report-weekly` remain as permanent aliases for `report daily` /
+`report weekly`.
 
 ## When you outgrow the defaults
 

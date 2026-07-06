@@ -2,6 +2,44 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-05 — DEC-001 Phase 3: report/review command consolidation (v0.6.0)
+
+Ships Phase 3 of [DEC-001](docs/decisions/DEC-001-interface-contract.md) — the
+deliberately-deferred **breaking** part of the command-surface rationalization,
+hence the minor bump to 0.6.0. The two genuinely-confusable read/prompt commands
+are consolidated into a `report` / `review` namespace. The daily-driver bare
+names are kept as permanent aliases (muscle memory wins over tidiness).
+
+### ⚠ Breaking
+
+- **`just weekly-review` → `just review`.** The weekly-review prompt command is
+  renamed. `weekly-review` no longer exists.
+- **`just daily-status-report` → `just report status`.** The uncurated status
+  snapshot moves under the `report` namespace. `daily-status-report` no longer
+  exists.
+
+### Added
+
+- **`just report {daily | weekly [DATE] | status}`** — one report namespace.
+  `daily` / `weekly` wrap the existing curated report scripts; `status` is the
+  uncurated `just status` snapshot (formerly `daily-status-report`). An unknown
+  subcommand prints usage and exits 2.
+- **`just review`** — the weekly-review prompt (formerly `weekly-review`).
+
+### Unchanged (permanent aliases)
+
+- **`just report-daily`** and **`just report-weekly`** keep their bare names as
+  permanent aliases for `report daily` / `report weekly` (DEC-001 §3). No
+  deprecation — they are load-bearing muscle memory.
+
+### Docs / tests
+
+- README command tables (root + both variants), `docs/USAGE.md`,
+  `GETTING_STARTED.md`, `FIRST_SESSION_PROMPTS.md`, and AGENTS.md session-hygiene
+  updated to the new names. `docs/decisions/DEC-001` marks Phase 3 shipped.
+- `scripts/test.sh` swings to the new names and asserts both that the aliases
+  still work **and** that the removed names now fail (proving the break).
+
 ## 2026-07-05 — DEC-006: release-spec template + runtime pre-flight (v0.5.29)
 
 Accepts and builds [DEC-006](docs/decisions/DEC-006-release-spec-template.md)

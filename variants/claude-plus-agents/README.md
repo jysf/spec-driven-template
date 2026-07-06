@@ -28,11 +28,13 @@ just roadmap                       # Stage-grained: where this project is going
 just new-spec "title" STAGE-001    # Scaffold a new spec
 just advance-cycle SPEC-001 verify # Update a spec's cycle
 just archive-spec SPEC-001         # Move a shipped spec to done/
-just weekly-review                 # Print the weekly review prompt
-just report-daily                  # Generate today's daily report
-just report-weekly                 # Generate this week's weekly report
-just daily-status-report           # Snapshot `just status` to reports/daily/<date>-status.md
+just review                        # Print the weekly review prompt
+just report daily                  # Generate today's daily report
+just report weekly                 # Generate this week's weekly report
+just report status                 # Snapshot `just status` to reports/daily/<date>-status.md
 ```
+`report-daily` / `report-weekly` remain as permanent aliases for
+`report daily` / `report weekly`.
 
 ## Reports
 

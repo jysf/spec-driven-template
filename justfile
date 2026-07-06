@@ -107,26 +107,36 @@ new-patch TITLE PROJECT_ID="":
 archive-patch PATCH_ID:
     @./scripts/archive-patch.sh "{{PATCH_ID}}"
 
-# Print the Weekly Review prompt with recent activity pre-loaded
-weekly-review:
+#   just report daily          → curated daily report (reports/daily/YYYY-MM-DD.md)
+#   just report weekly [DATE]  → weekly report for the ISO week (reports/weekly/YYYY-WNN.md)
+#   just report status         → uncurated status snapshot (reports/daily/YYYY-MM-DD-status.md)
+# `report-daily` / `report-weekly` remain permanent aliases (defined below).
+# One report namespace (DEC-001 §3, Phase 3): daily | weekly [DATE] | status.
+report SUB="" DATE="":
+    @case "{{SUB}}" in \
+        daily)  ./scripts/report_daily.sh ;; \
+        weekly) ./scripts/report_weekly.sh "{{DATE}}" ;; \
+        status) mkdir -p reports/daily; \
+            D="$(date +%Y-%m-%d)"; \
+            { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
+            echo "✓ Wrote reports/daily/$D-status.md" ;; \
+        *) echo "Usage: just report {daily | weekly [DATE] | status}" >&2; exit 2 ;; \
+    esac
+
+# Print the Weekly Review prompt with recent activity pre-loaded (DEC-001 §3).
+review:
     @./scripts/weekly-review.sh
 
-# Generate today's daily report under reports/daily/YYYY-MM-DD.md
+# --- Permanent aliases (DEC-001 §3): muscle-memory wins over tidiness. ---
+
+# Alias for `just report daily`. Generate today's daily report.
 report-daily:
     @./scripts/report_daily.sh
 
-# Generate this week's weekly report under reports/weekly/YYYY-WNN.md.
-# Pass a YYYY-MM-DD to report on the ISO week containing that date.
+# Alias for `just report weekly [DATE]`. Pass a YYYY-MM-DD to report on the ISO
+# week containing that date.
 report-weekly DATE="":
     @./scripts/report_weekly.sh "{{DATE}}"
-
-# Capture today's `just status` output to reports/daily/YYYY-MM-DD-status.md.
-# Lighter than report-daily — a snapshot of current state with no curation.
-daily-status-report:
-    @mkdir -p reports/daily
-    @D="$(date +%Y-%m-%d)"; \
-        { echo "# Daily status - $D"; echo; ./scripts/status.sh; } > "reports/daily/$D-status.md"; \
-        echo "✓ Wrote reports/daily/$D-status.md"
 
 # The project dashboard — one read view, many lenses (DEC-001 §4). With no
 # argument it stitches a single overview (now + future + cost + flags). The

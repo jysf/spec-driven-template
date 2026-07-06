@@ -592,7 +592,7 @@ If LAST spec in STAGE-MMM's backlog, remind me to run Prompt 1d.
 > **Use when:** Once a week, always.
 > **Time:** 20-30 min.
 >
-> **Shortcut:** `just weekly-review` pre-loads context — paste its
+> **Shortcut:** `just review` pre-loads context — paste its
 > output as the prompt body.
 
 ```

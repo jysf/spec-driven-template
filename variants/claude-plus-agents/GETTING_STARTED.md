@@ -205,7 +205,7 @@ When all stages in your project have shipped:
 
 ## Weekly rhythm
 
-Once a week: `just weekly-review` → paste into Claude.
+Once a week: `just review` → paste into Claude.
 
 ---
 

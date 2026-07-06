@@ -186,23 +186,26 @@ assert_no_file "projects/PROJ-001-example-mvp/specs/done/done"
 assert_cmd_fails "advance-cycle on archived spec fails" just advance-cycle SPEC-002 build
 
 # ============================================================
-# 6) weekly-review emits only repo-relative paths
+# 6) review emits only repo-relative paths (DEC-001 Phase 3: `weekly-review`
+#    is now `review`)
 # ============================================================
-review_out=$(just weekly-review 2>&1)
+review_out=$(just review 2>&1)
 # The script's output should contain the scratch dir nowhere in path lines.
 # It's OK for the scratch name to appear in shell echoes (it doesn't), but
 # any `- /foo/...` bullet is a path bullet that must be relative.
 if printf '%s\n' "$review_out" | grep -E "^- ${SCRATCH}" >/dev/null; then
-    fail "weekly-review still prints absolute paths"
+    fail "review still prints absolute paths"
 else
-    pass "weekly-review: all bullet paths are repo-relative"
+    pass "review: all bullet paths are repo-relative"
 fi
 # Sanity-check that it found the archived spec (relative).
 if printf '%s\n' "$review_out" | grep -qE "^- projects/PROJ-001-example-mvp/specs/done/SPEC-002-test-spec\.md"; then
-    pass "weekly-review: includes archived spec as relative path"
+    pass "review: includes archived spec as relative path"
 else
-    fail "weekly-review: archived spec missing from output"
+    fail "review: archived spec missing from output"
 fi
+# The old `weekly-review` name is GONE (breaking, DEC-001 Phase 3).
+assert_cmd_fails "just weekly-review is removed (consolidated to review)" just weekly-review
 
 # ============================================================
 # 7) status runs cleanly post-archive
@@ -359,13 +362,16 @@ assert_file "$ARCHIVED_TIMELINE"
 assert_no_file "projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec-timeline.md"
 
 # ============================================================
-# 15) just daily-status-report writes reports/daily/<date>-status.md
+# 15) just report status writes reports/daily/<date>-status.md (DEC-001 Phase 3:
+#     `daily-status-report` is now `report status`)
 # ============================================================
-just daily-status-report >/dev/null 2>&1
+just report status >/dev/null 2>&1
 status_snap="reports/daily/$(date +%Y-%m-%d)-status.md"
 assert_file "$status_snap"
 assert_contains "$status_snap" "^# Daily status - $(date +%Y-%m-%d)\$" \
-    "daily-status-report header names the date"
+    "report status header names the date"
+# The old `daily-status-report` name is GONE (breaking, DEC-001 Phase 3).
+assert_cmd_fails "just daily-status-report is removed (consolidated to report status)" just daily-status-report
 
 # ============================================================
 # 16) just backlog (spec-grained "what's next" view)
@@ -1220,6 +1226,21 @@ fi
 rm -f "$REL_FILE" "$FLAG_FILE" \
     projects/PROJ-001-example-mvp/specs/SPEC-*-test-release-timeline.md \
     projects/PROJ-001-example-mvp/specs/SPEC-*-flag-release-timeline.md
+
+# ============================================================
+# DEC-001 Phase 3 (v0.6.0): the `report` namespace + `review` (breaking)
+# ============================================================
+# The new namespace: daily / weekly / status all resolve.
+just report daily >/dev/null 2>&1 && pass "report daily works" || fail "report daily failed"
+just report weekly >/dev/null 2>&1 && pass "report weekly works" || fail "report weekly failed"
+just report status >/dev/null 2>&1 && pass "report status works" || fail "report status failed"
+# A bad subcommand is a usage error (exit 2).
+assert_cmd_fails "report with a bad subcommand errors" just report bogus
+# The bare-name daily-drivers survive as PERMANENT aliases (muscle memory).
+just report-daily >/dev/null 2>&1 && pass "report-daily alias still works" || fail "report-daily alias broke"
+just report-weekly >/dev/null 2>&1 && pass "report-weekly alias still works" || fail "report-weekly alias broke"
+# `review` is the consolidated weekly-review command.
+just review >/dev/null 2>&1 && pass "review works" || fail "review failed"
 
 # ============================================================
 # Done

@@ -181,7 +181,7 @@ if PROJ-001 ended at `STAGE-006` / `SPEC-037`, PROJ-002 starts at `STAGE-007` /
 
 ## Weekly rhythm (non-optional here)
 
-Once a week, always: `just weekly-review`. Without a second agent pushing back, drift compounds silently.
+Once a week, always: `just review`. Without a second agent pushing back, drift compounds silently.
 
 ---
 

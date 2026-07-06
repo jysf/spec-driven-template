@@ -635,7 +635,7 @@ Prompt 1d (Stage Ship) next.
 > **Agent:** Claude (architect).
 > **Time:** 20-30 min.
 >
-> **Shortcut:** `just weekly-review` pre-loads context — paste its output
+> **Shortcut:** `just review` pre-loads context — paste its output
 > into Claude as the prompt body.
 
 ```
