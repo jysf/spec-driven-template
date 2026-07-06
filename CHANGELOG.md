@@ -2,6 +2,24 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — Release pre-flight: two-phase cut + evidence timing (v0.6.7)
+
+Harvest signal #6 (fresh, from bragfile's v0.3.1 cut). A release session
+structurally *can't finish in one pass* — the irreversible tag/publish is
+human/coordinator-gated — so several pre-flight items can't be verified in-session.
+The release-spec (DEC-006) now models that honestly. Docs-only, both variants.
+
+### Changed
+
+- **`projects/_templates/release-spec.md`** gains a **"Release cut is two-phase"**
+  section: Phase 1 = reversible prep (CHANGELOG, `just next-version` bump, backlog
+  tick) landed as a CI-gated PR; Phase 2 = the irreversible tag + publish, gated,
+  after Phase 1 merges. The spec ships **"prep-complete, cut-deferred."**
+- Each pre-flight item now carries a verification **timing** — `[now]` (verified
+  this session, evidence attached) vs `[cut]` (only checkable at Phase 2 — a
+  clean-host install, a channel check, notarization propagation — so it's deferred
+  and verified by whoever runs the cut, recorded honestly rather than ticked).
+
 ## 2026-07-06 — Codify the design-time probe / measure-before-build (v0.6.6)
 
 Harvest signal #2 — the **highest-frequency single lesson** across the dogfood

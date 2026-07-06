@@ -66,14 +66,31 @@ out in this cut, and the version/tag you intend to publish.
   release produces — this decides which pre-flight categories below apply, and
   which version scheme fits (semver for a library/public API; calver otherwise).
 
+## Release cut is two-phase
+
+A release session **cannot finish in one pass** — the irreversible tag/publish is
+gated by a human/coordinator. Structure it so the reversible work lands first:
+- **Phase 1 — reversible prep (CI-gated PR):** CHANGELOG entry, version bump
+  (`just next-version`), stage-backlog tick. Fully revertable — land it as a
+  normal PR.
+- **Phase 2 — irreversible cut (human/coordinator-gated):** create the tag and
+  publish to each channel, only after Phase 1 merges. The spec ships
+  **"prep-complete, cut-deferred."**
+
 ## Release Pre-Flight
 
 **A behavioral checklist — each item asks "does the released thing actually work
 on a real host," not "is the shape right."** The categories are generic and
 portable (DEC-006); **fill in the tool-specific command for each under your
 stack** (the template ships the slot, the instance fills the truth — same
-principle as the toolchain brief). Mark categories that don't apply to this
-release's delivery shape as `N/A` with one word why.
+principle as the toolchain brief).
+
+Mark each item's verification **timing**, because most can only be checked *after*
+the cut: **`[now]`** = verified this session, evidence attached; **`[cut]`** = can
+only be verified at Phase 2 (a clean-host install, a published-channel check,
+notarization propagation) → **deferred, verified by whoever runs the cut** — record
+it honestly as deferred, don't tick it as done in-session. Mark categories that
+don't apply to this release's delivery shape as `N/A` with one word why.
 
 - [ ] **1. Version / tag integrity & build provenance** — exactly one release tag points
       at the release commit; the version baked into the artifact matches the tag;

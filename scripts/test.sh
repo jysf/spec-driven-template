@@ -1297,6 +1297,11 @@ assert_contains "projects/_templates/release-spec.md" "type: release" \
     "release-spec template uses task.type: release"
 assert_contains "projects/_templates/release-spec.md" "Release Pre-Flight" \
     "release-spec template carries the pre-flight checklist"
+# Two-phase cut + evidence-now/deferred-to-cut timing (harvest #6).
+assert_contains "projects/_templates/release-spec.md" "Release cut is two-phase" \
+    "release-spec encodes the two-phase (reversible prep / irreversible cut) split"
+assert_contains "projects/_templates/release-spec.md" "prep-complete, cut-deferred" \
+    "release-spec marks the session ship state honestly (harvest #6)"
 # All six generic categories are present (category-level, DEC-006).
 for cat in "tag integrity" "Artifact trust on a clean host" \
            "Distribution-channel trust" "Data isolation" \
