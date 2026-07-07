@@ -2,6 +2,32 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — Docs freshening: README + GETTING_STARTED + blog outlines (v0.6.12)
+
+Catches the user-facing docs up to the session's work (v0.5.28→v0.6.11) and
+preserves the harvest's blog-worthy lessons. Docs-only.
+
+### Changed
+
+- **README command table** now lists the session's additions: the patch lane
+  (`new-patch`), `new-release-spec`, `next-version`, `build-info`, the new `dash`
+  lenses (constraints/handoffs/signals/patches), and the `shipped_at` stamp.
+- **GETTING_STARTED** (both variants) gains an **"As your project grows"** section
+  pointing at the newer surface a first project will meet — `toolchain-brief.md`
+  (fill it early), value-with-a-metric (with an honest escape hatch for goal-less
+  projects), the patch lane, release/versioning/provenance, and brag-at-ship.
+  The core loop is unchanged; a fuller rewrite should be driven by real usage.
+
+### Added
+
+- **`docs/blog/2026-07-06-dogfood-lessons-outline.md`** — lightweight outlines for
+  the 3–5 strongest, evidence-backed lessons from the harvest (defects escape at
+  runtime; trust git over sub-agent self-report; value tracks stakes not size;
+  measure/probe at design; the N=3 codification bar), preserved for write-up.
+- **[DEC-009](docs/decisions/DEC-009-business-value-metrics.md)** open question #5:
+  goal-less/exploratory projects need an escape hatch (proxy / checkable signal /
+  explicit "exploratory") so the metric convention doesn't reward fabrication.
+
 ## 2026-07-06 — DEC-010 simplified: coach brag directly, drop the wrapper (v0.6.11)
 
 The v0.6.10 cut added a `just log-win` wrapper + `scripts/log-accomplishment.sh`

@@ -80,17 +80,21 @@ Run `just --list` to see everything. The main ones:
 | Command | What it does |
 |---|---|
 | `just init` | One-time: choose variant, scaffold the repo |
-| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions` (browse DEC-*) and `dash questions` (what's blocking); no arg stitches an overview with governance flags. Add `--json` to any of them |
+| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |
+| `just new-patch "title"` | Scaffold a patch — the lightweight fix lane (collapsed patch→verify→ship, keeps independent verify + DEC) |
+| `just new-release-spec "vX" STAGE-NNN` | Scaffold a release spec with a generic runtime pre-flight checklist (or `new-spec … --release`) |
 | `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field |
-| `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog |
+| `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog + stamp `shipped_at` |
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums (the schema gate; see `docs/schema-reference.md`) |
 | `just template-version` | Print the spec-driven template version (the version your repo was scaffolded from); `--json` for machine-readable |
+| `just next-version` | Suggest this app's next release version per its scheme (default CalVer `vYYYY.MM.PATCH`); `--json` |
+| `just build-info` | Build provenance stamp — a `git describe` ref + commit + dirty flag, to bake into the artifact so a build traces back to source; `--json` |
 | `just review` | Load recent activity and print the Weekly Review prompt |
 | `just report daily \| weekly [DATE] \| status` | Generate a report: curated daily, weekly-aggregate, or an uncurated `status` snapshot (`report-daily` / `report-weekly` remain as permanent aliases) |
 

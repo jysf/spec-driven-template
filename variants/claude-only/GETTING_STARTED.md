@@ -185,6 +185,34 @@ Once a week, always: `just review`. Without a second agent pushing back, drift c
 
 ---
 
+## As your project grows (beyond the first spec)
+
+The core loop above is all you need to ship. A few capabilities kick in once you
+go further — reach for them when they apply:
+
+- **`guidance/toolchain-brief.md`** — a REPLACE stub of your repo's toolchain
+  facts (test framework, lint quirks, runtime globals, gotchas). **Fill it in
+  early:** it's the single biggest lever for a cold build session/sub-agent, which
+  otherwise re-derives the same mismatches every time.
+- **Value with a metric (at FRAME/DESIGN).** The value `thesis` / `value_link`
+  already forces up-front thinking; where you can, name **one target metric or
+  checkable outcome** that would prove it. If there's no clear business goal
+  (an experiment, a personal tool), that's fine — use a *proxy* (does the headline
+  capability work end-to-end; time-to-first-ship) or mark it exploratory with a
+  learning goal. An honest "no business metric yet — success is X works" beats a
+  forced number. (This convention is still settling — see `docs/decisions/DEC-009`.)
+- **Fixes vs features:** a bounded fix to shipped behavior is a **patch**
+  (`just new-patch`) — collapsed patch→verify→ship, keeps independent verify + a DEC.
+- **Cutting a release:** `just new-release-spec "vX" STAGE-NNN` scaffolds a release
+  spec with a generic runtime pre-flight checklist; `just next-version` suggests the
+  tag (default CalVer); `just build-info` stamps provenance to bake into the
+  artifact so a build traces back to its commit. See `docs/versioning.md`.
+- **At ship, log the win with impact** — on by default: call `brag add -i
+  "<impact>"` (or its MCP), framing the *outcome*, not the output. See
+  `guidance/recommended-tools.md`.
+
+---
+
 ## Common first-week stumbles
 
 **Reusing the same session for design AND build.** Start a new one. It's not wasteful.

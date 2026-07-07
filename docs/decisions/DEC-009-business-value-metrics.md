@@ -125,3 +125,14 @@ vs actual) is the "are we doing the right things?" signal.
 4. **Does `realized` want a tiny vocabulary** (`hit | missed | partial | unmeasured`)
    next to the free-text, so the predicted-vs-realized distribution is greppable
    cross-project (mirroring the defect-catch-stage tag)?
+5. **Goal-less / exploratory projects (user signal, 2026-07-06).** Naming a target
+   metric is genuinely hard — and can feel artificial — when there's **no explicit
+   business goal** (a personal tool, an experiment, a dogfood). Forcing a number
+   there produces theatre. The derivation aid must offer an **escape hatch**: a
+   *proxy* (does the headline capability work end-to-end; time-to-first-ship /
+   time-to-value), a *checkable success signal* (qualitative but falsifiable), or
+   an explicit **exploratory** mark with a learning goal ("no business metric yet —
+   success is X works, and I learn Y"). The metric should scale to the project's
+   actual goal *type*, and "honest none" must be a first-class answer — otherwise
+   the convention rewards fabrication. This is the crux to validate on the next
+   real project's frame.
