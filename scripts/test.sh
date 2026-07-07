@@ -834,8 +834,34 @@ assert_contains "docs/versioning.md" "Build provenance" \
 # ============================================================
 assert_contains "guidance/recommended-tools.md" "Accomplishment logging" \
     "recommended-tools documents accomplishment logging"
-assert_contains "AGENTS.md" "Accomplishment logging" \
-    "AGENTS ship step points to the accomplishment-logging guidance"
+assert_contains "AGENTS.md" "just log-win" \
+    "AGENTS ship step points to just log-win (DEC-010, default-on)"
+# DEC-010: accomplishment logging on by default via brag.
+assert_contains "guidance/recommended-tools.md" "on by default" \
+    "accomplishment logging is documented as on-by-default (DEC-010)"
+assert_contains ".repo-context.yaml" "^  accomplishments:" \
+    "repo-context ships the accomplishments config block (DEC-010)"
+assert_contains ".repo-context.yaml" "tool: brag" \
+    "default accomplishment tool is brag (DEC-010)"
+# `just log-win` pre-fills from spec data. Point it at a NON-brag tool so the
+# test exercises the construction/print path without ever invoking brag (which
+# is on PATH here and would write to the real db). Then verify the disabled
+# no-op, and restore.
+sed_inplace_portable 's/^    tool: brag/    tool: test-cli/' .repo-context.yaml
+lw_out=$(just log-win SPEC-002 2>&1)
+if printf '%s\n' "$lw_out" | grep -q "Title:" && printf '%s\n' "$lw_out" | grep -q "test-cli"; then
+    pass "log-win pre-fills the win from spec data (honors the configured tool)"
+else
+    fail "log-win output unexpected: $lw_out"
+fi
+sed_inplace_portable 's/^    enabled: true/    enabled: false/' .repo-context.yaml
+if just log-win SPEC-002 2>&1 | grep -q "off"; then
+    pass "log-win no-ops when accomplishments are disabled"
+else
+    fail "log-win did not respect enabled: false"
+fi
+sed_inplace_portable 's/^    tool: test-cli/    tool: brag/' .repo-context.yaml
+sed_inplace_portable 's/^    enabled: false/    enabled: true/' .repo-context.yaml
 
 # ============================================================
 # dash governance lenses: decisions + questions

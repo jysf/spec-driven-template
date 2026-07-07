@@ -451,10 +451,11 @@ with its N-count; framework/tooling friction → `type: process-debt`).
 The close-disposition ritual (Prompts 1d/1e) then forces a decision on
 it. See `docs/signals.md`; browse with `just dash signals`.
 
-Optionally, log the win in an accomplishment log (see
-`guidance/recommended-tools.md` → Accomplishment logging) — frame the
-**impact** (the outcome / who's better off), not the output. The ship
-Reflection and the spec's `value_link` are the raw material.
+Log the win — **on by default** (DEC-010): run `just log-win SPEC-NNN`, which
+pre-fills the configured tool (default `brag`) from the spec's `value_link` +
+`cost.totals`. Frame the **impact** (the outcome / who's better off), not the
+output. The ship Reflection and `value_link` are the raw material. See
+`guidance/recommended-tools.md`; opt out via `spec.accomplishments.enabled: false`.
 
 ---
 

@@ -512,10 +512,11 @@ Then:
   recurring coding pattern; `type: process-debt` for tooling friction) so a
   close forces the decision. See `docs/signals.md`; browse `just dash signals`.
 - If stage backlog is complete, run the Stage Ship prompt.
-- Optionally, log the win in an accomplishment log (see
-  `guidance/recommended-tools.md` → Accomplishment logging) — frame the
-  **impact** (the outcome / who's better off), not the output. The ship
-  Reflection and the spec's `value_link` are the raw material.
+- Log the win — **on by default** (DEC-010): run `just log-win SPEC-NNN`, which
+  pre-fills the configured tool (default `brag`) from the spec's `value_link` +
+  `cost.totals`. Frame the **impact** (the outcome / who's better off), not the
+  output. The ship Reflection and `value_link` are the raw material. See
+  `guidance/recommended-tools.md`; opt out via `spec.accomplishments.enabled: false`.
 - Commit.
 
 **Cutting a release?** A release is its own spec — scaffold it with

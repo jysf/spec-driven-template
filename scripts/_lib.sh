@@ -471,6 +471,24 @@ build_dirty() {
     [ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ] && echo 1 || echo 0
 }
 
+# A field under spec.accomplishments in .repo-context.yaml (DEC-010):
+#   get_accomplishments_field enabled true   → enabled (default true)
+#   get_accomplishments_field tool    brag   → configured tool (default brag)
+get_accomplishments_field() {
+    local key="$1" default="$2"
+    local ctx="${REPO_ROOT}/.repo-context.yaml"
+    [ -f "$ctx" ] || { echo "$default"; return; }
+    local v
+    v=$(awk -v k="$key" '
+        /^spec:/ { in_spec = 1; next }
+        /^[a-zA-Z]/ && in_spec { in_spec = 0 }
+        in_spec && /^  accomplishments:/ { in_a = 1; next }
+        in_spec && in_a && /^  [a-zA-Z]/ { in_a = 0 }
+        in_a && $0 ~ ("^    " k ":") { print $2; exit }
+    ' "$ctx")
+    echo "${v:-$default}"
+}
+
 # ---------------------------------------------------------------------
 # Report helpers — parse value and cost metadata from front-matter
 # and do portable date math. Keep pure bash + awk + date; no yq.

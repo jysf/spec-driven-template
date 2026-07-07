@@ -60,6 +60,16 @@ spec:
     scheme: calver
     # current: null                   # optional pin; else derived from git tags
 
+  # Accomplishment logging at ship (DEC-010). ON by default: record each shipped
+  # win WITH IMPACT for retros/reviews/résumés. `just log-win SPEC-NNN` pre-fills
+  # it from the spec's value_link + cost.totals. Default tool is `brag` (local-
+  # first CLI `brag add`, or MCP `brag mcp serve`). Set enabled: false to opt out,
+  # or swap `tool`. See guidance/recommended-tools.md.
+  accomplishments:
+    enabled: true
+    tool: brag                        # brag | none | <other cli>
+    interface: cli                    # cli | mcp
+
   # Standard paths; do not change without also updating AGENTS.md.
   paths:
     agents_md: ./AGENTS.md

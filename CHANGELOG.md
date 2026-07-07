@@ -2,6 +2,36 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — DEC-010: accomplishment logging on by default (via brag) (v0.6.10)
+
+Reverses the earlier "keep it out of the template defaults" stance: recording a
+shipped win **with impact** is now on by default, so it stops being skipped. The
+default tool is `brag` (a first-party local-first CLI + MCP), which has the right
+seam (`brag add -i "<impact>"`). Impact capture is the outward form of the value
+the template already records (`value_link`, `cost.totals`).
+
+### Added
+
+- **`spec.accomplishments` config** in `.repo-context.yaml` (both variants):
+  `enabled: true` · `tool: brag` · `interface: cli | mcp`. Opt out with
+  `enabled: false`; swap `tool` for an equivalent. Keeps the core tool-agnostic
+  while defaulting to the first-party tool.
+- **`just log-win SPEC-NNN`** (`scripts/log-accomplishment.sh`;
+  `get_accomplishments_field` in `_lib.sh`) — pre-fills the entry from the spec's
+  title + `value_link` + `cost.totals` (framing value-per-dollar), runs `brag
+  add` if present, else prints the ready command. Degrades cleanly when brag is
+  absent or logging is disabled.
+- **`docs/decisions/DEC-010`** records the decision.
+
+### Changed
+
+- **`guidance/recommended-tools.md`** (both variants): the accomplishment section
+  is now "on by default via `brag`," documents the CLI, the scripted `--json`
+  mode (safe for a sub-agent), the MCP path (`brag mcp serve` → `brag_add`), and
+  `brag project here` auto-fill.
+- **AGENTS "During ship"** (both variants): *log the win* (default-on via `just
+  log-win`) instead of *optionally log it*.
+
 ## 2026-07-06 — Harvest quick wins: frame optional + agents-fields clarity (v0.6.9)
 
 Two small doc clarifications from the harvest. Docs-only.
