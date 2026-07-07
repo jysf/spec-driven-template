@@ -12,17 +12,21 @@ affected_scope:
   - "variants/*/.repo-context.yaml"
   - "variants/*/guidance/recommended-tools.md"
   - "variants/*/AGENTS.md"
-  - "scripts/log-accomplishment.sh"
-  - "scripts/_lib.sh"
-  - "justfile"
 tags: [architecture, value, accomplishments, brag, ship]
 ---
 
 # DEC-010: accomplishment logging on by default (via `brag`)
 
 > **This is the template's own decision log** (meta). **Status: accepted —
-> shipped in v0.6.10.** Reverses the earlier "keep it out of the template
-> defaults" stance for accomplishment logging.
+> shipped in v0.6.10, simplified in v0.6.11.** Reverses the earlier "keep it out
+> of the template defaults" stance for accomplishment logging.
+>
+> **v0.6.11 note:** the first cut (v0.6.10) added a `just log-win` wrapper +
+> `scripts/log-accomplishment.sh` that pre-filled `brag add`. That was over-built
+> — the agent can call `brag` (CLI or MCP) directly. The wrapper, its recipe, and
+> the `get_accomplishments_field` helper were removed; **the template now only
+> coaches** (config declaration + AGENTS/recommended-tools guidance). The agent
+> runs the tool itself.
 
 ## Context
 
@@ -39,19 +43,18 @@ outward form of the value the template *already* records (`value_link`,
 
 ## Decision
 
-**Accomplishment logging is on by default**, tool-configured (default `brag`).
+**Accomplishment logging is on by default**, tool-configured (default `brag`) —
+and it is **coaching, not machinery**: the agent calls the tool directly.
 
-- **Config:** `.repo-context.yaml` → `spec.accomplishments` (`enabled: true`,
-  `tool: brag`, `interface: cli | mcp`). Set `enabled: false` to opt out; swap
-  `tool` for an equivalent. Keeps the template tool-agnostic at the core while
-  defaulting to the first-party tool.
-- **`just log-win SPEC-NNN`** (`scripts/log-accomplishment.sh`;
-  `get_accomplishments_field` in `_lib.sh`) pre-fills the entry from the spec's
-  **title + `value_link` + `cost.totals`** (framing value-per-dollar), then runs
-  `brag add` if `brag` is present, else prints the ready command. Degrades
-  cleanly when the tool is absent or disabled.
-- **Both interfaces documented:** the `brag` CLI (`brag add`, scripted `--json`
-  mode safe for a sub-agent) and the MCP server (`brag mcp serve` → `brag_add`).
+- **Config declaration:** `.repo-context.yaml` → `spec.accomplishments`
+  (`enabled: true`, `tool: brag`). Set `enabled: false` to opt out; swap `tool`
+  for an equivalent. Declarative context the agent reads — no script consumes it.
+- **The agent runs the tool itself:** at ship it calls `brag add -i "<impact>"`
+  (CLI) or the `brag_add` tool over `brag mcp serve` (MCP), seeding the entry from
+  the spec's **title + `value_link` + `cost.totals`** (framing value-per-dollar).
+  No template wrapper — `brag` already has the right seam.
+- **Both interfaces documented** in `guidance/recommended-tools.md`: the CLI
+  (`brag add`, scripted `--json` mode safe for a sub-agent) and the MCP server.
 - **AGENTS "During ship"** (both variants) now says *log the win* (default-on),
   not *optionally log it*.
 
@@ -62,23 +65,28 @@ outward form of the value the template *already* records (`value_link`,
 - **Hard-wire `brag` with no config** — rejected: the template serves other
   users; the config keeps it swappable / opt-out while defaulting to brag.
 - **A cost-audit-style gate** — rejected: impact framing is judgment-laden and
-  personal; a convention + a one-command helper is the right weight (a gate would
-  punish honest "nothing brag-worthy" ships).
+  personal; coaching is the right weight (a gate would punish honest "nothing
+  brag-worthy" ships).
+- **A template wrapper (`just log-win`)** — shipped briefly in v0.6.10, removed in
+  v0.6.11: it wrapped a first-party tool the agent can just call. Coaching + a
+  config declaration is the right weight; the wrapper was maintenance for no gain.
 
 ## Consequences
 
-- Every shipped spec/stage/project gets a one-command path to an impact-framed
-  brag entry, auto-seeded from data already in the spec.
-- One config key + a small helper + a `just` recipe to maintain (all degrade if
-  `brag` is absent, so a non-brag user is never blocked).
-- Reinforces the value loop: `value_link` → `just log-win` → a portable brag
+- Every shipped spec/stage/project gets an impact-framed brag entry, seeded from
+  data already in the spec — with **no template machinery** (the agent runs
+  `brag` directly, CLI or MCP).
+- Nothing to maintain beyond a config declaration + the guidance; a non-brag user
+  sets `enabled: false` or swaps `tool`, and is never blocked (no gate).
+- Reinforces the value loop: `value_link` → a direct `brag add` → a portable
   entry that can feed retros/reviews/résumés.
 
 ## Open questions
 
-1. **Auto-run at `archive-spec`?** `log-win` could fire automatically at ship
-   rather than as a separate step. Kept separate for now (an explicit, editable
-   impact line beats an auto-generated one).
+1. **Auto-run at `archive-spec`?** Ship could fire the brag entry automatically
+   rather than leaving it to the agent. Kept manual for now (an explicit, editable
+   impact line beats an auto-generated one) — and it avoids re-introducing a
+   wrapper.
 2. **MCP-first for delegated agents** — when a build/verify sub-agent ships, is
    `brag mcp` the cleaner path than shelling out to the CLI? Revisit with the
    sub-agent delegation work (DEC-004).

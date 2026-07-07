@@ -2,6 +2,27 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-06 — DEC-010 simplified: coach brag directly, drop the wrapper (v0.6.11)
+
+The v0.6.10 cut added a `just log-win` wrapper + `scripts/log-accomplishment.sh`
+that pre-filled `brag add`. That was over-built: `brag` is a first-party tool the
+agent can call directly (CLI or MCP). The template should **coach**, not wrap.
+
+### Removed
+
+- **`scripts/log-accomplishment.sh`**, the **`just log-win`** recipe, and the
+  `get_accomplishments_field` helper in `_lib.sh`. Also dropped the now-vestigial
+  `interface: cli | mcp` config field.
+
+### Changed
+
+- **The agent calls `brag` directly at ship** — AGENTS "During ship" and
+  `guidance/recommended-tools.md` (both variants) coach `brag add -i "<impact>"`
+  (CLI) or the `brag_add` tool over `brag mcp serve` (MCP), seeded from the spec's
+  `value_link` + `cost.totals`. `spec.accomplishments` stays as a declarative
+  config (`enabled` / `tool`) the agent reads — no script consumes it. DEC-010
+  updated to record the simplification.
+
 ## 2026-07-06 — DEC-010: accomplishment logging on by default (via brag) (v0.6.10)
 
 Reverses the earlier "keep it out of the template defaults" stance: recording a

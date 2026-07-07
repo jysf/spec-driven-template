@@ -60,15 +60,15 @@ spec:
     scheme: calver
     # current: null                   # optional pin; else derived from git tags
 
-  # Accomplishment logging at ship (DEC-010). ON by default: record each shipped
-  # win WITH IMPACT for retros/reviews/résumés. `just log-win SPEC-NNN` pre-fills
-  # it from the spec's value_link + cost.totals. Default tool is `brag` (local-
-  # first CLI `brag add`, or MCP `brag mcp serve`). Set enabled: false to opt out,
-  # or swap `tool`. See guidance/recommended-tools.md.
+  # Accomplishment logging at ship (DEC-010). ON by default: at ship, the agent
+  # records the win WITH IMPACT (for retros/reviews/résumés) by calling the tool
+  # below directly — the `brag` CLI (`brag add -i "<impact>"`) or its MCP server
+  # (`brag mcp serve` → the brag_add tool). This is coaching, not a wrapper: the
+  # agent runs the tool itself. Set enabled: false to opt out, or swap `tool`.
+  # See guidance/recommended-tools.md for the fields + impact framing.
   accomplishments:
     enabled: true
     tool: brag                        # brag | none | <other cli>
-    interface: cli                    # cli | mcp
 
   # Standard paths; do not change without also updating AGENTS.md.
   paths:

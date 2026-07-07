@@ -97,13 +97,6 @@ advance-cycle SPEC_ID NEW_CYCLE:
 archive-spec SPEC_ID:
     @./scripts/archive-spec.sh "{{SPEC_ID}}"
 
-# Record a shipped win WITH IMPACT (DEC-010, on by default). Pre-fills the
-# configured accomplishment tool (default `brag`) from the spec's value_link +
-# cost.totals; runs it if present, else prints the ready command.
-# Usage: just log-win SPEC-NNN
-log-win SPEC_ID:
-    @./scripts/log-accomplishment.sh "{{SPEC_ID}}"
-
 # Scaffold a patch (the lightweight fix lane, DEC-003): a bounded fix to
 # shipped behavior, patch -> verify -> ship. Usage: just new-patch "title" [PROJ-NNN]
 new-patch TITLE PROJECT_ID="":

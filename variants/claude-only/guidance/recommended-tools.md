@@ -125,19 +125,18 @@ embedding-based semantic search across a large decision history.
 
 When a spec, stage, or project ships, **record the win with impact** — for
 retros, performance reviews, and résumés. This is **on by default** (DEC-010):
-the configured tool is [`brag`](https://github.com/) — a local-first CLI
-(`brag add`) that also exposes an MCP server (`brag mcp serve`). Configured in
-`.repo-context.yaml` → `spec.accomplishments` (`enabled` / `tool` / `interface`);
-set `enabled: false` to opt out, or swap `tool` for an equivalent.
+the tool is [`brag`](https://github.com/) — a local-first CLI (`brag add`) that
+also exposes an MCP server (`brag mcp serve`). Declared in `.repo-context.yaml` →
+`spec.accomplishments` (`enabled` / `tool`); set `enabled: false` to opt out, or
+swap `tool`. **The agent calls the tool directly — there is no wrapper.**
 
 **When** — at the `ship` cycle (AGENTS §15):
 - Per shipped spec, or batch a stage's specs into one entry at stage-ship.
 - At stage-ship: the user-visible capability the stage delivered.
 - At project-ship: whether the project's `value.thesis` held up.
 
-**How** — `just log-win SPEC-NNN` pre-fills a `brag add` from the spec's title +
-`value_link` + `cost.totals` (runs it if `brag` is installed and enabled, else
-prints the ready command). Or run it directly:
+**How** — run `brag add` directly, seeding the entry from the spec's title +
+`value_link` + `cost.totals`:
 
 ```
 brag add \
@@ -150,7 +149,7 @@ brag add \
 - **Project** auto-fills when you're inside a registered brag project (`brag
   project here`); register this repo once with `brag project new`.
 - **MCP path** (for an agent that speaks MCP): run `brag mcp serve` and call the
-  `brag_add` tool with the same fields — set `spec.accomplishments.interface: mcp`.
+  `brag_add` tool with the same fields — no shell-out needed.
 - **Scripted / non-interactive:** `echo '{"title":"…","impact":"…"}' | brag add --json`
   (stdout is just the entry ID) — safe for a build/verify sub-agent to call.
 
