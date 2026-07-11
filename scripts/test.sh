@@ -212,6 +212,32 @@ fi
 assert_cmd_fails "just weekly-review is removed (consolidated to review)" just weekly-review
 
 # ============================================================
+# 6b) lifetime-report: dated whole-repo history prompt (the horizon
+#     between `status` = now and `review` = recent slice)
+# ============================================================
+lifetime_out=$(just lifetime-report 2>&1)
+# It prints the synthesis prompt.
+if printf '%s\n' "$lifetime_out" | grep -q "Lifetime Report"; then
+    pass "lifetime-report: prints the synthesis prompt"
+else
+    fail "lifetime-report: prompt header missing"
+fi
+# The reason for the port: a dated `Generated: <today>` line, distinct from the
+# git-span / project-history dates. Must equal today's date.
+today_date=$(date +%Y-%m-%d)
+if printf '%s\n' "$lifetime_out" | grep -qE "^Generated: ${today_date}$"; then
+    pass "lifetime-report: emits 'Generated: <today>' line"
+else
+    fail "lifetime-report: missing dated 'Generated: ${today_date}' line"
+fi
+# Same pipe posture as review: no absolute path bullets.
+if printf '%s\n' "$lifetime_out" | grep -E "^- ${SCRATCH}" >/dev/null; then
+    fail "lifetime-report still prints absolute paths"
+else
+    pass "lifetime-report: all bullet paths are repo-relative"
+fi
+
+# ============================================================
 # 7) status runs cleanly post-archive
 # ============================================================
 just status >/dev/null 2>&1 || fail "just status exited non-zero after archive"

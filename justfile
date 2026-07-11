@@ -128,6 +128,10 @@ report SUB="" *REST:
 review:
     @./scripts/weekly-review.sh
 
+# Print the Lifetime Report prompt: whole-repo history (all projects/stages/releases) pre-loaded for narrative synthesis
+lifetime-report:
+    @./scripts/lifetime-report.sh
+
 # --- Permanent aliases (DEC-001 §3): muscle-memory wins over tidiness. ---
 
 # Alias for `just report daily`. Generate today's daily report (`--json` for the

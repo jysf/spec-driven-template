@@ -2,6 +2,28 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-10 — `lifetime-report`: whole-repo history horizon (v0.6.13)
+
+Adds the missing time horizon: `just status` is *now*, `just review` is the
+*recent slice* (last 7 days, active project), and `just lifetime-report` is the
+*whole-repo arc* — every project, stage, spec, decision, and release since the
+first commit, pre-loaded into a synthesis prompt an LLM turns into a narrative.
+Ported from the bragfile experiment where it was validated and dated.
+
+### Added
+
+- **`scripts/lifetime-report.sh` + `just lifetime-report`** — assembles the
+  lifetime aggregates (release timeline, per-project created→shipped dates,
+  specs-by-stage, decision log, git span) and prints a copy-into-Claude prompt.
+  Depends only on template scripts (`_lib.sh`, `status.sh`, `specs-by-stage.sh`,
+  `today()`), so every scaffolded repo inherits it.
+- **Dated report** — sets `Generated: <today>` and instructs the report to head
+  with it, explicitly distinguished from the git-span / project-history dates
+  (report date ≠ history covered). This dated behavior is the reason for the port.
+- **`scripts/test.sh`** — coverage asserting the prompt prints, the
+  `Generated: <today>` line is present and equals today, and all path bullets
+  are repo-relative (same pipe posture as `review`).
+
 ## 2026-07-06 — Docs freshening: README + GETTING_STARTED + blog outlines (v0.6.12)
 
 Catches the user-facing docs up to the session's work (v0.5.28→v0.6.11) and
