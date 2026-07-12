@@ -34,11 +34,19 @@ Full ranked detail + evidence lives in
 
 ## Open harvest backlog — buildable now (not urgent)
 
-- **#8** — `roadmap` / `backlog` surface *planned-but-unframed* stages (parse the
-  brief's `## Stage Plan` checkboxes). The one remaining "now-tier" item.
+- ~~**#8** — `roadmap` surface *planned-but-unframed* stages (parse the brief's
+  `## Stage Plan` checkboxes).~~ **✅ Shipped v0.6.14** — `just roadmap` renders a
+  `planned` bucket (human + `--json`) from the brief's Stage Plan, de-duped
+  against framed `STAGE-*.md` files. Scoped to `roadmap` only (not `backlog`):
+  backlog's "stage backlog" is un-promoted *specs* inside a framed stage, a
+  different layer from un-framed *stages*.
 - **#9** — a per-language "known gotchas" appendix the build prompt links (complements
   the toolchain brief). Optional.
 - **#10** — a scheduled-advisory CI convention (cron gate for vuln-DB drift). Optional.
+
+> With #8 shipped, **no non-speculative "now-tier" solo build remains** — #9/#10
+> are optional and everything else is co-design-with-a-real-project. The pause is
+> now clean: next leverage is *using* the template on a real project.
 
 ## Co-design with the next project(s)
 
