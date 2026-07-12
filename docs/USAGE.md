@@ -110,7 +110,8 @@ Four read-only views, each answering a different question:
 ```bash
 just status            # current state: active project/stage, specs by cycle, stale items
 just backlog           # spec-grained "what's next" (active stage; --all to widen)
-just roadmap           # stage-grained "where is this project going" (counts per stage)
+just roadmap           # stage-grained "where is this project going": framed stages
+                       #   + planned-but-unframed stages from the brief's Stage Plan
 just specs-by-stage    # flat ledger: every spec by stage, ship date + complexity
                        #   defaults to ALL projects; --active or PROJ-NNN to scope
 ```

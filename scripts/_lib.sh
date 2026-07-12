@@ -736,6 +736,39 @@ get_project_thesis() {
     ' "$brief"
 }
 
+# Parse a project brief's `## Stage Plan` checkbox list into one row
+# per planned stage: `STAGEID|CHECKED|TITLE`, where STAGEID is the
+# `STAGE-NNN` token or `-` for an un-framed row (`(not yet defined)`),
+# CHECKED is `x` or a space, and TITLE is the text after the `—`/`-`
+# separator (any `(active)`/`(...)` annotation stripped). Reads only
+# the Stage Plan section; stops at the next `## ` heading. Emits
+# nothing if the brief or the section is missing.
+# Usage: parse_stage_plan projects/PROJ-001-foo
+parse_stage_plan() {
+    local dir="$1"
+    local brief="${dir}/brief.md"
+    [ -f "$brief" ] || return
+    awk '
+        /^## Stage Plan/ { in_p = 1; next }
+        in_p && /^## / { in_p = 0 }
+        in_p && /^[[:space:]]*-[[:space:]]*\[[ xX~?]\]/ {
+            line = $0
+            checked = " "
+            if (line ~ /\[[xX]\]/) checked = "x"
+            sub(/^[[:space:]]*-[[:space:]]*\[[ xX~?]\][[:space:]]*/, "", line)
+            id = "-"
+            if (match(line, /^STAGE-[0-9]+/)) id = substr(line, RSTART, RLENGTH)
+            title = line
+            sub(/^STAGE-[0-9]+[[:space:]]*/, "", title)   # drop the id token
+            sub(/^\([^)]*\)[[:space:]]*/, "", title)      # drop (active)/(not yet defined)
+            sub(/^—[[:space:]]*/, "", title)              # em-dash separator
+            sub(/^-[[:space:]]*/, "", title)              # hyphen fallback
+            gsub(/[[:space:]]+$/, "", title)
+            print id "|" checked "|" title
+        }
+    ' "$brief"
+}
+
 # Extract value_contribution.advances from a stage file. Empty if null
 # or missing. Usage: get_stage_value_contribution path/to/STAGE-001.md
 get_stage_value_contribution() {

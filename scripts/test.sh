@@ -456,6 +456,29 @@ if printf '%s\n' "$roadmap_out" | grep -qE "1 in flight, 4 backlog"; then
 else
     fail "roadmap spec counts wrong or missing"
 fi
+# Planned-but-unframed stages from the brief's ## Stage Plan (ROADMAP
+# #8). The example brief plans two "(not yet defined)" stages that
+# have no STAGE-*.md file yet; they should surface as "planned".
+if printf '%s\n' "$roadmap_out" | grep -qE "planned .*Auth \+ primary flow"; then
+    pass "roadmap surfaces planned-but-unframed stages from the brief"
+else
+    fail "roadmap did not surface planned stages"
+fi
+# A stage that IS framed (STAGE-001 has a file) must NOT be re-listed
+# as planned — no double-counting between the file loop and the plan.
+if printf '%s\n' "$roadmap_out" | grep -E "STAGE-001" | grep -q "planned"; then
+    fail "roadmap double-listed a framed stage as planned"
+else
+    pass "roadmap does not double-list framed stages as planned"
+fi
+# --json exposes the same planned rows in a `planned` array.
+roadmap_json=$(just roadmap --json 2>&1)
+if printf '%s\n' "$roadmap_json" | grep -q '"bucket":"planned"' \
+    && printf '%s\n' "$roadmap_json" | grep -q '"title":"Auth + primary flow"'; then
+    pass "roadmap --json includes planned stages"
+else
+    fail "roadmap --json missing planned stages"
+fi
 
 # ============================================================
 # security: titles with sed metachars are escaped, not injected

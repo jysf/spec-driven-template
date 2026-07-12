@@ -60,6 +60,28 @@ count_backlog_bullets() {
     ' "$f"
 }
 
+# Emit the planned-but-unframed rows from the brief's ## Stage Plan:
+# those with no matching STAGE-*.md file yet. Output is one
+# `STAGEID|CHECKED|TITLE` row per planned stage (STAGEID may be `-`
+# for a "(not yet defined)" row). A row whose STAGE-NNN already has a
+# stage file is dropped — the file-driven loop already renders it.
+collect_planned_rows() {
+    local pid pchecked ptitle f found
+    while IFS='|' read -r pid pchecked ptitle; do
+        [ -n "$pid" ] || [ -n "$ptitle" ] || continue   # skip blank line
+        if [ "$pid" != "-" ]; then
+            found=0
+            for f in "${STAGES_DIR}"/${pid}*.md; do
+                [ -f "$f" ] && { found=1; break; }
+            done
+            [ "$found" = 1 ] && continue
+        fi
+        printf '%s|%s|%s\n' "$pid" "$pchecked" "$ptitle"
+    done <<EOF
+$(parse_stage_plan "$ACTIVE_DIR")
+EOF
+}
+
 # --- JSON output (DEC-001 §2) ------------------------------------------------
 if [ "$(has_json_flag "$@")" = 1 ]; then
     active_stage_file=$(get_active_stage_file "$ACTIVE_DIR" || true)
@@ -91,21 +113,34 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
         done
     fi
     [ "${#stages_json[@]}" -gt 0 ] && stages_arr=$(json_arr "${stages_json[@]}") || stages_arr="[]"
+
+    # Planned-but-unframed stages from the brief's ## Stage Plan.
+    planned_json=()
+    while IFS='|' read -r pid pchecked ptitle; do
+        [ -n "$pid" ] || [ -n "$ptitle" ] || continue
+        planned_json+=("$(json_obj \
+            "project.stage" "$([ "$pid" != "-" ] && json_qs "$pid" || printf null)" \
+            bucket "$(json_qs planned)" \
+            title "$(json_qs "$ptitle")" \
+            checked "$([ "$pchecked" = x ] && printf true || printf false)")")
+    done <<EOF
+$(collect_planned_rows)
+EOF
+    [ "${#planned_json[@]}" -gt 0 ] && planned_arr=$(json_arr "${planned_json[@]}") || planned_arr="[]"
+
     data=$(json_obj \
         active_project "$(json_qs "$ACTIVE_PROJECT")" \
         active_stage "$([ -n "$active_stage_id" ] && json_qs "$active_stage_id" || printf null)" \
-        stages "$stages_arr")
+        stages "$stages_arr" \
+        planned "$planned_arr")
     json_emit roadmap "$data"
     exit 0
 fi
 
 echo "${BOLD}Roadmap for ${ACTIVE_PROJECT}${RESET}"
-if [ ! -d "$STAGES_DIR" ]; then
-    echo "  ${DIM}(no stages/ directory yet)${RESET}"
-    exit 0
-fi
 
-# Determine the "active stage" once so we can highlight it.
+# Determine the "active stage" once so we can highlight it. Safe when
+# there's no stages/ directory yet (returns empty).
 ACTIVE_STAGE_FILE=$(get_active_stage_file "$ACTIVE_DIR" || true)
 ACTIVE_STAGE_ID=""
 if [ -n "$ACTIVE_STAGE_FILE" ]; then
@@ -113,6 +148,7 @@ if [ -n "$ACTIVE_STAGE_FILE" ]; then
 fi
 
 any_stage=0
+if [ -d "$STAGES_DIR" ]; then
 for s in "${STAGES_DIR}"/STAGE-*.md; do
     [ -f "$s" ] || continue
     any_stage=1
@@ -175,6 +211,26 @@ for s in "${STAGES_DIR}"/STAGE-*.md; do
             "$sname" "$bucket" "$date_col" "$counts_col"
     fi
 done
-if [ "$any_stage" = "0" ]; then
-    echo "  ${DIM}(no stages yet)${RESET}"
+fi  # end: [ -d "$STAGES_DIR" ]
+
+# Planned-but-unframed stages from the brief's ## Stage Plan. Rendered
+# after the file-driven rows so the roadmap shows the whole forward
+# arc, not just the stages that have been framed into files.
+planned_rows=$(collect_planned_rows)
+if [ -n "$planned_rows" ]; then
+    while IFS='|' read -r pid pchecked ptitle; do
+        [ -n "$pid" ] || [ -n "$ptitle" ] || continue
+        pname=$([ "$pid" != "-" ] && echo "$pid" || echo "(unframed)")
+        printf "  ${DIM}%-36s %-10s %s${RESET}\n" "$pname" "planned" "$ptitle"
+    done <<EOF
+$planned_rows
+EOF
+fi
+
+if [ "$any_stage" = "0" ] && [ -z "$planned_rows" ]; then
+    if [ -d "$STAGES_DIR" ]; then
+        echo "  ${DIM}(no stages yet)${RESET}"
+    else
+        echo "  ${DIM}(no stages/ directory yet)${RESET}"
+    fi
 fi

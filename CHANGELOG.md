@@ -2,6 +2,34 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-12 — `roadmap` surfaces planned-but-unframed stages (v0.6.14)
+
+Closes harvest backlog #8. `just roadmap` rendered one row per `STAGE-*.md`
+file — so a project's *planned* stages (the `## Stage Plan` rows in the brief
+that haven't been framed into a stage file yet) were invisible. The roadmap now
+shows the whole forward arc: framed stages from their files, then the
+planned-but-unframed rows parsed from the brief.
+
+### Added
+
+- **`parse_stage_plan` in `scripts/_lib.sh`** — parses a brief's `## Stage Plan`
+  checkbox list into `STAGEID|CHECKED|TITLE` rows (STAGEID is `-` for a
+  `(not yet defined)` row), stopping at the next `## ` heading.
+- **`roadmap` planned bucket** — `scripts/roadmap.sh` renders planned-but-unframed
+  stages (a `## Stage Plan` row with no matching `STAGE-*.md`) after the
+  file-driven rows, in both human and `--json` (a new `planned` array). A row
+  whose `STAGE-NNN` already has a file is dropped, so nothing is double-listed.
+
+### Changed
+
+- **`roadmap` no longer early-exits when `stages/` is absent** — a brand-new
+  project with a Stage Plan but no framed stages yet still shows its planned arc.
+
+### Tests
+
+- `scripts/test.sh` asserts planned stages appear in human + `--json` output and
+  that a framed stage is never re-listed as planned.
+
 ## 2026-07-10 — `lifetime-report`: whole-repo history horizon (v0.6.13)
 
 Adds the missing time horizon: `just status` is *now*, `just review` is the
