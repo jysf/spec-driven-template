@@ -237,6 +237,42 @@ else
     pass "lifetime-report: all bullet paths are repo-relative"
 fi
 
+# --- lifetime-data: the same history as a self-contained, LLM-free report ---
+lifetime_data=$(just lifetime-data 2>&1)
+if printf '%s\n' "$lifetime_data" | grep -q "Lifetime Data Report"; then
+    pass "lifetime-data: prints the self-contained data report header"
+else
+    fail "lifetime-data: data report header missing"
+fi
+# The at-a-glance count block is data-mode only.
+if printf '%s\n' "$lifetime_data" | grep -q "Lifetime at a glance"; then
+    pass "lifetime-data: includes the at-a-glance block"
+else
+    fail "lifetime-data: missing the at-a-glance block"
+fi
+# Data mode must NOT carry the LLM synthesis wrapper (that's prompt mode).
+if printf '%s\n' "$lifetime_data" | grep -q "copy everything below this line into Claude"; then
+    fail "lifetime-data: wrongly includes the LLM synthesis prompt"
+else
+    pass "lifetime-data: is LLM-free (no synthesis prompt)"
+fi
+
+# --- lifetime-save: writes a timestamped data report, never overwriting ---
+just lifetime-save >/dev/null 2>&1 || fail "lifetime-save exited non-zero"
+saved=$(find reports/lifetime -name '*.md' 2>/dev/null | head -1)
+if [ -n "$saved" ] && grep -q "Lifetime Data Report" "$saved"; then
+    pass "lifetime-save: wrote a timestamped data report under reports/lifetime/"
+else
+    fail "lifetime-save: no data report written under reports/lifetime/"
+fi
+# Timestamp is to the second (YYYY-MM-DD-HHMMSS), so repeated runs never collide.
+case "$(basename "${saved:-}")" in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].md)
+        pass "lifetime-save: filename is timestamped to the second" ;;
+    *) fail "lifetime-save: filename not timestamped to the second" ;;
+esac
+rm -rf reports/lifetime
+
 # ============================================================
 # 7) status runs cleanly post-archive
 # ============================================================

@@ -128,9 +128,21 @@ report SUB="" *REST:
 review:
     @./scripts/weekly-review.sh
 
-# Print the Lifetime Report prompt: whole-repo history (all projects/stages/releases) pre-loaded for narrative synthesis
+# Print the whole-repo Lifetime Data Report: all projects/stages/specs/decisions/releases, no LLM needed
+lifetime-data:
+    @./scripts/lifetime-report.sh data
+
+# Print the Lifetime Report prompt: same history wrapped in a synthesis ask for an LLM to narrate
 lifetime-report:
-    @./scripts/lifetime-report.sh
+    @./scripts/lifetime-report.sh prompt
+
+# Save the Lifetime Data Report to reports/lifetime/YYYY-MM-DD-HHMMSS.md
+# (timestamped to the second, so repeated runs never overwrite).
+lifetime-save:
+    @mkdir -p reports/lifetime
+    @TS="$(date +%Y-%m-%d-%H%M%S)"; \
+        ./scripts/lifetime-report.sh data > "reports/lifetime/$TS.md" \
+        && echo "✓ Wrote reports/lifetime/$TS.md"
 
 # --- Permanent aliases (DEC-001 §3): muscle-memory wins over tidiness. ---
 

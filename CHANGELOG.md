@@ -2,6 +2,40 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-12 — lifetime report: `data` / `save` modes (v0.6.17)
+
+Splits `lifetime-report` into three commands, harvested from the zany-animal-slots
+dogfood instance (which refined the template's own `lifetime-report.sh`). The old
+script interleaved the raw whole-repo history with the LLM synthesis wrapper in one
+output; the refactor separates the two axes — the deterministic *data* and the
+narrative *ask* — and adds a timestamped save.
+
+### Added
+
+- **`just lifetime-data`** — the whole-repo Lifetime Data Report (projects, stages,
+  specs, decisions, releases, git span) as a **self-contained, LLM-free** document,
+  led by a deterministic "Lifetime at a glance" count block. Read it directly; no
+  Claude session needed.
+- **`just lifetime-save`** — writes the data report to
+  `reports/lifetime/YYYY-MM-DD-HHMMSS.md`, timestamped to the second so repeated
+  runs never overwrite.
+
+### Changed
+
+- **`scripts/lifetime-report.sh`** takes a mode: `data` (default) or `prompt`. Both
+  share one `emit_data`. **`just lifetime-report` is unchanged** — it now calls
+  `prompt` mode and prints the same synthesis prompt as before.
+- **Latent robustness fix** (carried back from zany): the git-span `first`/`last`
+  assignments now guard the `git log | head` pipe with `|| true`, so a long history
+  that SIGPIPEs `git` can't abort the script (under `set -euo pipefail`) before the
+  status / specs-by-stage aggregates.
+
+### Tests
+
+- `scripts/test.sh` asserts `lifetime-data` prints the self-contained header + the
+  at-a-glance block and carries **no** LLM synthesis wrapper, and that
+  `lifetime-save` writes a data report whose filename is timestamped to the second.
+
 ## 2026-07-12 — `on_hold` added to project status (v0.6.16)
 
 Adds `on_hold` to the coarse project `status` enum:
