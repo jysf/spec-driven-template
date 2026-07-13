@@ -5,6 +5,19 @@
 # - After init: all the daily commands work (status, new-spec, etc.)
 #
 # Run `just --list` to see everything.
+#
+# ┌─ CONVENTION ─────────────────────────────────────────────────────────────┐
+# │ This justfile is TEMPLATE-MANAGED — it ships with the scaffold and gets   │
+# │ updated when you pull template improvements. Do NOT add your project's    │
+# │ build/dev/test/deploy recipes here; put them in `app.just` (imported      │
+# │ below). Keeping them separate means a template update never conflicts     │
+# │ with your app commands. See AGENTS.md §6.                                 │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+# Project-owned recipes (build, dev, test, deploy, …). Optional (`?`) so a
+# fresh clone still works before it exists; recipes here that share a name with
+# a template recipe are overridden by this justfile (template recipes win).
+import? 'app.just'
 
 # Show all commands
 default:

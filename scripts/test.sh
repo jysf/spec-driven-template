@@ -104,6 +104,25 @@ assert_no_file "variants"
 pass "init: scaffolded claude-only successfully"
 
 # ============================================================
+# 1b) app.just: project-owned recipes, imported by the template justfile
+# ============================================================
+# app.just is a root file (not in variants/), so it ships and survives init.
+assert_file "app.just"
+# The template justfile opts into it via an OPTIONAL import (escaped: ? and .
+# are ERE metachars). `import?` keeps a fresh clone working before the file exists.
+assert_contains "justfile" "import\? 'app\.just'" \
+    "root justfile imports app.just (optional import)"
+# The import resolves to the app recipes: `just build` must reach the app.just
+# stub (its TODO reminder), not error with 'no recipe named build'.
+app_build_out=$(just build 2>&1 || true)
+case "$app_build_out" in
+    *"TODO: define 'build'"*) pass "app.just: 'build' recipe resolves through the import" ;;
+    *) fail "app.just: 'build' recipe unreachable — import broken? (got: ${app_build_out})" ;;
+esac
+# Non-clobbering is proven by the rest of this suite: every template recipe below
+# runs with `import? 'app.just'` active in the scaffolded justfile.
+
+# ============================================================
 # 2) init: re-run guard
 # ============================================================
 assert_cmd_fails "re-running init (AGENTS.md present) fails" just init

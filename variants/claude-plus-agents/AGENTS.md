@@ -142,7 +142,11 @@ Replace this section with your actual stack. Be specific about versions.
 
 ## 6. Commands (exact)
 
-These are the APP's commands. For template/workflow commands, see `justfile`.
+These are the APP's commands. Wire them into **`app.just`** so they run as
+`just build`, `just dev`, `just test`, etc. `app.just` is project-owned and
+imported by the template-managed root `justfile` — keep app recipes there (not
+in `justfile`) so a template update never clobbers your commands. For
+template/workflow commands (`status`, `new-spec`, …) see `justfile`.
 
 ```bash
 [REPLACE: install command]
@@ -167,7 +171,8 @@ These are the APP's commands. For template/workflow commands, see `justfile`.
 ├── FIRST_SESSION_PROMPTS.md           # Phase prompts
 ├── .repo-context.yaml                 # Repo (app) metadata
 ├── .variant                           # "claude-plus-agents"
-├── justfile                           # Commands: just status, just new-spec, etc.
+├── justfile                           # Template-managed: just status, new-spec, etc. (imports app.just)
+├── app.just                           # Project-owned: just build/dev/test/deploy (yours to fill in)
 ├── scripts/                           # Shell scripts powering justfile
 ├── docs/                              # Architecture, data model, API contract
 ├── guidance/                          # Repo-level rules (across all projects)

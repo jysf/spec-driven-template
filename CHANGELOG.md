@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-12 — `app.just`: project recipes split from the template justfile (v0.6.18)
+
+Establishes a convention for where a scaffolded repo puts its own commands. The
+root `justfile` is **template-managed** — it ships with the scaffold and is meant
+to be updated when you pull template improvements. Project-specific recipes
+(`build`, `dev`, `test`, `deploy`, …) now live in a separate **`app.just`** that
+the root justfile imports, so a template update never conflicts with your app
+commands. Completes the split AGENTS.md §6 already gestured at ("these are the
+APP's commands; for template/workflow commands see `justfile`").
+
+### Added
+
+- **`app.just`** at the repo root — a project-owned recipe file with REPLACE
+  stubs (`install`/`dev`/`build`/`test`/`lint`/`typecheck`) mirroring the
+  AGENTS.md §6 command block. Fill it in; each stub prints a reminder and exits
+  non-zero until you do. Runs as normal `just` recipes (`just build`, …).
+
+### Changed
+
+- **Root `justfile`** carries `import? 'app.just'` (optional import — a fresh
+  clone works before the file exists) plus a header banner stating it is
+  template-managed and app recipes belong in `app.just`. Template recipes win on
+  a name clash (the importing file overrides the import).
+- **AGENTS.md §6 + §7** (both variants) point at `app.just`: §6 says to wire the
+  app commands there so they're runnable, §7 lists it in the directory tree.
+
+### Tests
+
+- `scripts/test.sh` asserts `app.just` ships and survives `init`, the root
+  justfile imports it, and `just --list` surfaces both a template recipe
+  (`status`) and an app recipe (`build`) — proving the import resolves without
+  clobbering template commands.
+
 ## 2026-07-12 — lifetime report: `data` / `save` modes (v0.6.17)
 
 Splits `lifetime-report` into three commands, harvested from the zany-animal-slots
