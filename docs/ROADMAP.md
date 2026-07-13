@@ -12,19 +12,58 @@ Full ranked detail + evidence lives in
 
 ## Proposed — awaiting a real project to validate
 
+- **[DEC-011](decisions/DEC-011-roadmap-structure.md) — roadmap structure
+  (drafted 2026-07-13, proposed).** Unifies the two roadmaps that already exist and
+  disagree: the template's **derived** roadmap (`just roadmap` = framed + planned
+  stages) and standup's **declared** `roadmap:` brief block (pillars +
+  `resume_when`). One project-level structure fed by *derive + declare*, a small
+  `kind` set (`framed|planned|pillar|goal`), buckets-first horizon
+  (`now|next|later` + optional `resume_when`/`target`), emitted via `just roadmap
+  --json` so **standup consumes one typed surface** instead of re-parsing briefs.
+  Optional + degradable (not every tracked repo is spec-driven). Sits **below** the
+  Goals/Plans layer and **beside** DEC-009 (a roadmap `goal` is where a
+  `value_metric` attaches). Phase 1 (bless schema + `just roadmap` merges
+  declared+derived + `--json`) is the smallest increment and ships value to standup
+  immediately. Don't build cold — validate on the harvest + by wiring standup.
+
+- **Higher-level Goals + Plans layer (raised 2026-07-12).** A layer *above* the
+  current `Repo → Project → Stage → Spec → Cycle` hierarchy, for capturing intent
+  at portfolio scale (and the parent of [DEC-011](decisions/DEC-011-roadmap-structure.md)'s
+  per-project roadmap — a Plan's roadmap is the union of its projects'):
+  - **Plan** — groups **multiple Projects** into one initiative/program (a Project
+    is a single wave; a Plan is the arc across several).
+  - **Goal** — an outcome that can connect to a Plan and/or a Project, **and can
+    also stand alone** as lightweight data capture (not every goal needs a home in
+    the tree; some are just recorded, no deep modeling required).
+
+  **Deliberately not designing the data model yet** — capture the intent first, let
+  real use shape it. Strong tie to
+  [DEC-009](decisions/DEC-009-business-value-metrics.md): a Goal is the natural
+  parent of DEC-009's outcome-target / `value_metric` (value/outcome lives on a
+  Goal), so the two should co-design. Open (later, not now): is a Plan a new
+  artifact dir or just metadata linking existing `PROJ-*`? Do Goals live in a
+  ledger (like `guidance/signals.yaml`) or as front-matter with links? How do
+  goal↔plan↔project connections express — fields vs a link graph? Earn the design
+  via a real Plan spanning ≥2 projects.
+
 - **[DEC-009](decisions/DEC-009-business-value-metrics.md) — measurable value +
-  time-to-value.** Spine (outcome targets on the stage) is likely right, but the
-  **metric-derivation aid** must be validated at a real project's *frame* (deriving
-  the target metric live), **and it must handle goal-less/exploratory projects**
-  with an honest escape hatch — proxy / checkable signal / explicit "exploratory"
-  (open question #5). Do not build cold.
+  time-to-value.** *(Flagged important 2026-07-12.)* Spine (outcome targets on the
+  stage) is likely right, but the **metric-derivation aid** must be validated at a
+  real project's *frame* (deriving the target metric live), **and it must handle
+  goal-less/exploratory projects** with an honest escape hatch — proxy / checkable
+  signal / explicit "exploratory" (open question #5). Do not build cold — the
+  3-disciplined-project harvest is its validation path, and the Goals layer above
+  is its likely parent.
 
 ## Deferred — accepted, phase/track pending
 
 - **[DEC-004](decisions/DEC-004-subagent-execution-mode.md) Phase 3** — mechanical
   per-agent `git worktree` isolation. Rule 2 ("one sub-agent, no interleaved tree
   ops") covers the hazard as convention; open Q1 (worth the bash-3.2 complexity?)
-  unresolved.
+  unresolved. **Direction confirmed 2026-07-12: the guidance is right.** Added axis
+  — if built, the isolation helper need not be bash; consider a compiled
+  single-binary runtime (**Zig** or similar) that owns the worktree lifecycle more
+  safely, weighed against the zero-dep portability promise (see DEC-004 open Q1).
 - **[DEC-001](decisions/DEC-001-interface-contract.md) Phase 4** — an **MCP server**
   over the `--json` surface (`status` / `dash` / `validate` / cost as typed tools).
   Unblocked by Phase 1; a small, on-brand project that dogfoods the interface contract.
@@ -65,7 +104,9 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   (contrast-aa, state-not-color-only, compositor-only-keyframes) that turn subjective
   quality (motion/perf/a11y) into CI guards. A creative/visual project is its natural
   first user.
-- **#11 — client-handover artifact + user-vs-contributor docs split → DEC-011.**
+- **#11 — client-handover artifact + user-vs-contributor docs split → a future DEC**
+  (the DEC-011 number went to roadmap structure; client-handover is unwritten and
+  will take the next free number when it earns one).
   A deliverable handover to the person you built it for (distinct from the internal
   agent↔agent `HANDOFF-*`). Needs a real external delivery to shape it.
 - **Orchestration + framing cost attribution (raised 2026-07-12).** The cost model

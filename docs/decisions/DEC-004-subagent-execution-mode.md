@@ -166,9 +166,16 @@ re-specifying it.**
 
 ## Open questions
 
-1. **Worktree isolation in bash 3.2** — is mechanical per-agent worktree
-   management worth the complexity, or is the "one sub-agent, no tree ops" rule
-   enough in practice? (Rule 2 cheap vs Phase 3 structural.)
+1. **Worktree isolation in bash 3.2 — and is bash the right runtime for it?**
+   Is mechanical per-agent worktree management worth the complexity, or is the
+   "one sub-agent, no tree ops" rule enough in practice? (Rule 2 cheap vs Phase 3
+   structural.) **Direction confirmed 2026-07-12** — Phase 3 is the right guidance;
+   a second axis raised the same day: if it *is* built, the isolation helper need
+   not be bash. A small compiled single-binary runtime (e.g. **Zig**, or another
+   portable option) could own the worktree lifecycle more safely than bash 3.2, at
+   the cost of a build/distribution step. Sub-open-question: does a non-bash
+   component break the "zero-dep bash 3.2" portability promise, or is a
+   vendored/optional binary an acceptable exception for this one structural piece?
 2. **How much to build vs document** — the reconcile rule is mostly discipline;
    how much does a `_lib.sh` helper actually catch mechanically?
 3. **Gate or convention?** Should "reconcile before advancing" ever be a check
