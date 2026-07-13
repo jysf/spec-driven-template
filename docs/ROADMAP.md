@@ -28,6 +28,14 @@ Full ranked detail + evidence lives in
 - **[DEC-001](decisions/DEC-001-interface-contract.md) Phase 4** — an **MCP server**
   over the `--json` surface (`status` / `dash` / `validate` / cost as typed tools).
   Unblocked by Phase 1; a small, on-brand project that dogfoods the interface contract.
+  - **"Turn the template into an app" (raised 2026-07-12) resolves *into* this.** The
+    real question is *which layer* you productize. An app that generates the **content**
+    (specs / design prose from a brief) is an anti-pattern — it re-wraps the agent and
+    hides the disciplined thinking that *is* the value ("coach, don't wrap"). Productize
+    the **read / governance / orchestration surface** instead — which is exactly this MCP
+    server. Build it *as a real `PROJ` that dogfoods the template* (not speculative
+    feature-work); that project also generates the orchestration-cost data the co-design
+    item below needs. One move, two payoffs.
 - **[DEC-002](decisions/DEC-002-cost-convention.md)** — contribute the `cost.*`
   convention upstream to ContextCore (which has no cost/USD convention). Proposed;
   ready prompt in the DEC appendix.
@@ -60,9 +68,38 @@ These are shaped by real usage — start them *on* a live project, not in the ab
 - **#11 — client-handover artifact + user-vs-contributor docs split → DEC-011.**
   A deliverable handover to the person you built it for (distinct from the internal
   agent↔agent `HANDOFF-*`). Needs a real external delivery to shape it.
+- **Orchestration + framing cost attribution (raised 2026-07-12).** The cost model
+  meters only where there's a boundary — the **sub-agent** (`build`/`verify` tokens come
+  back in the Agent result; see the comment block in `scripts/cost-audit.sh`). Everything
+  in the **main loop** — `frame`/`design`/`ship` plus all cross-spec orchestration — is
+  nullable today, and *pre-spec* framing (deciding the stage breakdown before any spec
+  exists) has no home at all (no `stage.cost`). Net effect: recorded cost is
+  systematically **under-counted**, which quietly corrupts DEC-009's predicted-vs-realized
+  loop. Two attribution boundaries:
+  - **(a) session boundary** — a dedicated framing/orchestration session, one meter read
+    at the end → a coarse `overhead` cost line. Portable; degrades to `null` where there's
+    no meter (DEC-005). Manual but honest.
+  - **(b) sub-task boundary** — push the work into sub-agents (the *same* trick
+    `build`/`verify` already use) and define **orchestration = session total −
+    Σ(metered sub-agents)** — the top-level residual you can never sub-task to zero.
+    More elegant, but Claude-Code-specific; gate it like `metering_source`.
+
+  Lean: coarse `overhead` bucket first, per-sub-task residual later. **Don't build cold —
+  this is N=1.** It co-designs naturally *on the MCP-server project above* (orchestrating
+  sub-agents to build it produces exactly this framing+orchestration spend). Touches
+  [DEC-002](decisions/DEC-002-cost-convention.md) (cost convention),
+  [DEC-004](decisions/DEC-004-subagent-execution-mode.md) (delegated-exec cost
+  attribution), [DEC-009](decisions/DEC-009-business-value-metrics.md)
+  (predicted-vs-realized). Future home: its own DEC once it recurs.
 
 ## Candidate conventions — unearned, watching
 
+- **Productization axiom (from the "turn it into an app" discussion, 2026-07-12).**
+  When productizing *any* layer, ask *which layer*: **the discipline is the value, not
+  the artifact.** Tooling that exposes the **contract** (read / governance / orchestration,
+  `--json`, MCP) amplifies adoption; tooling that generates the **content / judgment**
+  dissolves the discipline it's meant to enforce. A rule of thumb for every future
+  "should we automate this?" call. See DEC-001 Phase 4 above.
 - **Repo-level vision + idea parking lot.** The template captures direction well
   *once* an idea is a `PROJ-NNN` brief, but has no home for pre-commitment vision or
   a candidate-idea backlog. A workspace-level `ideas.md` is the **live experiment**;
