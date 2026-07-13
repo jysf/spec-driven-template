@@ -74,6 +74,26 @@ get_project_status() {
     ' "$brief" 2>/dev/null
 }
 
+# Read project.activity from a project directory's brief.md. Empty for
+# null/missing. `activity` is an OPTIONAL, human-facing refinement of the
+# work happening *within* an `active` project (suggested, open set:
+# requirements | design | build | test | blocked) — distinct from the
+# coarse, machine-keyed `status`. Usage: get_project_activity projects/PROJ-001-foo
+get_project_activity() {
+    local brief="${1}/brief.md"
+    [ -f "$brief" ] || { echo ""; return; }
+    awk '
+        /^---$/ { f = !f; next }
+        f && /^project:/ { inp = 1; next }
+        f && inp && /^[a-zA-Z_]/ { inp = 0 }
+        f && inp && /^[[:space:]]+activity:/ {
+            v = $2
+            if (v != "null" && v != "") print v
+            exit
+        }
+    ' "$brief" 2>/dev/null
+}
+
 get_active_project() {
     if [ -n "${ACTIVE_PROJECT:-}" ]; then
         echo "${ACTIVE_PROJECT}"

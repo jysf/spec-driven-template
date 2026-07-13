@@ -31,9 +31,14 @@ fm_scalar() {
 VALID_CYCLE=" frame design build verify ship "
 VALID_PATCH_CYCLE=" patch verify ship "
 VALID_COMPLEXITY=" S M L "
+# `project.activity` is an OPEN, suggested set — not a hard enum. An
+# unrecognized value is advisory (warn-only), never a gate failure, so
+# people can extend the vocabulary (e.g. add `spike`). See DEC / AGENTS.
+SUGGESTED_ACTIVITY=" requirements design build test blocked "
 
 offenders=0
 checked=0
+activity_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -96,7 +101,25 @@ while IFS= read -r pdir; do
             offenders=$((offenders + 1))
         fi
     done < <(find_all_patches "$pdir")
+
+    # Brief `project.activity` (optional, human-facing). OPEN set: an
+    # unrecognized value is ADVISORY only — collected here, never counted
+    # as an offender, so it can never fail the gate.
+    act=$(get_project_activity "$pdir")
+    if [ -n "$act" ]; then
+        case "$SUGGESTED_ACTIVITY" in
+            *" $act "*) : ;;
+            *) activity_notes="${activity_notes}    $(basename "$pdir"): activity='${act}'"$'\n' ;;
+        esac
+    fi
 done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sort)
+
+# Advisory: an unrecognized `project.activity` (open set). Printed after
+# the gate result — never changes the exit code.
+if [ -n "$activity_notes" ]; then
+    warn "validate: unrecognized project.activity (advisory — activity is an open set, not enforced; extend it freely):"
+    printf '%s' "$activity_notes"
+fi
 
 if [ "$offenders" -gt 0 ]; then
     echo ""

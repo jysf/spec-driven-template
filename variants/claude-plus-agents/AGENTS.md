@@ -226,7 +226,16 @@ question; otherwise begin at `design`.
 
 Projects and stages have lighter lifecycles (not full cycles):
 
-- **Project status:** `proposed | active | shipped | cancelled`
+- **Project status:** `proposed | active | shipped | cancelled` — the **coarse,
+  machine-keyed** lifecycle state tooling branches on. Keep it coarse.
+- **Project `activity`** (optional): a **human-facing** refinement of the work
+  happening *within* an `active` project — `requirements | design | build | test |
+  blocked` (a suggested **open** set; extend it, e.g. `spike`). It says *what kind
+  of work is going on now* without abusing `status` or making the project look
+  stalled. Example: a project gathering requirements before any spec is framed sets
+  `status: active` + `activity: requirements`. `validate` warns on an unrecognized
+  value but never fails; downstream readers may treat some activities as quiet
+  phases (e.g. suppress "cut a release" nudges during `requirements`).
 - **Stage status:** `proposed | active | shipped | cancelled | on_hold`
 
 A stage is `active` when its first spec enters design. `shipped` when

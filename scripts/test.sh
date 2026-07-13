@@ -724,6 +724,52 @@ if [ -f projects/PROJ-001-example-mvp/specs/prompts/SPEC-001-build.md ]; then
 fi
 
 # ============================================================
+# project.activity: optional, open-set, warn-only (v0.6.15)
+# ============================================================
+ACTIVITY_BRIEF="projects/PROJ-001-example-mvp/brief.md"
+# BSD sed can't insert a newline, so add/replace/remove the activity
+# line with awk. Empty VALUE removes it.
+brief_set_activity() {  # brief_set_activity FILE VALUE
+    awk -v val="$2" '
+        /^  activity:/ { next }
+        { print }
+        /^  status:/ && val != "" && !ins { print "  activity: " val; ins = 1 }
+    ' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+# A recognized activity is valid and read back by _lib.
+brief_set_activity "$ACTIVITY_BRIEF" requirements
+just validate >/dev/null 2>&1 \
+    && pass "validate passes with a recognized project.activity" \
+    || fail "validate wrongly failed on a recognized activity"
+got_activity=$(bash -c 'source scripts/_lib.sh; get_project_activity projects/PROJ-001-example-mvp')
+assert_eq "$got_activity" "requirements" "get_project_activity reads a set value"
+
+# An UNRECOGNIZED activity must NEVER fail the gate (open set) but SHOULD
+# surface an advisory naming the value.
+brief_set_activity "$ACTIVITY_BRIEF" banana
+if just validate >/dev/null 2>&1; then
+    pass "validate never fails on an unrecognized activity (open set)"
+else
+    fail "validate wrongly failed on an unrecognized activity"
+fi
+# Capture then match (not `| grep -q`): under `set -o pipefail`, grep -q
+# closing the pipe early would SIGPIPE validate and fail the pipeline.
+activity_adv=$(just validate 2>&1 || true)
+case "$activity_adv" in
+    *"activity='banana'"*) pass "validate warns (advisory) on an unrecognized activity" ;;
+    *) fail "validate did not surface the unrecognized-activity advisory" ;;
+esac
+
+# Absent/null activity reads as empty and stays clean.
+brief_set_activity "$ACTIVITY_BRIEF" ""
+got_empty=$(bash -c 'source scripts/_lib.sh; get_project_activity projects/PROJ-001-example-mvp')
+assert_eq "$got_empty" "" "get_project_activity is empty when activity is absent"
+just validate >/dev/null 2>&1 \
+    && pass "validate clean after activity removed" \
+    || fail "validate failing after activity removed"
+
+# ============================================================
 # --json: the structured-output contract (DEC-001 §2)
 # ============================================================
 HAVE_PY3=0; command -v python3 >/dev/null 2>&1 && HAVE_PY3=1

@@ -15,7 +15,7 @@ where they overlap (see the alignment section at the end).
 - `just cost-audit` — every *shipped* spec has real build/verify cost.
 - `just decisions-audit` — `DEC-*` records are structurally sound + scope-linted.
 
-Legend: ✅ required · ◦ optional · `enum{…}` allowed values.
+Legend: ✅ required · ◦ optional · `enum{…}` allowed values · `set{…}` suggested/open values (validate warns-only on anything outside, never fails).
 
 ---
 
@@ -39,11 +39,32 @@ it enforced. See `docs/porting.md`.
 ## `projects/PROJ-*/brief.md` — a project
 
 ```
-project: { id ✅, status ✅ enum{proposed,active,shipped,cancelled}, priority ✅ enum{critical,high,medium,low}, target_ship ◦ }
+project: { id ✅, status ✅ enum{proposed,active,shipped,cancelled}, activity ◦ set{requirements,design,build,test,blocked}, priority ✅ enum{critical,high,medium,low}, target_ship ◦ }
 repo.id ✅
 created_at ✅   shipped_at ◦
 value: { thesis ◦, beneficiaries[] ◦, success_signals[] ◦, risks_to_thesis[] ◦ }
 ```
+
+**`status` vs `activity` — two axes, don't conflate them.** `status` is the
+**coarse, machine-keyed** lifecycle state that tooling branches on (keep it to the
+enum above). `activity` is an **optional, human-facing** refinement of the work
+happening *within* an `active` project — it says *what kind of work is going on
+right now* without abusing `status` or making a project look stalled. Its
+vocabulary is a **suggested open set** (`requirements | design | build | test |
+blocked`), extend it as needed (e.g. `spike`); `validate` warns on an
+unrecognized value but never fails. Example — a live project gathering
+requirements before any spec is framed:
+
+```
+project:
+  id: PROJ-006
+  status: active
+  activity: requirements
+```
+
+Downstream consumers may treat some activities as deliberately quiet phases
+(e.g. suppress "cut a release" / "close this project" nudges during
+`requirements`).
 
 ## `projects/PROJ-*/stages/STAGE-*.md` — a stage (epic)
 

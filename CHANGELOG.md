@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-12 — optional `project.activity` field (v0.6.15)
+
+Blesses `project.activity` as first-class template vocabulary. `project.status`
+was overloaded — the coarse machine-keyed lifecycle state *and* where people
+tried to say what kind of work was happening now. Those are two axes; this
+splits them. `status` stays coarse (`proposed | active | shipped | cancelled`);
+`activity` is a new **optional, human-facing** refinement of the work within an
+`active` project. Additive and backward-compatible: every existing brief with no
+`activity` stays valid. (The standup portfolio tracker already parses this field
+and treats `activity: requirements` as a deliberately-quiet phase.)
+
+### Added
+
+- **`project.activity`** in the brief scaffold (`projects/_templates/project-brief.md`,
+  both variants) — optional, defaults to `null`, with the suggested open
+  vocabulary `requirements | design | build | test | blocked`.
+- **`get_project_activity`** in `scripts/_lib.sh` — reads `project.activity`,
+  empty for `null`/missing.
+
+### Changed
+
+- **`just validate`** accepts `activity` and treats the vocabulary as an **open
+  set**: an unrecognized value is **advisory (warn-only), never a gate failure**,
+  so the set can be extended freely (e.g. `spike`).
+- **Docs** — `AGENTS.md` and `docs/schema-reference.md` (both variants) document
+  the `status`-vs-`activity` split, the suggested vocabulary, and the example.
+
+### Tests
+
+- `scripts/test.sh` asserts a recognized `activity` passes cleanly, an
+  unrecognized value still exits 0 (warn-only), and `get_project_activity` reads
+  the value / returns empty for `null`.
+
 ## 2026-07-12 — `roadmap` surfaces planned-but-unframed stages (v0.6.14)
 
 Closes harvest backlog #8. `just roadmap` rendered one row per `STAGE-*.md`
