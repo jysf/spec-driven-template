@@ -221,8 +221,8 @@ decisions, and a fresh verify session catches drift a continuation
 session wouldn't.
 
 Project and stage lifecycles are lighter:
-- **Project status:** `proposed | active | shipped | cancelled` — the **coarse,
-  machine-keyed** lifecycle state tooling branches on. Keep it coarse.
+- **Project status:** `proposed | active | on_hold | shipped | cancelled` — the
+  **coarse, machine-keyed** lifecycle state tooling branches on. Keep it coarse.
 - **Project `activity`** (optional): a **human-facing** refinement of the work
   happening *within* an `active` project — `requirements | design | build | test |
   blocked` (a suggested **open** set; extend it, e.g. `spike`). It says *what kind

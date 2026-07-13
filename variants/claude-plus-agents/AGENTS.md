@@ -226,8 +226,8 @@ question; otherwise begin at `design`.
 
 Projects and stages have lighter lifecycles (not full cycles):
 
-- **Project status:** `proposed | active | shipped | cancelled` — the **coarse,
-  machine-keyed** lifecycle state tooling branches on. Keep it coarse.
+- **Project status:** `proposed | active | on_hold | shipped | cancelled` — the
+  **coarse, machine-keyed** lifecycle state tooling branches on. Keep it coarse.
 - **Project `activity`** (optional): a **human-facing** refinement of the work
   happening *within* an `active` project — `requirements | design | build | test |
   blocked` (a suggested **open** set; extend it, e.g. `spike`). It says *what kind

@@ -4,7 +4,7 @@
 
 project:
   id: PROJ-XXX                      # stable, zero-padded, never reused
-  status: proposed                  # proposed | active | shipped | cancelled  (coarse; tooling keys on this)
+  status: proposed                  # proposed | active | on_hold | shipped | cancelled  (coarse; tooling keys on this)
   activity: null                    # optional: requirements | design | build | test | blocked
                                     #   (open set) — what work is happening now within an active project
   priority: medium                  # critical | high | medium | low

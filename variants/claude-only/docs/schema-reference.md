@@ -39,7 +39,7 @@ it enforced. See `docs/porting.md`.
 ## `projects/PROJ-*/brief.md` — a project
 
 ```
-project: { id ✅, status ✅ enum{proposed,active,shipped,cancelled}, activity ◦ set{requirements,design,build,test,blocked}, priority ✅ enum{critical,high,medium,low}, target_ship ◦ }
+project: { id ✅, status ✅ enum{proposed,active,on_hold,shipped,cancelled}, activity ◦ set{requirements,design,build,test,blocked}, priority ✅ enum{critical,high,medium,low}, target_ship ◦ }
 repo.id ✅
 created_at ✅   shipped_at ◦
 value: { thesis ◦, beneficiaries[] ◦, success_signals[] ◦, risks_to_thesis[] ◦ }

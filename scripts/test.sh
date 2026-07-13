@@ -1539,7 +1539,24 @@ if [ "$HAVE_PY3" = 1 ]; then
     ap2=$(just status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["active_project"])')
     assert_eq "$ap2" "PROJ-051-new-wave" "resolver tolerates a trailing comment on status:"
 fi
-rm -rf projects/PROJ-050-old-wave projects/PROJ-051-new-wave
+# An `on_hold` project (blessed in the coarse status enum, v0.6.16) is NOT
+# active: it must not be chosen as the active wave over a status:active one.
+mkdir -p projects/PROJ-049-paused
+cat > projects/PROJ-049-paused/brief.md <<'BRIEF'
+---
+project:
+  id: PROJ-049
+  status: on_hold
+repo:
+  id: test
+---
+# PROJ-049 paused wave
+BRIEF
+if [ "$HAVE_PY3" = 1 ]; then
+    ap3=$(just status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["active_project"])')
+    assert_eq "$ap3" "PROJ-051-new-wave" "resolver skips an on_hold project in favor of the active one"
+fi
+rm -rf projects/PROJ-049-paused projects/PROJ-050-old-wave projects/PROJ-051-new-wave
 
 # ============================================================
 # Done

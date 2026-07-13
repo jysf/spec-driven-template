@@ -2,6 +2,27 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-12 — `on_hold` added to project status (v0.6.16)
+
+Adds `on_hold` to the coarse project `status` enum:
+`proposed | active | on_hold | shipped | cancelled`. Stage status already had
+it; this brings project status into line so a wave can be explicitly paused
+without being mislabeled `proposed` or `cancelled`. Additive — `get_project_status`
+already documented `on_hold`, and `get_active_project` already treats any
+non-`active` status (now including `on_hold`) as not-the-active-wave, so no logic
+changed: this is enum + docs alignment.
+
+### Changed
+
+- **Brief scaffold** (`projects/_templates/project-brief.md`, both variants),
+  **`docs/schema-reference.md`**, and **`AGENTS.md`** (both variants) list
+  `on_hold` in the project status enum.
+
+### Tests
+
+- `scripts/test.sh` asserts an `on_hold` project is skipped by the active-project
+  resolver in favor of a `status: active` wave.
+
 ## 2026-07-12 — optional `project.activity` field (v0.6.15)
 
 Blesses `project.activity` as first-class template vocabulary. `project.status`
