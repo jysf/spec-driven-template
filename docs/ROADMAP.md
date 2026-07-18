@@ -90,10 +90,17 @@ Full ranked detail + evidence lives in
 - **#9** — a per-language "known gotchas" appendix the build prompt links (complements
   the toolchain brief). Optional.
 - **#10** — a scheduled-advisory CI convention (cron gate for vuln-DB drift). Optional.
+- **DEC-index at scale** — an auto-generated `decisions/INDEX.md` (id · title · status ·
+  supersedes) once a project passes ~25 DECs, so the decision log stays navigable and
+  cheap to cold-read. **Promoted from #14's "watching" list 2026-07-17 — now evidenced:**
+  a dogfood survey found crustyimg carries **73** DECs and bragfile **39**, both well
+  past the threshold. Ties to the `context-coldread-cost` signal; buildable now against
+  the DEC front-matter (the DEC-001 schema already gives id/status/supersedes).
 
-> With #8 shipped, **no non-speculative "now-tier" solo build remains** — #9/#10
-> are optional and everything else is co-design-with-a-real-project. The pause is
-> now clean: next leverage is *using* the template on a real project.
+> #8 shipped, and the **DEC-index fix has since earned its way in** (crustyimg's 73 DECs
+> is the wall #14 predicted) — that's the one non-speculative "now-tier" solo build now on
+> the board. #9/#10 stay optional; everything else is co-design-with-a-real-project. Next
+> leverage is still *using* the template on real projects.
 
 ## Co-design with the next project(s)
 
@@ -145,10 +152,28 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   *once* an idea is a `PROJ-NNN` brief, but has no home for pre-commitment vision or
   a candidate-idea backlog. A workspace-level `ideas.md` is the **live experiment**;
   fold a convention into the scaffold only if it earns N≥2 across projects.
+- **Where do the spec-driven artifacts live? — repo-declutter / artifact storage
+  (raised 2026-07-17).** Across many waves, shipped **specs already self-clean** to git
+  history (a dogfood survey found bragfile at 6 waves keeps 1 spec file on disk, zany 0),
+  but the **DEC log and cold-read corpus grow monotonically** (crustyimg 73 DECs). The
+  open, unanswered question: must governance/spec artifacts always live *in* the app repo?
+  This collides head-on with the deliberate **"the repo is the app"** axiom
+  ([blog](blog/2026-06-02-the-repo-is-the-app.md)) + literal-artifact-as-spec. Two honest
+  resolutions, kept strictly separate:
+  - **(a) within the axiom — better in-repo cleanup.** Archive completed waves, the
+    `decisions/INDEX.md` fix above, sub-template extraction to relieve cold-read cost
+    (ties `context-coldread-cost`). This is the template's lane; earn each piece from a
+    real project hitting the wall (crustyimg's 73 DECs is one such wall).
+  - **(b) departing from the axiom — an external artifact store** that projects into the
+    repo on demand. This does **NOT** belong in the template (it breaks the axiom the
+    template is built on); it is the natural **second pillar of the helper-app**
+    (`~/PSeven/ideas.md` #6 — "own the artifacts so they don't clutter the app repo").
+    Do not fold (b) into the template.
 - **#14 — scale-tier growth** (informational, from bragfile's scale-recs): AGENTS.md
-  cold-read cost at ~40KB, an auto `decisions/INDEX.md` past ~25 DECs,
-  constraint-linting vs honor-system, cross-project `depends_on:`. A "what breaks
-  past this scale" list, not current defects.
+  cold-read cost at ~40KB, constraint-linting vs honor-system, cross-project
+  `depends_on:`. A "what breaks past this scale" list, not current defects. *(The
+  `decisions/INDEX.md`-past-~25-DECs item graduated to the buildable backlog above,
+  2026-07-17 — crustyimg's 73 DECs made it real.)*
 
 ---
 
