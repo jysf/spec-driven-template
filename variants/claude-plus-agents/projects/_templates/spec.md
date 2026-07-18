@@ -77,6 +77,8 @@ What the implementer will produce.
 - **Files created:** `path/to/new.ext` — purpose
 - **Files modified:** `path/to/existing.ext` — what changes
 - **New endpoints / functions / components:** <names and signatures>
+- **New flags / options:** each flag's accepted values **and its default** — an
+  unstated default makes the implementer guess.
 - **Database changes:** <migrations, if any>
 
 ## Acceptance Criteria
@@ -136,3 +138,11 @@ context graph lives in the handoff file.
    *(Runtime/operational defects — the escape-prone class — only exist once the
    artifact meets its real host. `escaped` here is a signal to strengthen the
    §12 behavioral pre-flight for that surface.)*
+
+5. **What can a user do now that they couldn't before?** — one sentence,
+   before → after; quote the confirming number if one exists, name the outcome
+   if not. Write `none` if this spec has no user-visible outcome — that is a
+   real, greppable result, not a blank. This is the line a downstream work-log's
+   `impact` field is transcribed from, and both halves are already written above
+   (## Context is the before, ## Goal is the after): confirm the prediction,
+   don't reconstruct it from memory.

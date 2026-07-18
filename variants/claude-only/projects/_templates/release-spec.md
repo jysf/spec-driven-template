@@ -144,6 +144,12 @@ signing cert that expires, an env var the release runner needs.
 - **Channels published:** <list>
 - **Pre-flight run on:** <the clean host(s) used>
 - **New decisions emitted:** `DEC-NNN` (if any)
+- **Cut record (one line):** the user-facing outcome now live, plus the
+  upgrade/clean-install check that confirms the publish landed — the one line a
+  review or work-log would quote. E.g. *"v0.4.0→v0.5.0 `brew upgrade` clean;
+  MCP-install now first-class; prod DB opened, 189 entries intact."* If the
+  release is pure infra with no user-facing change, say so — a real, greppable
+  outcome, not a blank. **Appended after Phase 2**, by whoever runs the cut.
 
 ---
 

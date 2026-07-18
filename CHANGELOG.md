@@ -2,7 +2,44 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
-## 2026-07-12 — `app.just`: project recipes split from the template justfile (v0.6.18)
+## 2026-07-17 — spec Outputs: require each flag's default (v0.6.20)
+
+Small completeness fix to the spec template. Specs routinely named a flag's
+*accepted values* but not its *default*, so build had to guess — an avoidable
+ambiguity. Both variants' `spec.md` `## Outputs` now carry a **New flags /
+options** bullet requiring each flag's accepted values **and its default**.
+
+### Changed
+
+- **`spec.md` (both variants)** — added a **New flags / options** line to
+  `## Outputs`: "each flag's accepted values **and its default** — an unstated
+  default makes build guess." (claude-plus-agents says "the implementer guess",
+  matching its voice.)
+
+## 2026-07-17 — outward outcome capture: spec Q5 + release Cut record (v0.6.19)
+
+Adds the framework's missing *outward-facing* outcome sensor — the before→after a
+piece of work created for a user — at the two altitudes where work completes: the
+spec (a capability) and the release (a shipped version). Every existing feedback
+channel (`signals.yaml`, the ship reflection questions) points inward at the
+process; none captured the user-visible result, so it kept getting reinvented
+ad-hoc and dying. One outward sensor per altitude, each with a forcing `none`
+escape modeled on the greppable Q4 defect-escape question.
+
+### Added
+
+- **Spec reflection Q5 — "What can a user do now that they couldn't before?"**
+  (`## Reflection (Ship)`, both variants' `spec.md`). One sentence, before →
+  after; `none` is a real, greppable result, not a blank. It's a *confirmation*
+  task — `## Context` is the before and `## Goal` is the after, both already
+  written — and the line a downstream work-log's `impact` field is transcribed
+  from.
+- **Release Cut record** — the release's outward outcome, filled **after Phase 2**
+  by whoever runs the cut (the reflection is written in Phase 1, before the
+  publish exists, so this needs its own post-publish slot). Placed per each
+  variant's structure: a final bullet in `## Build Completion` (claude-only), a
+  new `## Cut Record` section before `## Reflection` (claude-plus-agents). The
+  release reflection questions are unchanged.
 
 Establishes a convention for where a scaffolded repo puts its own commands. The
 root `justfile` is **template-managed** — it ships with the scaffold and is meant
