@@ -523,6 +523,33 @@ get_spec_cycle() {
     ' "$file"
 }
 
+# Human title from a spec's first `# SPEC-NNN: <title>` heading (the <title>
+# part only). Separator-tolerant (`:` / em-dash / hyphen) using the same
+# one-sub-per-separator idiom as parse_stage_plan — never a bracket class, to
+# dodge BSD-awk multibyte offset hazards. Falls back to the filename slug
+# ("SPEC-001-my-thing.md" -> "my thing") so a missing or odd heading still
+# renders something useful instead of a blank column.
+# Usage: get_spec_title path/to/spec.md
+get_spec_title() {
+    local file="$1" t
+    t=$(awk '
+        /^#[[:space:]]*SPEC-[0-9]+/ {
+            title = $0
+            sub(/^#[[:space:]]*/, "", title)
+            sub(/^SPEC-[0-9]+[[:space:]]*/, "", title)   # drop the id token
+            sub(/^:[[:space:]]*/, "", title)             # colon separator
+            sub(/^—[[:space:]]*/, "", title)             # em-dash separator
+            sub(/^-[[:space:]]*/, "", title)             # hyphen fallback
+            gsub(/[[:space:]]+$/, "", title)
+            print title; exit
+        }
+    ' "$file" 2>/dev/null)
+    if [ -z "$t" ]; then
+        t=$(basename "$file" .md | sed -E 's/^SPEC-[0-9]+-?//' | tr '-' ' ')
+    fi
+    printf '%s' "$t"
+}
+
 # Extract a spec's task.type from front-matter (e.g. release, patch, story).
 # Scoped to the task: block so it can't pick up a stray `type:` elsewhere.
 # Usage: get_spec_type path/to/spec.md

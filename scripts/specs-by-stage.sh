@@ -2,7 +2,7 @@
 # scripts/specs-by-stage.sh — a flat, every-spec ledger grouped by
 # stage. Complements `status` (current state), `backlog` (what's next),
 # and `roadmap` (stage-grained counts) with the one view none of them
-# give: every spec, under its stage, with ship date and complexity.
+# give: every spec, under its stage, with title, ship date and complexity.
 #
 # Unlike roadmap/backlog (which default to the active project), this
 # defaults to ALL projects — it's a historical ledger.
@@ -124,6 +124,7 @@ if [ "$JSON_OUT" = 1 ]; then
                 case "$sf" in *-timeline.md) continue ;; esac
                 [ "$(get_spec_stage "$sf")" = "$stage_id" ] || continue
                 sid=$(basename "$sf" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+                stitle=$(get_spec_title "$sf")
                 cyc=$(get_spec_cycle "$sf"); [ -n "$cyc" ] || cyc="?"
                 cx=$(get_spec_complexity "$sf"); [ -n "$cx" ] || cx="?"
                 u=$(sum_cost_usd_for_spec "$sf"); t=$(sum_cost_tokens_for_spec "$sf")
@@ -140,6 +141,7 @@ if [ "$JSON_OUT" = 1 ]; then
                 specs_json+=("$(json_obj \
                     project "$(json_qs "$proj")" \
                     "task.id" "$(json_qs "$sid")" \
+                    title "$(json_qs "$stitle")" \
                     "project.stage" "$(json_qs "$stage_id")" \
                     "task.cycle" "$(json_qs "$cyc")" \
                     "task.complexity" "$(json_qs "$cx")" \
@@ -190,6 +192,7 @@ print_stage() {
         sstage=$(get_spec_stage "$sf")
         [ "$sstage" = "$stage_id" ] || continue
         sid=$(basename "$sf" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+        stitle=$(get_spec_title "$sf")
         cyc=$(get_spec_cycle "$sf"); [ -n "$cyc" ] || cyc="?"
         cx=$(get_spec_complexity "$sf"); [ -n "$cx" ] || cx="?"
         u=$(sum_cost_usd_for_spec "$sf"); t=$(sum_cost_tokens_for_spec "$sf")
@@ -203,10 +206,10 @@ print_stage() {
                 sdate=$(get_spec_ship_date "$sf")
                 [ -n "$sdate" ] || sdate="$shipped"
                 [ -n "$sdate" ] || sdate="—"
-                printf "    %-10s  ${GREEN}%-8s${RESET}  %-12s  %-3s  %s\n" "$sid" "shipped" "$sdate" "$cx" "$costcol"
+                printf "    %-10s  ${GREEN}%-8s${RESET}  %-12s  %-3s  %-13s  %s\n" "$sid" "shipped" "$sdate" "$cx" "$costcol" "$stitle"
                 SHIPPED=$((SHIPPED + 1)) ;;
             *)
-                printf "    %-10s  %-8s  %-12s  %-3s  %s\n" "$sid" "$cyc" "—" "$cx" "$costcol"
+                printf "    %-10s  %-8s  %-12s  %-3s  %-13s  %s\n" "$sid" "$cyc" "—" "$cx" "$costcol" "$stitle"
                 INFLIGHT=$((INFLIGHT + 1)) ;;
         esac
         any=1
@@ -235,7 +238,7 @@ case "$SCOPE" in
 esac
 
 printf "${BOLD}Specs by stage — %s${RESET}\n" "$scope_label"
-printf "${DIM}columns: spec · status · ship date · complexity · cost (usd · tokens)${RESET}\n"
+printf "${DIM}columns: spec · status · ship date · complexity · cost (usd · tokens) · title${RESET}\n"
 
 for proj in "${PROJECTS[@]}"; do
     project_dir="${REPO_ROOT}/projects/${proj}"

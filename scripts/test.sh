@@ -623,6 +623,38 @@ fi
 assert_cmd_fails "specs-by-stage rejects an unknown flag" \
     just specs-by-stage --bogus
 
+# --- spec titles (v0.6.22) — the ledger was ID-only; stages showed their slug
+# --- but specs didn't. Title renders last, untruncated, in both surfaces.
+if printf '%s\n' "$sbs_all" | grep -q "· title"; then
+    pass "specs-by-stage legend documents the title column"
+else
+    fail "specs-by-stage legend missing the title column"
+fi
+if printf '%s\n' "$sbs_all" | grep -q "Test Spec"; then
+    pass "specs-by-stage renders each spec's human title"
+else
+    fail "specs-by-stage did not render spec titles: $sbs_all"
+fi
+# --json carries it too — consumers (standup) read the title from here.
+sbs_json=$(just specs-by-stage --json 2>/dev/null)
+if printf '%s\n' "$sbs_json" | grep -q '"title"'; then
+    pass "specs-by-stage --json includes a title field"
+else
+    fail "specs-by-stage --json missing the title field"
+fi
+if printf '%s\n' "$sbs_json" | grep -q 'Test Spec'; then
+    pass "specs-by-stage --json title carries the real value"
+else
+    fail "specs-by-stage --json title value missing"
+fi
+# get_spec_title degrades to the filename slug when the H1 is absent/odd.
+fb_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'spectitle')
+printf -- '---\ntask:\n  id: SPEC-999\n---\n\nno heading here\n' \
+    > "${fb_dir}/SPEC-999-fallback-slug-title.md"
+fb_title=$(bash -c "source scripts/_lib.sh; get_spec_title '${fb_dir}/SPEC-999-fallback-slug-title.md'")
+assert_eq "$fb_title" "fallback slug title" "get_spec_title falls back to the filename slug"
+rm -rf "$fb_dir"
+
 # ============================================================
 # decisions-audit: lint + scope auditing
 # ============================================================

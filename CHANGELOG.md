@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-18 — `specs-by-stage` shows each spec's title (v0.6.22)
+
+`just specs-by-stage` rendered specs as bare IDs — `SPEC-002  shipped  2026-07-18
+M  $1.15 174k` — with no way to tell what a spec *was* without opening it. The
+inconsistency was visible in the same output: stages render their full slug
+(`STAGE-001-core-substrate`) while specs were truncated to the ID. Reported from
+the skillport-lint dogfood.
+
+### Added
+
+- **`get_spec_title`** in `scripts/_lib.sh` — reads the human title from a spec's
+  first `# SPEC-NNN: <title>` heading. Separator-tolerant (`:` / em-dash /
+  hyphen) using the same one-`sub`-per-separator idiom as `parse_stage_plan`
+  (never a bracket class — BSD-awk multibyte offsets). Falls back to the filename
+  slug (`SPEC-001-my-thing.md` → `my thing`) so a missing or odd heading still
+  renders something useful.
+
+### Changed
+
+- **`just specs-by-stage`** renders the title as the **last** column, untruncated
+  — the ID / date / complexity / cost columns stay aligned for scanning, and long
+  titles are never cut (the truncation complaint already logged against
+  `backlog`). Legend updated to `… · cost (usd · tokens) · title`.
+- **`specs-by-stage --json`** gains a `title` field per spec. Additive, so it's a
+  backward-compatible contract change — downstream consumers (standup) get spec
+  titles for free.
+
+### Tests
+
+- `scripts/test.sh` asserts the legend documents the column, the human render
+  carries a real title, `--json` emits the field *and* its value, and
+  `get_spec_title` degrades to the filename slug when the heading is absent.
+
 ## 2026-07-18 — `just init` offers a fresh git history + provenance (v0.6.21)
 
 A repo cloned from the template used to carry the template's entire commit
