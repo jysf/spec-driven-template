@@ -64,11 +64,24 @@ init:
     echo "" && \
     echo "✓ Done. Your variant: $VARIANT" && \
     echo "" && \
+    { printf "Start with a fresh git history? (removes template history) [y/N]: "; read fresh_choice || true; } && \
+    if [ "${fresh_choice:-}" = "y" ] || [ "${fresh_choice:-}" = "Y" ]; then \
+        ./scripts/fresh-history.sh -y; \
+    else \
+        echo "  (kept existing git history — run 'just fresh-start' later to reset)"; \
+    fi && \
+    echo "" && \
     echo "Next steps:" && \
     echo "  1. Open GETTING_STARTED.md" && \
     echo "  2. Work through the PROJECT FRAME prompt in FIRST_SESSION_PROMPTS.md" && \
-    echo "  3. Commit the scaffolded repo:" && \
-    echo "       git add . && git commit -m 'chore: initialize spec-driven scaffold'"
+    echo "  3. Commit your work (skip if you reset history above — that already" && \
+    echo "     made the first commit):  git add . && git commit -m 'chore: scaffold'"
+
+# Start a fresh git history for a NEW project (discards the template's history,
+# stamps provenance). Run once after init if you cloned rather than used
+# GitHub's "Use this template". Guarded + interactive; see scripts/fresh-history.sh.
+fresh-start:
+    @./scripts/fresh-history.sh
 
 # List the available variants (useful before init)
 list-variants:

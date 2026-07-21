@@ -123,6 +123,42 @@ esac
 # runs with `import? 'app.just'` active in the scaffolded justfile.
 
 # ============================================================
+# 1c) fresh-history: reset git history + stamp provenance (v0.6.21)
+# ============================================================
+# Run the script against an ISOLATED throwaway repo (never the scaffold's own
+# git) so it can't disturb later git-dependent checks.
+FH_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'fresh-history-test')
+(
+    cd "$FH_DIR" || exit 1
+    git init -q
+    printf 'a\n' > f && git add -A \
+        && git -c user.email=t@t -c user.name=t commit -q -m "template commit 1"
+    printf 'b\n' >> f \
+        && git -c user.email=t@t -c user.name=t commit -qam "template commit 2"
+    printf '9.9.9\n' > VERSION
+    git remote add origin https://example.com/some-template.git
+    # -y skips the confirm; identity resolves from the repo/global config.
+    bash "$TEMPLATE_ROOT/scripts/fresh-history.sh" -y >/dev/null 2>&1
+) || true
+# History collapsed to exactly one commit.
+fh_count=$(git -C "$FH_DIR" rev-list --count HEAD 2>/dev/null || echo "?")
+assert_eq "$fh_count" "1" "fresh-history: git history reset to a single commit"
+# Provenance (template version + source remote) is stamped in that commit.
+fh_msg=$(git -C "$FH_DIR" log -1 --format='%B' 2>/dev/null || echo "")
+case "$fh_msg" in
+    *"spec-driven-template 9.9.9"*) pass "fresh-history: initial commit stamps template version" ;;
+    *) fail "fresh-history: initial commit missing template-version provenance" ;;
+esac
+case "$fh_msg" in
+    *"some-template.git"*) pass "fresh-history: initial commit records the origin template remote" ;;
+    *) fail "fresh-history: initial commit missing origin-template provenance" ;;
+esac
+# Lands on 'main'.
+fh_branch=$(git -C "$FH_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+assert_eq "$fh_branch" "main" "fresh-history: fresh repo is on 'main'"
+rm -rf "$FH_DIR"
+
+# ============================================================
 # 2) init: re-run guard
 # ============================================================
 assert_cmd_fails "re-running init (AGENTS.md present) fails" just init

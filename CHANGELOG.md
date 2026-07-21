@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-18 — `just init` offers a fresh git history + provenance (v0.6.21)
+
+A repo cloned from the template used to carry the template's entire commit
+history into every new project, and the reset was a manual `rm -rf .git && git
+init` you had to remember (README Option B). Now `just init` handles it and
+records where you came from.
+
+### Added
+
+- **`scripts/fresh-history.sh`** + **`just fresh-start`** — guarded, one-time git
+  history reset for a NEW project. Captures provenance (template version + source
+  commit + origin) and resolves the committer identity *before* anything
+  destructive (so it can't wipe history then fail to commit), then `rm -rf .git`,
+  re-inits on `main`, and makes an initial commit whose message records
+  `Scaffolded from spec-driven-template <version> (<sha>)`.
+
+### Changed
+
+- **`just init`** now asks *"Start with a fresh git history? [y/N]"* after
+  scaffolding (default **No**, EOF-safe so piped/non-interactive init is
+  unaffected). On yes it runs the reset with provenance; on no it points at
+  `just fresh-start` for later. GitHub's "Use this template" already gives a clean
+  history, so that path answers No.
+- **README** "Using this template" updated: Option B drops the manual `rm -rf .git`
+  step — `just init` offers it.
+
+### Tests
+
+- `scripts/test.sh` runs `fresh-history.sh` against an isolated throwaway repo and
+  asserts history collapses to a single commit on `main` with template-version +
+  origin provenance stamped in the message. (Init's default-No path is already
+  covered by the piped-init checks.)
+
 ## 2026-07-17 — spec Outputs: require each flag's default (v0.6.20)
 
 Small completeness fix to the spec template. Specs routinely named a flag's

@@ -28,16 +28,17 @@ Click **"Use this template"** at the top of this repo on GitHub. Create your new
 just init
 ```
 
-This asks whether you want the `claude-only` or `claude-plus-agents` variant, then moves the right files to the repo root and removes what you don't need.
+This asks whether you want the `claude-only` or `claude-plus-agents` variant, moves the right files to the repo root, and removes what you don't need. GitHub's template feature already gives you a clean history, so answer **N** when `init` offers to reset it.
 
-**Option B — Clone and delete git:**
+**Option B — Clone directly:**
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/THIS-TEMPLATE.git my-new-repo
 cd my-new-repo
-rm -rf .git && git init
-just init
+just init      # answer 'y' when it offers a fresh git history
 ```
+
+On a clone, `just init` asks whether to **start a fresh git history** — answer **y** to discard the template's commits and begin your project on a clean `main`. It records which template version you came from in the initial commit (provenance). You can also do this later with `just fresh-start`.
 
 ## After `just init`
 
