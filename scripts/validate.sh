@@ -39,6 +39,7 @@ SUGGESTED_ACTIVITY=" requirements design build test blocked "
 offenders=0
 checked=0
 activity_notes=""
+depends_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -64,6 +65,17 @@ while IFS= read -r pdir; do
 
         cx=$(fm_scalar "$f" task complexity)
         case "$VALID_COMPLEXITY" in *" $cx "*) : ;; *) problems="${problems} task.complexity(='${cx:-∅}')" ;; esac
+
+        # `depends_on:` refs. ADVISORY only — a dangling ref is collected here and
+        # never counted as an offender, so a spec that names a not-yet-created
+        # dependency (the normal case while framing a stage) can't fail the gate.
+        while IFS= read -r dep; do
+            [ -n "$dep" ] || continue
+            if ! find "${pdir}/specs" -maxdepth 2 -type f -name "${dep}-*.md" \
+                    ! -name '*-timeline.md' 2>/dev/null | grep -q .; then
+                depends_notes="${depends_notes}    ${name}: depends_on '${dep}' (no such spec yet)"$'\n'
+            fi
+        done < <(get_spec_depends_on "$f")
 
         checked=$((checked + 1))
         if [ -n "$problems" ]; then
@@ -119,6 +131,13 @@ done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/
 if [ -n "$activity_notes" ]; then
     warn "validate: unrecognized project.activity (advisory — activity is an open set, not enforced; extend it freely):"
     printf '%s' "$activity_notes"
+fi
+
+# Advisory: a depends_on ref with no matching spec yet. Never changes the exit code
+# — naming a dependency before it's written is normal while framing a stage.
+if [ -n "$depends_notes" ]; then
+    warn "validate: depends_on references a spec that doesn't exist yet (advisory — not enforced):"
+    printf '%s' "$depends_notes"
 fi
 
 if [ "$offenders" -gt 0 ]; then

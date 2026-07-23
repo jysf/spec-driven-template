@@ -550,6 +550,69 @@ get_spec_title() {
     printf '%s' "$t"
 }
 
+# Blocking dependencies from a spec's top-level `depends_on:` — the specs that
+# must SHIP before this one (distinct from references.related_specs, which is
+# informational). Handles both inline (`depends_on: [SPEC-002, SPEC-003]`) and
+# block-list YAML. One SPEC-ID per line; empty if none/`[]`.
+# Usage: get_spec_depends_on path/to/spec.md
+get_spec_depends_on() {
+    awk '
+        /^---$/ { f = !f; next }
+        !f { next }
+        /^depends_on:/ {
+            if ($0 ~ /\[/) {                              # inline: [SPEC-002, SPEC-003]
+                s = $0; sub(/^depends_on:[[:space:]]*\[/, "", s); sub(/\].*/, "", s)
+                n = split(s, a, /,/)
+                for (i = 1; i <= n; i++) { gsub(/[[:space:]"]/, "", a[i]); if (a[i] != "") print a[i] }
+                exit
+            }
+            blk = 1; next
+        }
+        blk && /^[[:space:]]*-[[:space:]]*/ {
+            g = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", g); sub(/[[:space:]]+#.*/, "", g)
+            gsub(/[[:space:]"]/, "", g); if (g != "") print g; next
+        }
+        blk && /^[^[:space:]-]/ { exit }                  # next top-level key ends the block
+    ' "$1"
+}
+
+# Who/what currently holds a spec (the fan-out lease). Top-level `claimed_by:`,
+# empty for null/missing/unclaimed. Advisory — the hard lock for parallel work
+# is worktree/branch existence; this is the declarative "who's on it" marker.
+# Usage: get_spec_claimed_by path/to/spec.md
+get_spec_claimed_by() {
+    awk '/^---$/{f=!f;next} !f{next} /^claimed_by:/{v=$2; if(v!="null"&&v!="")print v; exit}' "$1"
+}
+
+# True (0) if the spec with SPEC-ID is shipped in the given project dir: either
+# archived under specs/done/ or carrying task.cycle: ship. Used by the ready-set.
+# Usage: spec_is_shipped SPEC-002 projects/PROJ-001-foo
+spec_is_shipped() {
+    local id="$1" pdir="$2" sf
+    sf=$(find "${pdir}/specs" -maxdepth 2 -type f -name "${id}-*.md" ! -name '*-timeline.md' 2>/dev/null | sort | head -n1)
+    [ -n "$sf" ] || return 1
+    case "$sf" in */done/*) return 0 ;; esac
+    [ "$(get_spec_cycle "$sf")" = "ship" ] && return 0
+    return 1
+}
+
+# Set a top-level front-matter scalar KEY to VALUE, in place. Replaces the line
+# if the key already exists in the front-matter; otherwise inserts it just before
+# the closing `---` (no field reordering, so diffs stay minimal).
+# Usage: set_fm_scalar path/to/spec.md claimed_by alice
+set_fm_scalar() {
+    local file="$1" key="$2" val="$3" tmp="${1}.fmtmp.$$"
+    awk -v k="$key" -v v="$val" '
+        /^---$/ {
+            fmc++
+            if (fmc == 2 && !seen) print k ": " v   # not found in FM → insert before close
+            print; next
+        }
+        fmc == 1 && $0 ~ ("^" k ":") { print k ": " v; seen = 1; next }
+        { print }
+    ' "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
 # Extract a spec's task.type from front-matter (e.g. release, patch, story).
 # Scoped to the task: block so it can't pick up a stray `type:` elsewhere.
 # Usage: get_spec_type path/to/spec.md

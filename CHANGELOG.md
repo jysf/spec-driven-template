@@ -2,6 +2,47 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-18 — `depends_on` + the ready set + spec claims (v0.6.23)
+
+The fan-out data foundation. "Can these two specs run in parallel?" was a
+judgment call every agent re-made and could get wrong. Now it's **computed**: with
+dependencies declared, the parallel batch is just the ready set. Steps 1–2 of the
+fan-out ladder, plus the atomic-claim primitive (the idea worth stealing from
+[beads](https://github.com/gastownhall/beads), which converged on the same
+`dep` / `ready` / `--claim` triple independently).
+
+### Added
+
+- **`depends_on:`** on specs (both variants) — *blocking* dependencies: specs that
+  must SHIP before this one. Distinct from `references.related_specs`
+  (informational). `get_spec_depends_on` in `_lib.sh` reads both inline
+  (`[SPEC-002, SPEC-003]`) and block-list YAML.
+- **`claimed_by:`** on specs (both variants) + **`just claim SPEC-NNN <who>`** /
+  **`just unclaim SPEC-NNN`** — the fan-out lease, so two agents don't grab the
+  same spec. Claiming a spec someone else holds **fails** (`--force` steals it).
+  Advisory by design: the hard lock for parallel work is the worktree/branch an
+  agent creates; this is the declarative marker that projects back into the spec.
+- **`just ready`** (`scripts/ready.sh`) — the READY SET: in-flight specs whose
+  dependencies have all shipped and that nobody holds. Also lists what each
+  blocked spec waits on. `--all` / `PROJ-NNN` scopes, plus `--json` (state,
+  `blocked_by[]`, `claimed_by`, totals) so an orchestrator can dispatch from it.
+- **`set_fm_scalar`** + **`spec_is_shipped`** helpers in `_lib.sh`. `set_fm_scalar`
+  replaces a front-matter key in place (inserting before the closing `---` only if
+  absent), so claiming never reorders fields and diffs stay minimal.
+
+### Changed
+
+- **`just validate`** reports a `depends_on` ref with no matching spec as
+  **advisory** — never a gate failure. Naming a dependency before it's written is
+  normal while framing a stage (same open-set posture as `project.activity`).
+- **`docs/schema-reference.md`** (both variants) documents both new fields.
+
+### Tests
+
+- `scripts/test.sh` +9 checks: the inline-list reader; a dependency blocks;
+  shipping it unblocks; claim writes / excludes from ready / refuses a second
+  claimant; unclaim clears; a dangling ref stays advisory and is surfaced.
+
 ## 2026-07-18 — `specs-by-stage` shows each spec's title (v0.6.22)
 
 `just specs-by-stage` rendered specs as bare IDs — `SPEC-002  shipped  2026-07-18

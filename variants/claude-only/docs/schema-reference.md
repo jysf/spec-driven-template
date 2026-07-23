@@ -83,6 +83,8 @@ task: { id ✅, type ✅ enum{epic,story,task,bug,chore,release}, cycle ✅ enum
 project: { id ✅, stage ✅ }            repo.id ✅
 agents: { architect ◦, implementer ◦, created_at ◦ }
 references: { decisions[] ◦, constraints[] ◦, related_specs[] ◦ }
+depends_on[] ◦   # blocking: specs that must SHIP first (feeds `just ready`)
+claimed_by ◦     # fan-out lease: who holds this spec now; null = free
 value_link ◦
 cost: …                                 ◦ structurally; ✅ on shipped specs via cost-audit
 ```

@@ -12,6 +12,40 @@ Full ranked detail + evidence lives in
 
 ## Proposed — awaiting a real project to validate
 
+- **Closing / ending a project (raised 2026-07-18).** The template is strong on
+  *starting* a wave (frame → brief → stage plan) and near-silent on *ending* one.
+  Today closing is manual and easy to half-do: flip `status`, maybe stamp
+  `shipped_at`, maybe fill the Project-Level Reflection. Nothing checks it, and
+  nothing distinguishes the ways a project can end. Ideas to shape:
+  - **Name the end states honestly.** `shipped` (delivered the thesis) is not the
+    only ending. A project can be **abandoned** (stopped, thesis unproven),
+    **superseded** (its thesis moved into another project), or **parked**
+    (`on_hold`, may resume). Today `cancelled` flattens all three, which destroys
+    the most interesting signal — *why* work stops. Cheap fix: keep the coarse
+    enum, add an optional `closed_reason:` (open set, warn-only — the
+    `activity` precedent).
+  - **A guided `just close-project`** — the ritual, not just a status flip:
+    refuse (or loudly warn) while specs are still in flight; stamp `shipped_at`;
+    prompt the Project-Level Reflection; force the open **signals** to a
+    disposition (the v0.5.18 close ritual already says dispositions happen at
+    project close — nothing enforces it); print the final cost + value rollup.
+  - **Predicted-vs-realized at close** — the natural home for
+    [DEC-009](decisions/DEC-009-business-value-metrics.md)'s loop: compare the
+    brief's `value.thesis` / `success_signals` against what actually shipped, and
+    record time-to-value (`created_at` → `shipped_at`). Closing is the *only*
+    moment the whole wave is knowable.
+  - **A "ready to close" calm state** — a project whose specs are all shipped is
+    *informational*, not a nag. (standup currently raises a `NEEDS_CLOSE` warning;
+    its own lifecycle proposal wants this downgraded. Producer-side support here
+    would settle it for every consumer.)
+  - **Where the artifacts go** — closing is the natural trigger for the
+    client/delivery handover (#11) and ties to the open "where do spec-driven
+    artifacts live / repo declutter" question. A closed project probably wants to
+    stop cluttering active views without being deleted.
+  - **Don't over-build:** the honest minimum is *(a)* `closed_reason:` and *(b)* a
+    close checklist in `AGENTS.md`. The `just close-project` command should earn
+    itself on a real close, not be built cold.
+
 - **[DEC-011](decisions/DEC-011-roadmap-structure.md) — roadmap structure
   (drafted 2026-07-13, proposed).** Unifies the two roadmaps that already exist and
   disagree: the template's **derived** roadmap (`just roadmap` = framed + planned

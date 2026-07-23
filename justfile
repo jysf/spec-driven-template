@@ -196,6 +196,21 @@ dash *ARGS:
 backlog *FLAGS:
     @./scripts/backlog.sh {{FLAGS}}
 
+# The READY SET: in-flight specs whose `depends_on:` have all shipped
+# and that nobody holds. What to pick up next — and, because it's
+# computed rather than guessed, the safely-parallel batch for sub-agents.
+ready *FLAGS:
+    @./scripts/ready.sh {{FLAGS}}
+
+# Take a spec's fan-out lease so the ready-set skips it and two agents
+# don't grab the same work. Advisory; `--force` steals a held claim.
+claim SPEC WHO *FLAGS:
+    @./scripts/claim.sh claim {{SPEC}} {{WHO}} {{FLAGS}}
+
+# Release a spec's lease.
+unclaim SPEC:
+    @./scripts/claim.sh unclaim {{SPEC}}
+
 # Stage-grained "where is this project going" view: one row per
 # stage in the active project with status, date range, and (for
 # active/upcoming) spec counts.

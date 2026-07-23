@@ -623,6 +623,70 @@ fi
 assert_cmd_fails "specs-by-stage rejects an unknown flag" \
     just specs-by-stage --bogus
 
+# ============================================================
+# depends_on + ready set + claim (v0.6.23) — the fan-out data foundation
+# ============================================================
+just new-spec "Alpha base" STAGE-002 >/dev/null 2>&1
+just new-spec "Beta needs alpha" STAGE-002 >/dev/null 2>&1
+DEP_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-alpha-base.md' | head -1)
+DEP_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-beta-needs-alpha.md' | head -1)
+DEP_A_ID=$(basename "$DEP_A" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+sed_inplace_portable "s/^depends_on: \[\]/depends_on: [${DEP_A_ID}]/" "$DEP_B"
+
+# The reader handles the inline list form.
+got_dep=$(bash -c "source scripts/_lib.sh; get_spec_depends_on '$DEP_B'")
+assert_eq "$got_dep" "$DEP_A_ID" "get_spec_depends_on reads an inline dependency list"
+
+# Ready set: B is BLOCKED while A is unshipped.
+ready_out=$(just ready 2>&1)
+if printf '%s\n' "$ready_out" | grep -qE "waits on ${DEP_A_ID}"; then
+    pass "ready: a spec with an unshipped dependency is blocked"
+else
+    fail "ready: dependency did not block: $ready_out"
+fi
+
+# Claim removes a spec from the ready set; a second claimant is refused.
+just claim "$DEP_A_ID" alice >/dev/null 2>&1
+got_claim=$(bash -c "source scripts/_lib.sh; get_spec_claimed_by '$DEP_A'")
+assert_eq "$got_claim" "alice" "claim writes claimed_by"
+ready_claimed=$(just ready 2>&1)
+if printf '%s\n' "$ready_claimed" | grep -qE "1 claimed"; then
+    pass "ready: a claimed spec is counted out of the ready set"
+else
+    fail "ready: claimed spec not excluded: $ready_claimed"
+fi
+assert_cmd_fails "claim refuses a spec already held by someone else" \
+    just claim "$DEP_A_ID" bob
+just unclaim "$DEP_A_ID" >/dev/null 2>&1
+got_unclaim=$(bash -c "source scripts/_lib.sh; get_spec_claimed_by '$DEP_A'")
+assert_eq "$got_unclaim" "" "unclaim clears claimed_by"
+
+# Shipping the dependency unblocks the dependent.
+sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$DEP_A"
+ready_after=$(just ready 2>&1)
+if printf '%s\n' "$ready_after" | grep -qE "0 blocked"; then
+    pass "ready: shipping a dependency unblocks its dependent"
+else
+    fail "ready: dependent still blocked after dep shipped: $ready_after"
+fi
+
+# A dangling depends_on ref is ADVISORY — it must never fail the gate.
+sed_inplace_portable "s/^depends_on: \[${DEP_A_ID}\]/depends_on: [SPEC-909]/" "$DEP_B"
+if just validate >/dev/null 2>&1; then
+    pass "validate never fails on a dangling depends_on ref (advisory)"
+else
+    fail "validate wrongly failed on a dangling depends_on ref"
+fi
+dep_adv=$(just validate 2>&1 || true)
+case "$dep_adv" in
+    *"SPEC-909"*) pass "validate surfaces the dangling depends_on advisory" ;;
+    *) fail "validate did not surface the dangling depends_on advisory" ;;
+esac
+# Clean up so later scopes/counts aren't perturbed.
+rm -f "$DEP_A" "$DEP_B"
+rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-alpha-base-timeline.md \
+      projects/PROJ-001-example-mvp/specs/SPEC-*-beta-needs-alpha-timeline.md 2>/dev/null || true
+
 # --- spec titles (v0.6.22) — the ledger was ID-only; stages showed their slug
 # --- but specs didn't. Title renders last, untruncated, in both surfaces.
 if printf '%s\n' "$sbs_all" | grep -q "· title"; then

@@ -27,6 +27,15 @@ references:
   constraints: []                  # [constraint-id-1, constraint-id-2]
   related_specs: []                # [SPEC-NNN]
 
+# Blocking dependencies: specs that must SHIP before this one can start.
+# Distinct from references.related_specs (informational). Feeds the ready-set
+# (`just ready`) and safe fan-out. Optional; [] = no blockers.
+depends_on: []                     # e.g. [SPEC-002]
+
+# Fan-out lease — who/what holds this spec now (`just claim` / `just unclaim`).
+# Advisory; null = free. The hard lock for parallel agents is the worktree/branch.
+claimed_by: null
+
 # One sentence on what this spec contributes to its stage's
 # value_contribution. For plumbing: "infrastructure enabling
 # STAGE-XXX's <capability>". Optional; null is acceptable.
