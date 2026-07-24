@@ -67,6 +67,24 @@ out in this cut, and the version/tag you intend to publish.
   release produces — this decides which pre-flight categories below apply, and
   which version scheme fits (semver for a library/public API; calver otherwise).
 
+## Release Notes
+
+*Outward-facing — written for whoever USES this, not for contributors. Distinct
+from the CHANGELOG (the record of what changed) and from the Reflection below
+(internal learning).*
+
+**Seed it, don't write it from scratch:** run `just release-notes` — it assembles
+each shipped spec's outward outcome (Reflection Q5). Then edit: lead with the
+headline, group related items, drop the SPEC ids. Specs that answered `none` have
+no user-visible outcome and are correctly absent — do not back-fill them.
+
+**Headline:** <the single thing a user most gains from this release>
+
+- <capability — before → after, with the confirming number if one exists>
+- <...>
+
+**Breaking / action required:** <none | what broke and what the user must do>
+
 ## Release cut is two-phase
 
 A release session **cannot finish in one pass** — the irreversible tag/publish is

@@ -196,6 +196,12 @@ dash *ARGS:
 backlog *FLAGS:
     @./scripts/backlog.sh {{FLAGS}}
 
+# Assemble OUTWARD-facing release notes from what shipped specs already
+# recorded (each spec's Reflection Q5). Scope: active project, a STAGE-NNN,
+# a PROJ-NNN, or --all. `--prompt` wraps them in a synthesis ask.
+release-notes *ARGS:
+    @./scripts/release-notes.sh {{ARGS}}
+
 # The READY SET: in-flight specs whose `depends_on:` have all shipped
 # and that nobody holds. What to pick up next — and, because it's
 # computed rather than guessed, the safely-parallel batch for sub-agents.

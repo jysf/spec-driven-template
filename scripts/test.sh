@@ -624,6 +624,61 @@ assert_cmd_fails "specs-by-stage rejects an unknown flag" \
     just specs-by-stage --bogus
 
 # ============================================================
+# release-notes (v0.6.24) — assembled from each spec's outward outcome (Q5)
+# ============================================================
+# The Q5 answer slot must exist, or the outcome can't be recorded at all.
+assert_contains "projects/_templates/spec.md" "answer \| none" \
+    "spec template gives Reflection Q5 an answer slot"
+
+just new-spec "Export to CSV" STAGE-002 >/dev/null 2>&1
+RN_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-export-to-csv.md' | head -1)
+sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$RN_A"
+sed_inplace_portable "s/^   — <answer | none>/   — Users can export a report to CSV; before they retyped it by hand./" "$RN_A"
+just new-spec "Internal refactor" STAGE-002 >/dev/null 2>&1
+RN_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-internal-refactor.md' | head -1)
+sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$RN_B"
+sed_inplace_portable "s/^   — <answer | none>/   — none/" "$RN_B"
+
+got_outcome=$(bash -c "source scripts/_lib.sh; get_spec_outcome '$RN_A'")
+case "$got_outcome" in
+    *"export a report to CSV"*) pass "get_spec_outcome reads the Q5 outward outcome" ;;
+    *) fail "get_spec_outcome did not read Q5: '$got_outcome'" ;;
+esac
+# `none` and the unfilled placeholder both yield empty — they stay OUT of notes.
+got_none=$(bash -c "source scripts/_lib.sh; get_spec_outcome '$RN_B'")
+assert_eq "$got_none" "" "get_spec_outcome treats 'none' as no outcome"
+
+rn_out=$(just release-notes 2>&1)
+if printf '%s\n' "$rn_out" | grep -q "export a report to CSV"; then
+    pass "release-notes assembles a shipped spec's outcome"
+else
+    fail "release-notes missing the outcome: $rn_out"
+fi
+if printf '%s\n' "$rn_out" | grep -q "Internal refactor"; then
+    fail "release-notes wrongly included a 'none' spec"
+else
+    pass "release-notes excludes specs with no user-visible outcome"
+fi
+if printf '%s\n' "$rn_out" | grep -qE "had no user-visible outcome"; then
+    pass "release-notes counts the silent specs (silence is visible, not lost)"
+else
+    fail "release-notes did not report the no-outcome count: $rn_out"
+fi
+# --prompt wraps the same notes in a synthesis ask.
+rn_prompt=$(just release-notes --prompt 2>&1)
+if printf '%s\n' "$rn_prompt" | grep -q "copy everything below this line"; then
+    pass "release-notes --prompt emits the synthesis ask"
+else
+    fail "release-notes --prompt missing the synthesis header"
+fi
+# The release-spec carries the one authored, outward-facing home.
+assert_contains "projects/_templates/release-spec.md" "## Release Notes" \
+    "release-spec template has a Release Notes section"
+rm -f "$RN_A" "$RN_B"
+rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-export-to-csv-timeline.md \
+      projects/PROJ-001-example-mvp/specs/SPEC-*-internal-refactor-timeline.md 2>/dev/null || true
+
+# ============================================================
 # depends_on + ready set + claim (v0.6.23) — the fan-out data foundation
 # ============================================================
 just new-spec "Alpha base" STAGE-002 >/dev/null 2>&1

@@ -2,6 +2,45 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-18 — release notes, assembled not re-authored (v0.6.24)
+
+Release notes are now part of the process at every altitude. The governing
+principle is **capture once, assemble many**: the outward outcome is already
+recorded per spec (Reflection Q5, v0.6.19), so notes are *derived* rather than
+written a third time — writing them again would guarantee drift.
+
+Three audiences, three artifacts, deliberately not collapsed: **release notes**
+(whoever USES the thing) · **CHANGELOG** (the record of what changed) ·
+**Reflection Q1–Q3** (internal learning).
+
+### Fixed
+
+- **Reflection Q5 had no answer slot.** Q1–Q4 each end with a `— <answer>` line;
+  Q5 (added v0.6.19) did not — so despite promising "a real, greppable result,"
+  there was nowhere structured to record the outcome and it could not be
+  assembled. Both variants now carry `— <answer | none>`. This was the
+  prerequisite for everything below.
+
+### Added
+
+- **`just release-notes`** (`scripts/release-notes.sh`) — assembles outward-facing
+  notes from each shipped spec's Q5, grouped by stage. Scope: active project, a
+  `STAGE-NNN`, a `PROJ-NNN`, or `--all`. `--prompt` wraps the same notes in a
+  synthesis ask (the `lifetime-report` data/prompt split); `--json` for consumers.
+- **`get_spec_outcome`** in `_lib.sh` — reads Q5, returning empty for both the
+  unfilled placeholder and an explicit `none`, so infrastructure specs stay out of
+  notes. The count of no-outcome specs is still **reported**, so silence is
+  visible rather than lost.
+- **`## Release Notes`** in `release-spec.md` (both variants) — the one *authored*
+  home, at the release altitude, where a headline, grouping, and breaking-change
+  callouts get added. Seeded by `just release-notes`, not written from scratch.
+
+### Tests
+
+- `scripts/test.sh` +8 checks: the Q5 slot exists; the reader reads a real outcome
+  and treats `none` as none; notes assemble, exclude `none` specs, and report the
+  silent count; `--prompt` emits the ask; the release-spec section ships.
+
 ## 2026-07-18 — `depends_on` + the ready set + spec claims (v0.6.23)
 
 The fan-out data foundation. "Can these two specs run in parallel?" was a

@@ -596,6 +596,27 @@ spec_is_shipped() {
     return 1
 }
 
+# The OUTWARD OUTCOME from a spec's ship Reflection Q5 ("What can a user do now
+# that they couldn't before?") — the one line release notes are assembled from.
+# Returns empty when the slot is still the `<…>` placeholder or the spec answered
+# `none` (no user-visible outcome): both correctly keep it OUT of release notes,
+# which is exactly why `none` is a real recorded value rather than a blank.
+# Usage: get_spec_outcome path/to/spec.md
+get_spec_outcome() {
+    awk '
+        /^5\. \*\*What can a user do now/ { q = 1; next }
+        q && /^[0-9]+\. \*\*/ { exit }          # next numbered question ends the block
+        q && /^## / { exit }                     # next section ends the block
+        q && /^[[:space:]]*—[[:space:]]/ {
+            a = $0
+            sub(/^[[:space:]]*—[[:space:]]*/, "", a)
+            gsub(/[[:space:]]+$/, "", a)
+            if (a == "none" || a ~ /^</) exit    # unfilled or explicitly no outcome
+            print a; exit
+        }
+    ' "$1"
+}
+
 # Set a top-level front-matter scalar KEY to VALUE, in place. Replaces the line
 # if the key already exists in the front-matter; otherwise inserts it just before
 # the closing `---` (no field reordering, so diffs stay minimal).

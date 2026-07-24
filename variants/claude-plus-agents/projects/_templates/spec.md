@@ -155,3 +155,4 @@ context graph lives in the handoff file.
    `impact` field is transcribed from, and both halves are already written above
    (## Context is the before, ## Goal is the after): confirm the prediction,
    don't reconstruct it from memory.
+   — <answer | none>
