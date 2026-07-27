@@ -57,6 +57,15 @@ fi
 # (the non-judgment-laden half of ship bookkeeping — dogfood harvest).
 write_cost_totals "$TARGET"
 
+# Ship is the only moment the ACTUAL size is knowable, so it's the only moment
+# worth asking. Advisory — an unrecorded actual never blocks an archive; the
+# estimation loop is a feedback loop, not a gate.
+if [ -z "$(get_spec_complexity_actual "$TARGET")" ]; then
+    EXPECTED=$(get_spec_complexity "$TARGET")
+    echo "${DIM}No task.complexity_actual recorded (expected was '${EXPECTED:-?}'). Stamp what it"
+    echo "  actually took — XS|S|M|L|XL|XXL — so \`just calibration\` can show your drift.${RESET}"
+fi
+
 # Co-archive the timeline file if one exists. The timeline is an
 # artifact of this spec's cycle history and belongs next to the spec
 # it describes.

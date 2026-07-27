@@ -17,7 +17,10 @@ task:
   cycle: design                    # frame | design | build | verify | ship
   blocked: false
   priority: high
-  complexity: M                    # a release is rarely trivial; M is the floor
+  complexity: M                    # XS | S | M | L | XL | XXL — the EXPECTED size, set at design
+                                   #   (XL/XXL almost certainly means it's a stage, not a spec)
+  complexity_actual: null          # stamped at ship: what it ACTUALLY took, same scale.
+                                   #   Expected-vs-actual drift is what `just calibration` reads.
 
 project:
   id: PROJ-XXX
@@ -40,6 +43,11 @@ value_link: null
 # Metered cycles (build/verify) require a real tokens_total on a shipped
 # release — same rule as any spec. See AGENTS.md §4, docs/cost-tracking.md.
 cost:
+  # Optional PREDICTION of the total tokens this spec will take, set at
+  # design. Never a gate — its only job is to be compared with the actual
+  # below (`just calibration`), so you learn whether you systematically
+  # under- or over-estimate. null = didn't predict.
+  tokens_estimate: null
   sessions: []
   totals:
     tokens_total: 0

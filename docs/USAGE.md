@@ -128,7 +128,15 @@ just roadmap           # stage-grained "where is this project going": framed sta
                        #   + planned-but-unframed stages from the brief's Stage Plan
 just specs-by-stage    # flat ledger: every spec by stage, ship date + complexity
                        #   defaults to ALL projects; --active or PROJ-NNN to scope
+just calibration       # expected vs actual: predicted size/tokens against what
+                       #   shipping took, + the token band each size landed in
 ```
+
+`calibration` is the estimation feedback loop: `task.complexity` (expected,
+set at design) against `task.complexity_actual` (stamped at ship), and the
+optional `cost.tokens_estimate` against real `cost.totals.tokens_total`. It is
+warn-only and always will be — the point is learning whether you systematically
+under- or over-estimate, not hitting a number.
 
 And periodic reflection / reporting:
 

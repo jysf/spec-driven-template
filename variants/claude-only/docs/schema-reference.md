@@ -79,7 +79,7 @@ value_contribution: { advances ◦, delivers[] ◦, explicitly_does_not[] ◦ }
 
 ```
 task: { id ✅, type ✅ enum{epic,story,task,bug,chore,release}, cycle ✅ enum{frame,design,build,verify,ship},
-        blocked ◦, priority ◦, complexity ✅ enum{S,M,L} }
+        blocked ◦, priority ◦, complexity ✅ enum{XS,S,M,L,XL,XXL}, complexity_actual ◦ }
 project: { id ✅, stage ✅ }            repo.id ✅
 agents: { architect ◦, implementer ◦, created_at ◦ }
 references: { decisions[] ◦, constraints[] ◦, related_specs[] ◦ }
@@ -93,6 +93,12 @@ The **required structural set** `just validate` enforces: `task.id`,
 `task.type`, `task.cycle` (valid enum), `task.complexity` (valid enum),
 `project.id`, `project.stage`, `repo.id`. Files under `specs/prompts/` and
 `*-timeline.md` are not specs and are skipped.
+
+`task.complexity` is the **expected** size, set at design; `task.complexity_actual`
+is the size stamped at **ship** (optional, same enum, advisory-only if
+unrecognized). Paired with the optional `cost.tokens_estimate` prediction, they
+feed `just calibration` — expected vs actual, warn-only. `S|M|L` predate the
+t-shirt widening (v0.6.26) and remain valid.
 
 A **release spec** (`task.type: release`, DEC-006) is a spec subtype: it reuses
 this exact schema (so `validate` / `cost-audit` / `status` treat it as a normal

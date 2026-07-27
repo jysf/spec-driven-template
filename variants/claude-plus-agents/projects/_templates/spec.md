@@ -9,7 +9,10 @@ task:
   cycle: design                    # frame | design | build | verify | ship
   blocked: false
   priority: medium                 # critical | high | medium | low
-  complexity: S                    # S | M | L  (L means split it)
+  complexity: S                    # XS | S | M | L | XL | XXL — the EXPECTED size, set at design
+                                   #   (XL/XXL almost certainly means it's a stage, not a spec)
+  complexity_actual: null          # stamped at ship: what it ACTUALLY took, same scale.
+                                   #   Expected-vs-actual drift is what `just calibration` reads.
 
 project:
   id: PROJ-XXX
@@ -50,6 +53,11 @@ value_link: null
 # shipped specs. See AGENTS.md §4 and docs/cost-tracking.md. interface:
 # claude-code | claude-ai | api | ollama | other.
 cost:
+  # Optional PREDICTION of the total tokens this spec will take, set at
+  # design. Never a gate — its only job is to be compared with the actual
+  # below (`just calibration`), so you learn whether you systematically
+  # under- or over-estimate. null = didn't predict.
+  tokens_estimate: null
   sessions: []
   totals:
     tokens_total: 0

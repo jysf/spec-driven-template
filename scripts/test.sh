@@ -822,6 +822,96 @@ rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-widget-loader-timeline.md \
       projects/PROJ-001-example-mvp/specs/SPEC-*-widget-cache-with-eviction-timeline.md 2>/dev/null || true
 rm -f "$FS_STAGE"
 
+# ============================================================
+# expected-vs-actual estimation loop (v0.6.26)
+# ============================================================
+just new-spec "Estimated work" STAGE-002 >/dev/null 2>&1
+CAL_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-estimated-work.md' | head -1)
+assert_contains "$CAL_A" "complexity_actual: null" "spec template carries an actual-size slot"
+assert_contains "$CAL_A" "tokens_estimate: null" "spec template carries a token-estimate slot"
+assert_contains "projects/_templates/spec.md" "XS \| S \| M \| L \| XL \| XXL" \
+    "spec template documents the t-shirt scale"
+
+# The widened enum is a real gate value: XXL validates, gibberish does not.
+sed_inplace_portable "s/^  complexity: .*/  complexity: XXL/" "$CAL_A"
+if just validate >/dev/null 2>&1; then
+    pass "validate accepts a t-shirt size (XXL) as task.complexity"
+else
+    fail "validate rejected XXL — the t-shirt scale is not wired into the gate"
+fi
+sed_inplace_portable "s/^  complexity: .*/  complexity: HUGE/" "$CAL_A"
+assert_cmd_fails "validate still gates an unrecognized complexity" just validate
+# An unrecognized ACTUAL size is ADVISORY — it must never fail the gate.
+sed_inplace_portable "s/^  complexity: .*/  complexity: M/" "$CAL_A"
+sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: ENORMOUS/" "$CAL_A"
+if just validate >/dev/null 2>&1; then
+    pass "validate never fails on an unrecognized complexity_actual (advisory)"
+else
+    fail "validate wrongly gated on complexity_actual"
+fi
+cal_adv=$(just validate 2>&1 || true)
+case "$cal_adv" in
+    *ENORMOUS*) pass "validate surfaces the complexity_actual advisory" ;;
+    *) fail "validate did not surface the complexity_actual advisory" ;;
+esac
+
+# Readers: expected, actual, token estimate.
+sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: L/" "$CAL_A"
+sed_inplace_portable "s/^  tokens_estimate: .*/  tokens_estimate: 40000/" "$CAL_A"
+got_exp=$(bash -c "source scripts/_lib.sh; get_spec_complexity '$CAL_A'")
+got_act=$(bash -c "source scripts/_lib.sh; get_spec_complexity_actual '$CAL_A'")
+got_est=$(bash -c "source scripts/_lib.sh; get_tokens_estimate '$CAL_A'")
+assert_eq "$got_exp" "M" "get_spec_complexity reads the expected size"
+assert_eq "$got_act" "L" "get_spec_complexity_actual reads the actual size"
+assert_eq "$got_est" "40000" "get_tokens_estimate reads the token prediction"
+assert_eq "$(bash -c "source scripts/_lib.sh; size_rank XXL")" "6" "size_rank orders the t-shirt scale"
+assert_eq "$(bash -c "source scripts/_lib.sh; size_rank nope")" "0" "size_rank returns 0 for an unrecognized size"
+# A null actual reads as empty, not the literal "null" (drift would be silent).
+sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: null/" "$CAL_A"
+assert_eq "$(bash -c "source scripts/_lib.sh; get_spec_complexity_actual '$CAL_A'")" "" \
+    "an unset actual size reads as empty, not 'null'"
+
+# calibration: a shipped spec that took MORE than expected reads as under-estimated.
+sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: L/" "$CAL_A"
+sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$CAL_A"
+sed_inplace_portable 's/^  sessions: \[\]/  sessions:\
+    - cycle: build\
+      tokens_total: 90000\
+      interface: claude-code/' "$CAL_A"
+cal_out=$(just calibration 2>&1)
+case "$cal_out" in
+    *"1 under-estimated"*) pass "calibration counts an actual bigger than expected as under-estimated" ;;
+    *) fail "calibration size drift wrong: $cal_out" ;;
+esac
+case "$cal_out" in
+    *"Observed token band"*) pass "calibration prints the observed token band per expected size" ;;
+    *) fail "calibration did not print the observed band: $cal_out" ;;
+esac
+case "$cal_out" in
+    *"1 under · 0 over"*) pass "calibration compares the token estimate with actual tokens" ;;
+    *) fail "calibration token drift wrong: $cal_out" ;;
+esac
+if command -v python3 >/dev/null 2>&1; then
+    cal_json=$(just calibration --json 2>/dev/null)
+    if printf '%s' "$cal_json" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null; then
+        pass "calibration --json is valid JSON"
+    else
+        fail "calibration --json is not valid JSON"
+    fi
+    cal_verdict=$(printf '%s' "$cal_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["specs"][0]["size_verdict"])' 2>/dev/null)
+    assert_eq "$cal_verdict" "under" "calibration --json exposes the per-spec size verdict"
+fi
+# An unrecorded actual is surfaced, never treated as an error.
+sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: null/" "$CAL_A"
+cal_unrec=$(just calibration 2>&1)
+case "$cal_unrec" in
+    *"no recorded actual size"*) pass "calibration surfaces specs with no recorded actual size" ;;
+    *) fail "calibration did not surface the unrecorded actual: $cal_unrec" ;;
+esac
+assert_cmd_fails "calibration rejects an unknown flag" just calibration --nope
+rm -f "$CAL_A"
+rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-estimated-work-timeline.md 2>/dev/null || true
+
 # --- spec titles (v0.6.22) — the ledger was ID-only; stages showed their slug
 # --- but specs didn't. Title renders last, untruncated, in both surfaces.
 if printf '%s\n' "$sbs_all" | grep -q "· title"; then
@@ -1370,7 +1460,13 @@ awk -v id="$P1_SPEC_ID" '
     /^## Spec Backlog/ && !seen { print ""; print "- [ ] " id " (build) — p1 backlog test"; seen=1 }
 ' "$P1_STAGE" > "$P1_STAGE.tmp" && mv "$P1_STAGE.tmp" "$P1_STAGE"
 just advance-cycle "$P1_SPEC_ID" ship >/dev/null 2>&1
-just archive-spec "$P1_SPEC_ID" >/dev/null 2>&1
+# Ship is the only moment the ACTUAL size is knowable, so archive-spec nudges
+# for it — advisory: it must still archive successfully without one.
+p1_archive_out=$(just archive-spec "$P1_SPEC_ID" 2>&1)
+case "$p1_archive_out" in
+    *complexity_actual*) pass "archive-spec nudges for an unrecorded actual size" ;;
+    *) fail "archive-spec did not nudge for complexity_actual: $p1_archive_out" ;;
+esac
 if grep -qE "^- \[x\] ${P1_SPEC_ID} \(shipped on ${today}\)" "$P1_STAGE"; then
     pass "archive-spec flips the backlog entry to [x] shipped (with date)"
 else

@@ -468,6 +468,21 @@ This variant delegates build/verify to a separate implementer/reviewer agent via
 
 ## 15. Cycle-Specific Agent Rules
 
+### During **design**
+
+Set the **expected size** in `task.complexity` on the t-shirt scale
+`XS | S | M | L | XL | XXL`. This is a *prediction*, and the point of a
+prediction is that it later gets checked: ship stamps `task.complexity_actual`,
+and `just calibration` shows whether you systematically under- or
+over-estimate. `XL`/`XXL` is itself a finding — a spec that size is almost
+certainly a stage; split it.
+
+Optionally record `cost.tokens_estimate` (predicted total tokens) too. Once
+enough specs have shipped, `just calibration` prints the token band each
+expected size *actually* landed in — at which point the size you assign doubles
+as a token estimate, measured from this repo rather than guessed. None of this
+gates anything; the feedback loop is the whole value.
+
 ### During **build** (implementer reads this)
 
 Before writing code:
@@ -534,6 +549,9 @@ Append a `## Reflection` block to the spec with three answers:
 Then:
 - Update the spec's `task.cycle` → `ship`.
 - Append a ship cost session entry, then compute `cost.totals`.
+- Stamp `task.complexity_actual` — what it actually took, on the same
+  `XS|S|M|L|XL|XXL` scale as the expected `task.complexity`. Ship is the only
+  moment that number is knowable.
 - Run `just archive-spec SPEC-NNN` (moves to `done/`, updates stage).
 - If Q2 surfaces a template/constraint/decision change you're NOT making now,
   record it in `/guidance/signals.yaml` (`type: lesson` with its N-count for a

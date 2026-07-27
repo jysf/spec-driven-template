@@ -2,6 +2,41 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-27 — expected vs actual: the estimation feedback loop (v0.6.26)
+
+The template recorded what work *cost* but never what you *predicted*, so it
+could never tell you the one useful thing: **are your estimates any good?**
+`just calibration` closes that loop. Warn-only, permanently — the value is
+learning whether you systematically under- or over-estimate, not hitting a
+number.
+
+- **Sizes are a t-shirt scale.** `task.complexity` widens from `S|M|L` to
+  `XS|S|M|L|XL|XXL` and is now explicitly the **EXPECTED** size, set at design.
+  Existing `S|M|L` values stay valid. `XL`/`XXL` is itself a finding — a spec
+  that size is almost certainly a stage; split it.
+- **`task.complexity_actual`** — the size stamped at **ship**, the only moment
+  it's knowable. Optional; an unrecognized value is advisory in `validate`,
+  never a gate. `archive-spec` nudges when one is missing and archives anyway.
+- **`cost.tokens_estimate`** — an optional token prediction at design, sitting
+  beside the actual `cost.totals.tokens_total` the spec already records. At
+  2-space indent so it can't collide with the session/totals readers.
+- **`just calibration [--all|--active|PROJ-NNN] [--json]`** — per shipped spec:
+  expected vs actual size (verdict `under`/`over`/`on`), estimated vs actual
+  tokens (±25% counts as on target), and the drift totals.
+- **The observed token band per expected size** — min/median/max actual tokens
+  for every `M`, every `L`, and so on, measured from *this repo's* shipped
+  specs. This is the honest version of "map t-shirt sizes to token bands": once
+  n is big enough to trust, the size you assign *is* a rough token estimate,
+  derived rather than guessed. No invented lookup table ships with the template.
+- `get_task_scalar` / `get_spec_complexity_actual` / `get_tokens_estimate` /
+  `size_rank` in `_lib.sh`; `get_spec_complexity` moved there from `backlog.sh`.
+  AGENTS gains a **During design** section (set the expectation) in both
+  variants, and ship stamps the actual. Schema reference + USAGE updated.
+
+Ties to [DEC-009](docs/decisions/DEC-009-business-value-metrics.md)'s
+predicted-vs-realized loop and to the orchestration cost-gap thread: both need a
+prediction on record before a comparison means anything.
+
 ## 2026-07-26 — frame a stage into outline specs (v0.6.25)
 
 `just frame-stage STAGE-NNN` batch-promotes every `- [ ] (not yet written)` line

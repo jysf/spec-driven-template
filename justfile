@@ -235,6 +235,13 @@ roadmap *ARGS:
 specs-by-stage *FLAGS:
     @./scripts/specs-by-stage.sh {{FLAGS}}
 
+# Expected vs actual, per shipped spec: predicted size/tokens against what it
+# took, plus the token band each expected size ACTUALLY landed in. Warn-only —
+# the feedback loop is the value, not the number.
+# Usage: just calibration [--all|--active|PROJ-NNN] [--json]
+calibration *FLAGS:
+    @./scripts/calibration.sh {{FLAGS}}
+
 # Audit decisions: structural lint + scope-conflict warnings (zero
 # deps; a native take on LineSpec-style provenance auditing). Lints
 # front-matter and supersession links across all DEC-* files. Pass

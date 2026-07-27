@@ -401,6 +401,21 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 
 ## 15. Cycle-Specific Rules
 
+### During **design**
+
+Set the **expected size** in `task.complexity` on the t-shirt scale
+`XS | S | M | L | XL | XXL`. This is a *prediction*, and the point of a
+prediction is that it later gets checked: ship stamps `task.complexity_actual`,
+and `just calibration` shows whether you systematically under- or
+over-estimate. `XL`/`XXL` is itself a finding — a spec that size is almost
+certainly a stage; split it.
+
+Optionally record `cost.tokens_estimate` (predicted total tokens) too. Once
+enough specs have shipped, `just calibration` prints the token band each
+expected size *actually* landed in — at which point the size you assign doubles
+as a token estimate, measured from this repo rather than guessed. None of this
+gates anything; the feedback loop is the whole value.
+
 ### During **build**
 
 Start a **new session**. Do not continue from the design session.
@@ -457,7 +472,9 @@ Output: ✅ APPROVED / ⚠ PUNCH LIST / ❌ REJECTED.
 ### During **ship**
 
 Append `## Reflection` to spec. Three answers. Append a ship cost
-session entry, then compute `cost.totals`. Then
+session entry, then compute `cost.totals`. **Stamp `task.complexity_actual`**
+(what it actually took, same `XS|S|M|L|XL|XXL` scale as the expected
+`task.complexity`) — ship is the only moment that number is knowable. Then
 `just archive-spec SPEC-NNN`. If stage backlog is complete, run the
 Stage Ship prompt.
 

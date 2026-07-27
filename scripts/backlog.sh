@@ -55,16 +55,8 @@ fi
 
 # --- Helpers --------------------------------------------------------
 
-# Read complexity (S/M/L) from spec front-matter.
-get_spec_complexity() {
-    awk '
-        /^---$/ { fm = !fm; next }
-        !fm { exit }
-        /^task:/ { in_t = 1; next }
-        in_t && /^[a-zA-Z_]/ { in_t = 0 }
-        in_t && /^[[:space:]]+complexity:/ { print $2; exit }
-    ' "$1"
-}
+# get_spec_complexity lives in _lib.sh — the expected size it reads is the same
+# one `just calibration` compares against the actual.
 
 # Read project.stage from a spec.
 get_spec_stage_id() {

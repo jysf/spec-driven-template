@@ -530,6 +530,57 @@ find_all_patches() {
     find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null
 }
 
+# Read a scalar from the `task:` block of a spec/patch front-matter.
+# Scoped to the block so it can't pick up a look-alike key elsewhere;
+# comment-tolerant (takes field $2). Empty if absent or `null`.
+# Usage: get_task_scalar path/to/spec.md complexity
+get_task_scalar() {
+    local file="$1" key="$2" v
+    v=$(awk -v k="$key" '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^task:/ { intask = 1; next }
+        intask && /^[^[:space:]]/ { intask = 0 }
+        intask && $0 ~ ("^[[:space:]]+" k ":") { print $2; exit }
+    ' "$file")
+    [ "$v" = "null" ] && v=""
+    printf '%s' "$v"
+}
+
+# EXPECTED size (t-shirt scale), set at design. Used by backlog, and paired
+# with the ACTUAL below by `just calibration`.
+get_spec_complexity() { get_task_scalar "$1" complexity; }
+
+# ACTUAL size, stamped at ship. Empty when nobody recorded one — which is the
+# normal state, and never an error: the estimation loop is warn-only.
+get_spec_complexity_actual() { get_task_scalar "$1" complexity_actual; }
+
+# Rank a t-shirt size so expected-vs-actual can be compared. 0 = unrecognized.
+# Usage: size_rank M
+size_rank() {
+    case "$1" in
+        XS) echo 1 ;; S) echo 2 ;; M) echo 3 ;;
+        L)  echo 4 ;; XL) echo 5 ;; XXL) echo 6 ;;
+        *)  echo 0 ;;
+    esac
+}
+
+# Optional token PREDICTION from `cost.tokens_estimate` (2-space indent, so it
+# can't collide with the session/totals `tokens_total` readers below).
+# Empty if unset/null.
+get_tokens_estimate() {
+    local file="$1" v
+    v=$(awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  tokens_estimate:/ { print $2; exit }
+    ' "$file")
+    [ "$v" = "null" ] && v=""
+    printf '%s' "$v"
+}
+
 # Extract a spec's cycle from front-matter.
 # Usage: get_spec_cycle path/to/spec.md
 get_spec_cycle() {

@@ -30,7 +30,7 @@ fm_scalar() {
 
 VALID_CYCLE=" frame design build verify ship "
 VALID_PATCH_CYCLE=" patch verify ship "
-VALID_COMPLEXITY=" S M L "
+VALID_COMPLEXITY=" XS S M L XL XXL "   # t-shirt scale; S|M|L predate it and stay valid
 # `project.activity` is an OPEN, suggested set — not a hard enum. An
 # unrecognized value is advisory (warn-only), never a gate failure, so
 # people can extend the vocabulary (e.g. add `spike`). See DEC / AGENTS.
@@ -40,6 +40,7 @@ offenders=0
 checked=0
 activity_notes=""
 depends_notes=""
+actual_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -65,6 +66,17 @@ while IFS= read -r pdir; do
 
         cx=$(fm_scalar "$f" task complexity)
         case "$VALID_COMPLEXITY" in *" $cx "*) : ;; *) problems="${problems} task.complexity(='${cx:-∅}')" ;; esac
+
+        # `task.complexity_actual` (the size stamped at ship). ADVISORY only:
+        # an unrecorded actual is the normal state, and the estimation loop
+        # (`just calibration`) is a feedback loop, never a gate.
+        cxa=$(get_spec_complexity_actual "$f")
+        if [ -n "$cxa" ]; then
+            case "$VALID_COMPLEXITY" in
+                *" $cxa "*) : ;;
+                *) actual_notes="${actual_notes}    ${name}: complexity_actual='${cxa}' (not a t-shirt size)"$'\n' ;;
+            esac
+        fi
 
         # `depends_on:` refs. ADVISORY only — a dangling ref is collected here and
         # never counted as an offender, so a spec that names a not-yet-created
@@ -131,6 +143,12 @@ done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/
 if [ -n "$activity_notes" ]; then
     warn "validate: unrecognized project.activity (advisory — activity is an open set, not enforced; extend it freely):"
     printf '%s' "$activity_notes"
+fi
+
+# Advisory: an unrecognized `task.complexity_actual`. Never changes the exit code.
+if [ -n "$actual_notes" ]; then
+    warn "validate: unrecognized task.complexity_actual (advisory — expected one of${VALID_COMPLEXITY}):"
+    printf '%s' "$actual_notes"
 fi
 
 # Advisory: a depends_on ref with no matching spec yet. Never changes the exit code
