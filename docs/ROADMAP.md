@@ -12,6 +12,8 @@ Full ranked detail + evidence lives in
 
 ## Proposed — awaiting a real project to validate
 
+- ~~**Expected-vs-actual estimation loop (raised 2026-07-18).**~~ **✅ Shipped v0.6.26** — the cheap half is built (t-shirt `XS|S|M|L|XL|XXL` expected size + `task.complexity_actual` at ship + optional `cost.tokens_estimate` + `just calibration`, warn-only). The size→token band is **derived from this repo's own shipped specs** rather than a shipped lookup table, so it earns trust as n grows. Still open, and deliberately not built cold: whether the drift view belongs in the project-close rollup, and whether stage-level estimates are worth capturing at all. Original capture:
+
 - **Expected-vs-actual estimation loop (raised 2026-07-18).** Capture the
   prediction alongside the outcome so the template can tell you *how good your
   estimates are* — the feedback loop, not the number, is the value. Two axes:
