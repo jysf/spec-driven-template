@@ -12,6 +12,28 @@ Full ranked detail + evidence lives in
 
 ## Proposed — awaiting a real project to validate
 
+- **Expected-vs-actual estimation loop (raised 2026-07-18).** Capture the
+  prediction alongside the outcome so the template can tell you *how good your
+  estimates are* — the feedback loop, not the number, is the value. Two axes:
+  - **Size** — expand `task.complexity` (`S | M | L`) to a t-shirt scale
+    `XS | S | M | L | XL | XXL`, recorded as the **expected** size at design/frame,
+    plus an **actual** size stamped at ship. ("L means split it" shifts: `XL`/`XXL`
+    almost certainly means it's a stage, not a spec.)
+  - **Tokens** — an optional token **estimate** at design vs the **actual**
+    (`cost.totals.tokens_total`, already captured). Ideal refinement: map each
+    t-shirt size to a coarse token **band** (calibrated per-repo over time) so the
+    size *is* a rough token estimate — answering "can we even estimate tokens?"
+    with "yes, via the size you already assign."
+  - **The loop** — a `just calibration` view (or a `specs-by-stage` column) showing
+    expected-vs-actual drift per spec/stage: are we systematically under- or
+    over-estimating? Feeds [DEC-009](decisions/DEC-009-business-value-metrics.md)
+    (predicted-vs-realized), the orchestration **cost-gap** thread, and the
+    project-close rollup (close is where the whole wave's drift is knowable).
+  - **Discipline:** warn-only, never a gate. **Start cheap** — expected size +
+    actual size + actual tokens are all near-free (the fields mostly exist); add
+    the size→token-band mapping only once there's real data to calibrate against.
+    Don't build the calibration view cold.
+
 - **Closing / ending a project (raised 2026-07-18).** The template is strong on
   *starting* a wave (frame → brief → stage plan) and near-silent on *ending* one.
   Today closing is manual and easy to half-do: flip `status`, maybe stamp
