@@ -77,17 +77,8 @@ get_spec_stage_id() {
     ' "$1"
 }
 
-# Extract un-promoted "(not yet written)" bullets from a stage's
-# ## Spec Backlog section. One bullet per line.
-# Convention: `- [ ] (not yet written) — <summary>` with optional
-# `[S]/[M]/[L]` complexity tag anywhere on the line.
-extract_unpromoted_bullets() {
-    awk '
-        /^## Spec Backlog/ { in_b = 1; next }
-        in_b && /^## / { in_b = 0 }
-        in_b && /\(not yet written\)/ { print }
-    ' "$1"
-}
+# extract_unpromoted_bullets lives in _lib.sh — `just frame-stage` promotes
+# exactly the lines this view lists, so both read the backlog the same way.
 
 # Trim a bullet line to "summary [complexity]" form. Strips the
 # leading `- [ ] (not yet written) — ` and surfaces a complexity

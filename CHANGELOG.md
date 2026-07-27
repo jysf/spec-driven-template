@@ -2,6 +2,45 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-07-26 — frame a stage into outline specs (v0.6.25)
+
+`just frame-stage STAGE-NNN` batch-promotes every `- [ ] (not yet written)` line
+in a stage's `## Spec Backlog` into a real spec at `cycle: frame`, and rewrites
+the backlog line in place to `- [ ] SPEC-NNN (frame) — …`. This closes the
+fan-out loop opened by v0.6.23: a **planned** stage becomes a **dispatchable,
+dependency-aware batch**, because `depends_on:` can only point at a spec that
+exists. Stable IDs are the whole product here.
+
+The fidelity line is deliberate: an outline captures **scope and dependencies,
+not approach**. Design stays just-in-time — a stage framed as ten pre-designed
+specs is ten guesses that go stale before you reach spec four. Outlines
+therefore land at `frame`, not `design`, and carry a banner saying so.
+
+- **`--outline` on `new-spec.sh`** (the primitive; `frame-stage` is the batch
+  wrapper, mirroring DEC-006's `--release` + `just new-release-spec`). Parks the
+  spec at `cycle: frame` and inserts the scope-not-approach banner under the H1.
+  Mutually exclusive with `--release` — a release cut is never an outline.
+- **`--complexity X` on `new-spec.sh`** — an optional `[S]`/`[M]`/`[L]` tag on
+  the backlog line is carried onto `task.complexity` instead of being dropped in
+  promotion. (Recognizes the wider `XS|S|M|L|XL|XXL` set; a bracketed `[CI]` in a
+  summary is left alone.)
+- **`just frame-stage STAGE-NNN [PROJ-NNN] [--dry-run]`** — pre-flights the whole
+  batch (slug collisions, existing specs) *before* creating anything, so a
+  failure can't leave specs on disk with an un-rewritten backlog; `--dry-run`
+  shows the ID assignment and writes nothing; re-running is a no-op, not a
+  duplicate batch; `**Count:**` is recomputed exactly as `archive-spec` does.
+- **`extract_unpromoted_bullets` moved to `_lib.sh`** and hardened to require a
+  checkbox bullet — the section's own prose names `(not yet written)`, and the
+  selftest caught it being promoted into a spec. `just backlog` (the view) and
+  `just frame-stage` (the promotion) now read the backlog through one parser, so
+  what you see listed is exactly what gets promoted.
+- **`AGENTS.md` (both variants)** — `frame` was documented as optional and
+  unused (0 of 100+ specs). It now has a real job *in batch*; the cycle-model
+  section states the fidelity line and the stage-close self-audit.
+- **Stage template (both variants)** — the Spec Backlog section documents the
+  ritual, and Stage-Level Reflection asks **"how many outlines survived
+  unchanged?"** so framing-ahead earns its keep on evidence instead of faith.
+
 ## 2026-07-18 — release notes, assembled not re-authored (v0.6.24)
 
 Release notes are now part of the process at every altitude. The governing

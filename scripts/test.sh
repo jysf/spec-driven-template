@@ -742,6 +742,86 @@ rm -f "$DEP_A" "$DEP_B"
 rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-alpha-base-timeline.md \
       projects/PROJ-001-example-mvp/specs/SPEC-*-beta-needs-alpha-timeline.md 2>/dev/null || true
 
+# ============================================================
+# frame-stage / new-spec --outline (v0.6.25) — planned stage → dispatchable batch
+# ============================================================
+just new-stage "Frame Batch" >/dev/null 2>&1
+FS_STAGE=$(find projects/PROJ-001-example-mvp/stages -maxdepth 1 -name 'STAGE-*-frame-batch.md' | head -1)
+FS_STAGE_ID=$(basename "$FS_STAGE" | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+assert_file "$FS_STAGE"
+# Give the stage a backlog: two un-promoted lines, one carrying a size tag, plus
+# an already-promoted line that must be left alone.
+sed_inplace_portable 's|^- \[ \] (not yet written) — <summary.*|- [ ] (not yet written) — Widget loader\
+- [ ] (not yet written) — Widget cache [XL] with eviction\
+- [ ] SPEC-900 (design) — Pre-existing item|' "$FS_STAGE"
+
+# --dry-run writes nothing.
+fs_dry=$(just frame-stage "$FS_STAGE_ID" --dry-run 2>&1)
+case "$fs_dry" in
+    *"Widget loader"*) pass "frame-stage --dry-run previews the promotions" ;;
+    *) fail "frame-stage --dry-run did not preview: $fs_dry" ;;
+esac
+if grep -q "(not yet written) — Widget loader" "$FS_STAGE"; then
+    pass "frame-stage --dry-run leaves the backlog untouched"
+else
+    fail "frame-stage --dry-run mutated the stage file"
+fi
+
+just frame-stage "$FS_STAGE_ID" >/dev/null 2>&1
+FS_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-loader.md' | head -1)
+FS_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-cache-with-eviction.md' | head -1)
+if [ -n "$FS_A" ] && [ -n "$FS_B" ]; then
+    pass "frame-stage promotes every (not yet written) line into a spec"
+else
+    fail "frame-stage did not create one spec per backlog line"
+fi
+FS_A_ID=$(basename "$FS_A" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+assert_contains "$FS_A" "^  cycle: frame" "an outline spec is parked at cycle: frame"
+assert_contains "$FS_A" "OUTLINE" "an outline spec carries the scope-not-approach banner"
+assert_contains "$FS_A" "stage: ${FS_STAGE_ID}" "an outline spec attaches to its stage"
+# The [XL] tag on the backlog line is carried onto the spec, not dropped.
+assert_contains "$FS_B" "^  complexity: XL" "frame-stage carries the backlog size tag to task.complexity"
+# The backlog line is rewritten in place with the stable ID; Count recomputed.
+assert_contains "$FS_STAGE" "^- \[ \] ${FS_A_ID} \(frame\) — Widget loader" \
+    "frame-stage rewrites the backlog line with the new stable ID"
+assert_contains "$FS_STAGE" "^- \[ \] SPEC-900 \(design\) — Pre-existing item" \
+    "frame-stage leaves already-promoted backlog lines alone"
+assert_contains "$FS_STAGE" "\*\*Count:\*\* 1 shipped / 3 active / 1 pending" \
+    "frame-stage recomputes the backlog Count"
+# Prose in the section that merely NAMES "(not yet written)" is not a bullet and
+# must never be promoted into a spec (the stage template explains itself there).
+if find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-just-frame-stage*.md' | grep -q .; then
+    fail "frame-stage promoted a prose line from the Spec Backlog section"
+else
+    pass "frame-stage promotes only checkbox bullets, not section prose"
+fi
+# The whole point: a stable ID a sibling can declare a dependency on.
+sed_inplace_portable "s/^depends_on: \[\]/depends_on: [${FS_A_ID}]/" "$FS_B"
+fs_ready=$(just ready 2>&1)
+if printf '%s\n' "$fs_ready" | grep -qE "waits on ${FS_A_ID}"; then
+    pass "frame-stage IDs are usable as depends_on targets in the ready set"
+else
+    fail "outline ID did not work as a depends_on target: $fs_ready"
+fi
+# Re-running is a no-op, not a duplicate batch.
+fs_again=$(just frame-stage "$FS_STAGE_ID" 2>&1)
+case "$fs_again" in
+    *"nothing to frame"*) pass "frame-stage is a no-op once the backlog is promoted" ;;
+    *) fail "frame-stage re-run did not no-op: $fs_again" ;;
+esac
+# --outline and --release are mutually exclusive (an outline is never a cut).
+assert_cmd_fails "new-spec refuses --outline together with --release" \
+    ./scripts/new-spec.sh "Bad Combo" "$FS_STAGE_ID" --outline --release
+# The stage template teaches the ritual and its self-audit.
+assert_contains "projects/_templates/stage.md" "frame-stage" \
+    "stage template documents frame-stage in the Spec Backlog section"
+assert_contains "projects/_templates/stage.md" "outlines survived unchanged" \
+    "stage template asks the outline-survival question at stage close"
+rm -f "$FS_A" "$FS_B"
+rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-widget-loader-timeline.md \
+      projects/PROJ-001-example-mvp/specs/SPEC-*-widget-cache-with-eviction-timeline.md 2>/dev/null || true
+rm -f "$FS_STAGE"
+
 # --- spec titles (v0.6.22) — the ledger was ID-only; stages showed their slug
 # --- but specs didn't. Title renders last, untruncated, in both surfaces.
 if printf '%s\n' "$sbs_all" | grep -q "· title"; then

@@ -110,6 +110,12 @@ new-spec TITLE STAGE_ID PROJECT_ID="":
 new-release-spec TITLE STAGE_ID PROJECT_ID="":
     @./scripts/new-spec.sh "{{TITLE}}" "{{STAGE_ID}}" "{{PROJECT_ID}}" --release
 
+# Batch-promote a stage's "(not yet written)" backlog lines into OUTLINE specs
+# at cycle:frame with stable IDs, so depends_on can point at them.
+# Usage: just frame-stage STAGE-NNN [PROJ-NNN] [--dry-run]
+frame-stage STAGE_ID *ARGS:
+    @./scripts/frame-stage.sh "{{STAGE_ID}}" {{ARGS}}
+
 # Scaffold a new stage. Usage: just new-stage "short title" [PROJ-NNN]
 new-stage TITLE PROJECT_ID="":
     @./scripts/new-stage.sh "{{TITLE}}" "{{PROJECT_ID}}"

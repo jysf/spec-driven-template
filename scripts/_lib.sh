@@ -243,6 +243,24 @@ find_stage() {
     find "${REPO_ROOT}/projects" -type f -name "${stage_id}-*.md" 2>/dev/null | head -n1
 }
 
+# Extract un-promoted "(not yet written)" bullets from a stage's ## Spec Backlog
+# section. One bullet per line, in backlog order.
+# Convention: `- [ ] (not yet written) — <summary>` with an optional
+# `[S]/[M]/[L]` complexity tag anywhere on the line.
+# Read by `just backlog` (view) and `just frame-stage` (promotion) so the set
+# you see is exactly the set that gets promoted.
+# Usage: extract_unpromoted_bullets path/to/STAGE-001-foo.md
+extract_unpromoted_bullets() {
+    awk '
+        /^## Spec Backlog/ { in_b = 1; next }
+        in_b && /^## / { in_b = 0 }
+        # Must be a checkbox BULLET, not merely prose containing the phrase —
+        # the section explains itself, so a doc line naming "(not yet written)"
+        # would otherwise be promoted into a spec. (Caught by the selftest.)
+        in_b && /^-[[:space:]]*\[/ && /\(not yet written\)/ { print }
+    ' "$1"
+}
+
 # Find the "active" stage file for a given project. Heuristic: first
 # stage with status: active, falling back to the lexically-first
 # stage. Used by backlog and report_daily so they agree on what "the

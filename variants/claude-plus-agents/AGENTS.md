@@ -223,11 +223,25 @@ frame → design → build → verify → ship
                    └───────┘ (verify sends back on punch list)
 ```
 
-**`frame` is optional — most specs start at `design`.** By the time a task
-reaches `just new-spec` it has usually already passed go/no-go at the
+**`frame` is optional for a single spec — most start at `design`.** By the time a
+task reaches `just new-spec` it has usually already passed go/no-go at the
 stage/backlog level, so `frame` is redundant (across the dogfood it went unused —
-0 of 100+ specs). Use it only when a spec's very existence is genuinely in
-question; otherwise begin at `design`.
+0 of 100+ specs). Use it for one spec only when that spec's very existence is
+genuinely in question; otherwise begin at `design`.
+
+**`frame` earns its keep in BATCH, though — that's what `just frame-stage`
+is for.** It promotes every `- [ ] (not yet written)` line in a stage's
+`## Spec Backlog` into a real spec at `cycle: frame`, so each one has a **stable
+ID** a sibling can point `depends_on:` at. That turns a planned stage into a
+dependency-aware batch you can fan out (`just ready`) instead of a prose list.
+
+The fidelity line matters: an **outline captures SCOPE and DEPENDENCIES, not
+APPROACH**. Design stays just-in-time — a stage framed as ten pre-designed specs
+is ten guesses that go stale before you reach spec four. Fill an outline's
+`## Context` / `## Goal` / `depends_on:` and leave the rest scaffolded until it
+advances to `design`. At stage close, record **how many outlines survived
+unchanged** (Stage-Level Reflection) — that's how you learn whether framing this
+far ahead pays for your work, rather than assuming it does.
 
 Projects and stages have lighter lifecycles (not full cycles):
 

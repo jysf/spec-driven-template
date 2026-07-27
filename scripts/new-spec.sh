@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 # scripts/new-spec.sh — scaffold a new spec.
-# Usage: new-spec.sh "short title" STAGE-NNN [PROJ-NNN] [--release]
+# Usage: new-spec.sh "short title" STAGE-NNN [PROJ-NNN] [--release] [--outline] [--complexity X]
 #
 # --release scaffolds from release-spec.md (task.type: release) instead of
 # spec.md — a release cut with the generic runtime pre-flight checklist
 # (DEC-006). `just new-release-spec` is the ergonomic wrapper for it.
+#
+# --outline scaffolds an OUTLINE spec: the standard spec.md, but parked at
+# `cycle: frame` with a banner saying what an outline is for — SCOPE and
+# DEPENDENCIES only, approach designed just-in-time at `design`. Its point is a
+# STABLE ID a sibling spec's `depends_on:` can point at before anyone writes the
+# spec. `just frame-stage` is the batch wrapper that promotes a stage's whole
+# `(not yet written)` backlog this way.
+#
+# --complexity X stamps task.complexity (frame-stage carries the `[S]`/`[M]`/`[L]`
+# tag from the backlog line so the estimate isn't lost in promotion).
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,16 +22,25 @@ source "${SCRIPT_DIR}/_lib.sh"
 
 require_initialized
 
-# Pull the --release flag out of the arg list (it may appear anywhere), then
-# treat the rest as the positional TITLE / STAGE-NNN / PROJ-NNN.
+# Pull the flags out of the arg list (they may appear anywhere), then treat
+# the rest as the positional TITLE / STAGE-NNN / PROJ-NNN.
 RELEASE=0
+OUTLINE=0
+COMPLEXITY=""
 positional=()
-for a in "$@"; do
-    case "$a" in
-        --release) RELEASE=1 ;;
-        *) positional+=("$a") ;;
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --release)    RELEASE=1 ;;
+        --outline)    OUTLINE=1 ;;
+        --complexity) shift; COMPLEXITY="${1:-}"
+                      [ -n "$COMPLEXITY" ] || die "--complexity needs a value (e.g. --complexity M)" ;;
+        *)            positional+=("$1") ;;
     esac
+    shift
 done
+if [ "$RELEASE" = "1" ] && [ "$OUTLINE" = "1" ]; then
+    die "--release and --outline are mutually exclusive: a release cut is never an outline."
+fi
 # bash 3.2 + set -u: expanding an empty array is an "unbound variable" error,
 # so guard the expansion.
 set -- ${positional[@]+"${positional[@]}"}
@@ -31,7 +50,7 @@ STAGE_ID="${2:-}"
 PROJECT_ID="${3:-}"
 
 if [ -z "$TITLE" ] || [ -z "$STAGE_ID" ]; then
-    die "Usage: just new-spec \"title\" STAGE-NNN [PROJ-NNN] [--release]"
+    die "Usage: just new-spec \"title\" STAGE-NNN [PROJ-NNN] [--release|--outline]"
 fi
 
 PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
@@ -101,6 +120,31 @@ sed_inplace "s|__REPO_ID__|${REPO_ID_ESC}|g" "$SPEC_FILE"
 sed_inplace "s|__ARCHITECT_MODEL__|$(get_tier_model design)|g" "$SPEC_FILE"
 sed_inplace "s|__IMPLEMENTER_MODEL__|$(get_tier_model build)|g" "$SPEC_FILE"
 
+# --complexity overrides the template's default task.complexity. Anchored to the
+# task-block indent so it can't hit a look-alike line elsewhere. The value is
+# free-form on purpose (the scale is a convention, not a gate).
+if [ -n "$COMPLEXITY" ]; then
+    COMPLEXITY_ESC=$(sed_escape_replacement "$COMPLEXITY")
+    sed_inplace "s|^\(  complexity:\)[^#]*|\1 ${COMPLEXITY_ESC}                    |" "$SPEC_FILE"
+fi
+
+# An OUTLINE spec is parked at `cycle: frame` and carries a banner stating the
+# fidelity line, so nobody mistakes a placeholder for a designed spec.
+if [ "$OUTLINE" = "1" ]; then
+    sed_inplace "s|^\(  cycle:\) design|\1 frame |" "$SPEC_FILE"
+    awk -v id="$SPEC_ID" '
+        !done && /^#[[:space:]]*SPEC-[0-9]+/ {
+            print; print ""
+            print "> **OUTLINE — `cycle: frame`.** This spec exists so its ID is stable and"
+            print "> siblings can declare `depends_on: [" id "]`. Capture **scope** (Context /"
+            print "> Goal / Non-Goals) and **dependencies** only — the *approach* is designed"
+            print "> just-in-time when this moves to `design`. Do not pre-design it here."
+            done = 1; next
+        }
+        { print }
+    ' "$SPEC_FILE" > "${SPEC_FILE}.tmp" && mv "${SPEC_FILE}.tmp" "$SPEC_FILE"
+fi
+
 # Scaffold the timeline file alongside the spec. Architect appends
 # cycle lines as it designs them; executors update status markers.
 TIMELINE_TEMPLATE="${REPO_ROOT}/projects/_templates/timeline.md"
@@ -134,6 +178,13 @@ if [ "$RELEASE" = "1" ]; then
     echo ""
     echo "Release spec (DEC-006): fill in the ## Release Pre-Flight checklist with"
     echo "the tool-specific command for each generic category before you ship."
+fi
+if [ "$OUTLINE" = "1" ]; then
+    echo ""
+    echo "Outline spec at ${BOLD}cycle: frame${RESET} — scope + \`depends_on:\` only."
+    echo "Design it (approach, cycles, prompts) when you run:"
+    echo "  just advance-cycle ${SPEC_ID} design"
+    exit 0
 fi
 echo ""
 echo "Next steps:"

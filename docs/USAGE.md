@@ -44,6 +44,20 @@ just new-stage "Foundational infra"            # → STAGE-NNN in the active pro
 just new-spec  "Logger module" STAGE-001       # → SPEC-NNN under that stage
 ```
 
+Once a stage's `## Spec Backlog` lists the work as `- [ ] (not yet written) — …`
+lines, promote the whole batch in one step:
+
+```bash
+just frame-stage STAGE-001 --dry-run           # show the ID assignment, write nothing
+just frame-stage STAGE-001                     # → one OUTLINE spec per backlog line
+```
+
+Each becomes a spec at `cycle: frame` with a **stable ID**, and its backlog line
+is rewritten to `- [ ] SPEC-NNN (frame) — …`. Stable IDs are the point: you can
+now declare `depends_on:` between them and let `just ready` compute the
+dispatchable set. An outline records **scope and dependencies only** — the
+approach is designed just-in-time when it advances to `design`.
+
 ## The five-phase cycle
 
 Each spec moves through the cycle; `task.cycle` in its front-matter is

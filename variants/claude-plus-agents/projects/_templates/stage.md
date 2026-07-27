@@ -60,6 +60,11 @@ them. Update status as specs progress.
 
 Format: `- [status] SPEC-ID (cycle) — one-line summary`
 
+`just frame-stage STAGE-NNN` promotes every `(not yet written)` line below into
+a real spec at `cycle: frame` with a stable ID (so `depends_on:` can point at
+it) and rewrites the line in place. An optional `[S]`/`[M]`/`[L]` tag on the
+line is carried onto the spec as `task.complexity`.
+
 - [ ] (not yet written) — <summary of a spec that will be needed>
 - [ ] SPEC-NNN (design) — <summary>
 - [x] SPEC-MMM (shipped on YYYY-MM-DD) — <summary>
@@ -90,6 +95,10 @@ FIRST_SESSION_PROMPTS.md to draft this.*
 
 - **Did we deliver the outcome in "What This Stage Is"?** <yes/no + notes>
 - **How many specs did it actually take?** <number vs. plan>
+- **How many outlines survived unchanged?** <n of m — only if this stage was
+  framed with `just frame-stage`. Counts outlines whose scope held from frame to
+  ship. A low number means framing ran ahead of what was knowable; a high one
+  means it's paying for itself.>
 - **What changed between starting and shipping?** <one sentence>
 - **Lessons that should update AGENTS.md, templates, or constraints?**
   - <one-line updates>
