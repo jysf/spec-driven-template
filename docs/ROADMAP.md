@@ -299,7 +299,24 @@ These are shaped by real usage — start them *on* a live project, not in the ab
     a cross-instance store, or only as a harvest note? Ties to the artifact-storage
     question above and to the `instances.md` registry.
 
-- **Clone-per-agent — asked and answered (2026-08-10): no.** When several coding
+- **Instance registration has no trigger (raised 2026-08-10) — parked, owner
+  sees no value now.** Nothing registers a new instance in
+  [`instances.md`](harvests/instances.md): no script or recipe touches it, and
+  every row currently there was added retroactively in one bulk pass. The
+  structural reason it will keep happening is that **registration belongs in the
+  template repo, but the event that should trigger it — scaffolding a project —
+  happens in a different repo**, where nothing prompts you. Cheap fix if it ever
+  earns its way in: `just init` / `just fresh-start` already knows the repo name,
+  variant and template version at exactly the right moment, so it could print a
+  paste-ready registry row (it can't edit the template repo, but it can hand you
+  the line).
+
+  **Deliberately not built.** Asked 2026-08-10; the owner's answer was "I don't
+  see the value right now." Record that as evidence, not as a deferral — the
+  Discipline column in `instances.md` was *removed* on exactly this signal
+  (nobody could fill it, so it was noise). A registry maintained in bulk every
+  few months may simply be good enough for a handful of instances; the prompt
+  only earns itself if a harvest is ever actually blocked by a missing row. When several coding
   agents work one repo, isolate with **`git worktree`, not clones**. The rule:
   **the code can be isolated; the record must not be.** A clone forks the memory —
   a spec's cost lands in one copy and its `DEC-*` in another, `signals.yaml`
