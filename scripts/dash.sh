@@ -17,6 +17,8 @@
 #   just dash questions  open questions (what's blocking)
 #   just dash signals    the typed feedback ledger (what's queued / un-adopted)
 #   just dash patches    the patch lane by cycle (DEC-003)
+#   just dash spikes     the spike lane by cycle (DEC-012) — repo-level
+#   just dash defects    where defects are caught (ship Q4) — the escape distribution
 #   just dash constraints repo-level rules by severity (guidance/constraints.yaml)
 #   just dash handoffs   delegation handoffs by status (plus-agents)
 set -euo pipefail
@@ -36,6 +38,8 @@ case "$lens" in
     questions)   shift; exec "${SCRIPT_DIR}/questions-view.sh" "$@" ;;
     signals)     shift; exec "${SCRIPT_DIR}/signals-view.sh" "$@" ;;
     patches)     shift; exec "${SCRIPT_DIR}/patches-view.sh" "$@" ;;
+    spikes)      shift; exec "${SCRIPT_DIR}/spikes-view.sh" "$@" ;;
+    defects)     shift; exec "${SCRIPT_DIR}/defects-view.sh" "$@" ;;
     constraints) shift; exec "${SCRIPT_DIR}/constraints-view.sh" "$@" ;;
     handoffs)    shift; exec "${SCRIPT_DIR}/handoffs-view.sh" "$@" ;;
     help|-h|--help)
@@ -50,13 +54,15 @@ just dash [lens] [--json]
   questions   open questions from guidance/questions.yaml (what's blocking)
   signals     the typed feedback ledger (guidance/signals.yaml) — what's queued / un-adopted
   patches     the patch lane by cycle (patch|verify|ship), DEC-003
+  spikes      the spike lane by cycle (spike|land), DEC-012 — repo-level, flags un-landed
+  defects     defect-escape distribution from ship Reflection Q4 (all projects; --active to scope)
   constraints repo-level rules from guidance/constraints.yaml, by severity
   handoffs    delegation handoffs (HANDOFF-*.md) by status (plus-agents)
   --json      machine-readable output (works on the dashboard and every lens)
 EOF
         exit 0 ;;
     ""|--json) : ;;  # no lens → stitched dashboard (human or, with --json, JSON)
-    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | constraints | handoffs | help, or no arg for the dashboard)" ;;
+    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | spikes | defects | constraints | handoffs | help, or no arg for the dashboard)" ;;
 esac
 
 project=$(get_active_project)

@@ -277,6 +277,57 @@ sequence). Patches are first-class in `just validate`, `just cost-audit`
 (metered on `patch`+`verify`), and `just status`. `just archive-patch PATCH-NNN`
 files it under `patches/done/`.
 
+### The spike lane (bounded exploration — DEC-012)
+
+A **spike** is the phase *before* you know the shape: a bounded exploration whose
+job is to produce information, not shipped behavior. It runs a collapsed
+**`spike → land`** cycle. Two modes, one discipline:
+
+| `spike.mode` | Is | Code is | Lands as |
+|---|---|---|---|
+| **`question`** | A timeboxed investigation | Evidence | `answered` / `inconclusive` |
+| **`build`** | A **vibe-coding session** | The deliverable | `graduated` / `discarded` |
+
+- **spike** — explore. **No spec, no failing tests, no `DEC-*` required.** This is
+  the one place in the repo with no conventions to follow; the speed *is* the
+  value. `test-before-implementation` does **not** apply during a spike.
+- **land** — **mandatory.** Answer the question, emit `DEC-*` for the choices the
+  exploration already made, and decide the code's fate.
+
+**There is deliberately no `verify` step.** A patch keeps its independent verify
+because it fixes *known* behavior against a *known* expectation. A spike has
+neither acceptance criteria nor a spec, so a verify here would have nothing to
+check and would degrade into theater — which would erode the real verify in the
+other two lanes. The **timebox** and the **mandatory land step** replace it.
+
+**Required from creation:** `spike.question` (one sentence — a spike with no
+question is just coding; loose is fine for `mode: build`, absent is not) and
+`spike.timebox`. **Hitting the timebox without an answer is `inconclusive`, which
+is a real result** — not a reason to extend. Extending twice means it isn't a
+spike, it's an unframed project.
+
+**Guardrails:** a spike may not ship user-facing behavior (that's a spec, or a
+patch for shipped behavior); its code may not be built upon before it lands; and
+it is not a way to skip the cycle on work you already understand — if you can
+write acceptance criteria, you have a spec.
+
+**Graduating a `build` spike** (the vibe-coding → real-work conversion) writes
+five things: `.repo-context.yaml`, `AGENTS.md`, `guidance/toolchain-brief.md`
+(most valuable here — a spike generates exactly this friction), retroactive
+`DEC-*` for **load-bearing choices only** with honest confidence, and a project
+brief framed around **what comes next** (the spike is prior art in
+`Dependencies → Depends on`). **Do NOT retro-write specs for code that already
+works** — a spec directs work that hasn't happened yet.
+
+Mechanics: `just new-spike "the question" [TIMEBOX] [MODE] [PROJ-NNN]` scaffolds
+`spikes/SPIKE-NNN-<slug>.md` at the **repo root** — not under a project, because
+a spike may precede any project (its own repo-wide `SPIKE-*` sequence;
+`project.id` is optional and back-linked at land). `just validate` requires a
+question, a timebox, and — on a spike at `cycle: land` — a real `spike.outcome`;
+`just archive-spike SPIKE-NNN` refuses an un-landed spike and files it under
+`spikes/done/`. `just cost-audit` does **not** gate spikes (cost is advisory).
+A project exploring before it frames anything can set `project.activity: spike`.
+
 ---
 
 ## 9. Instruction Timeline
@@ -350,6 +401,10 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 - Coverage expectations: [REPLACE]
 - **TDD:** Tests live in the spec's `## Failing Tests` section, written
   during **design**, made to pass during **build**.
+- **Exception — the spike lane.** `test-before-implementation` does NOT apply
+  during a `cycle: spike` exploration (DEC-012): a spike has no acceptance
+  criteria to test against, and the speed is the point. It applies again the
+  moment anything graduates into a spec.
 - **Behavioral pre-flight (design-time).** When a spec's literal/artifact makes a
   claim about *runtime behavior* — a component registers, a hook fires, a binary
   resolves on PATH, a server answers, a config is actually loaded — exercise that

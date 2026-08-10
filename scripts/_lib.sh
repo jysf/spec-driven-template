@@ -223,10 +223,79 @@ find_spec() {
     # share the prefix). Without the prompts/ exclusion, advance-cycle/
     # archive-spec could resolve to a prompt file that has no front-matter and
     # silently no-op (verified downstream: zany-animal-slots #7).
-    find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*.md" \
+    # `spikes/` is searched too: a spike lives at the REPO root, not under a
+    # project, because it may precede any project (DEC-012). Searching both here
+    # is what lets `advance-cycle SPIKE-NNN land` work without a parallel lookup.
+    #
+    # spikes/ is absent in a fresh scaffold (it's created on first `new-spike`),
+    # and `find` exits non-zero on a missing path — which under `set -o pipefail`
+    # would fail the whole pipeline. Build the search list from what exists.
+    local roots="${REPO_ROOT}/projects"
+    [ -d "${REPO_ROOT}/spikes" ] && roots="${roots} ${REPO_ROOT}/spikes"
+    # shellcheck disable=SC2086 # deliberate word-splitting: roots is a path list
+    find $roots -type f -name "${spec_id}-*.md" \
         -not -name '*-timeline.md' \
         -not -path '*/done/*' \
         -not -path '*/prompts/*' 2>/dev/null | head -n1
+}
+
+# All spikes in the repo (the bounded-exploration lane, DEC-012). Repo-level,
+# not project-scoped — unlike find_all_specs / find_all_patches. Silent (and
+# non-failing) when spikes/ doesn't exist yet, which is the pre-first-spike state.
+find_all_spikes() {
+    [ -d "${REPO_ROOT}/spikes" ] || return 0
+    find "${REPO_ROOT}/spikes" -type f -name "SPIKE-*.md" 2>/dev/null
+}
+
+# A handoff's `handoff.<key>` front-matter scalar (cycle / to_agent / status …).
+get_handoff_field() {
+    local file="$1" key="$2"
+    awk -v k="$key" '
+        /^---$/ { f = !f; next }
+        !f { exit }
+        /^handoff:/ { ins = 1; next }
+        ins && /^[^[:space:]]/ { ins = 0 }
+        ins && $0 ~ ("^[[:space:]]+" k ":") {
+            sub("^[[:space:]]+" k ":[[:space:]]*", "")
+            sub("[[:space:]]*#.*$", "")
+            print; exit
+        }
+    ' "$file"
+}
+
+# A handoff's `handback.<key>` — the agent's self-reported return values
+# (status / tokens_total / estimated_usd / synced_at …). This is how cost gets
+# into a spec when build+verify run on agents the orchestrator can't meter.
+get_handback_field() {
+    local file="$1" key="$2"
+    awk -v k="$key" '
+        /^---$/ { f = !f; next }
+        !f { exit }
+        /^handback:/ { ins = 1; next }
+        ins && /^[^[:space:]]/ { ins = 0 }
+        ins && $0 ~ ("^[[:space:]]+" k ":") {
+            sub("^[[:space:]]+" k ":[[:space:]]*", "")
+            sub("[[:space:]]*#.*$", "")
+            print; exit
+        }
+    ' "$file"
+}
+
+# A spike's `spike.<key>` front-matter scalar (question / mode / timebox /
+# outcome / landed_at). Empty if absent. Tolerates a trailing "# ..." comment.
+get_spike_field() {
+    local file="$1" key="$2"
+    awk -v k="$key" '
+        /^---$/ { f = !f; next }
+        !f { exit }
+        /^spike:/ { ins = 1; next }
+        ins && /^[^[:space:]]/ { ins = 0 }
+        ins && $0 ~ ("^[[:space:]]+" k ":") {
+            sub("^[[:space:]]+" k ":[[:space:]]*", "")
+            sub("[[:space:]]*#.*$", "")
+            print; exit
+        }
+    ' "$file"
 }
 
 # Find the timeline file paired with a spec. Returns empty if none.

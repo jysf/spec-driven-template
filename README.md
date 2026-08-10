@@ -81,11 +81,15 @@ Run `just --list` to see everything. The main ones:
 | Command | What it does |
 |---|---|
 | `just init` | One-time: choose variant, scaffold the repo |
-| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
+| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`spikes`/`defects`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |
 | `just new-patch "title"` | Scaffold a patch — the lightweight fix lane (collapsed patch→verify→ship, keeps independent verify + DEC) |
+| `just new-spike "question" [TIMEBOX] [MODE]` | Scaffold a spike — the bounded-exploration lane (collapsed spike→land, no verify). `MODE=build` is a vibe-coding session. Lives at the repo root; may precede any project |
+| `just new-handoff SPEC-NNN build\|verify` | Scaffold a delegation handoff (claude-plus-agents) — one per delegated cycle; `to_agent` from `tier_map.<cycle>` |
+| `just handback-sync SPEC-NNN` | Transcribe the agent's self-reported cost from its handoffs into the spec — the orchestrator never estimates a delegated cycle |
+| `just archive-spike SPIKE-NNN` | File a **landed** spike under `spikes/done/` — refuses one with no `spike.outcome` |
 | `just new-release-spec "vX" STAGE-NNN` | Scaffold a release spec with a generic runtime pre-flight checklist (or `new-spec … --release`) |
 | `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field |
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog + stamp `shipped_at` |
@@ -101,6 +105,7 @@ Run `just --list` to see everything. The main ones:
 
 ## Documentation
 
+- [docs/PLAYBOOK.md](docs/PLAYBOOK.md) — the full arc, **including the part before you have a repo**: shaping the idea, decomposing it, the three on-ramps (greenfield / prototype-first / existing repo), and how to tell whether the process is working for you.
 - [docs/USAGE.md](docs/USAGE.md) — the daily loop in depth: project → stage → spec → cycle, the read-only views, decisions and guardrails.
 - [PROJECTS.md](PROJECTS.md) — real projects built with this template.
 - [docs/blog/](docs/blog/) — posts on the what, why, and what got built (drafts).

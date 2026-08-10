@@ -5,6 +5,11 @@ variants; this goes deeper into the daily loop. If you're brand new,
 `just init` then open `GETTING_STARTED.md` first — this doc is the
 reference you come back to.
 
+For the wider arc — shaping and decomposing an idea *before* you have a
+repo, the three on-ramps (greenfield / prototype-first / existing repo),
+closing a wave, and how to tell whether the process is earning its keep
+— see [PLAYBOOK.md](PLAYBOOK.md). That's the map; this is the terrain.
+
 ## The mental model
 
 ```
@@ -102,6 +107,36 @@ Patches are first-class: `just validate`, `just cost-audit` (metered on
 change adds a command/flag or needs its own design exploration, it's a spec, not
 a patch. Rationale + full contract: `docs/decisions/DEC-003-patch-lane.md`.
 
+## The spike lane (bounded exploration)
+
+Before you know the shape, there's nothing to spec. A **spike** is a bounded
+exploration that runs a collapsed **`spike → land`** cycle, in one of two
+modes: `question` (a timeboxed investigation) or `build` (a **vibe-coding
+session** — you're building, and you intend to keep it).
+
+```bash
+just new-spike "can bubbletea do split panes" "2h"              # investigation
+just new-spike "is a local standup tool worth having" "1d" build # vibe-coding
+just advance-cycle SPIKE-001 land
+just archive-spike SPIKE-001
+```
+
+During the spike there is **no spec, no failing tests, and no `DEC-*`
+required** — `test-before-implementation` doesn't apply, and the speed is the
+value. There is deliberately **no verify step**: a spike has no acceptance
+criteria, so a verify would have nothing to check.
+
+What replaces it is the **timebox** and the **mandatory land step**. Landing
+means answering the question, emitting `DEC-*` for the load-bearing choices the
+exploration already made, and setting `spike.outcome` to one of `answered` /
+`inconclusive` / `graduated` / `discarded`. `just archive-spike` refuses an
+un-landed spike and `just validate` fails one — that's the lane's only tooth,
+aimed at its only real failure mode.
+
+Spikes live at the **repo root** (`spikes/`), not under a project: a spike
+often precedes any project. Rationale + the graduation contract:
+`docs/decisions/DEC-012-spike-lane.md`.
+
 ## Decisions and guardrails
 
 Architectural decisions live in `decisions/` as `DEC-*` records. Audit
@@ -159,6 +194,7 @@ project-level escalations in `guidance/recommended-tools.md`.
 
 ## Pointers
 
+- The whole arc, idea to shipped wave: [PLAYBOOK.md](PLAYBOOK.md)
 - First-time walkthrough: `GETTING_STARTED.md`
 - Copy-paste prompts per phase: `FIRST_SESSION_PROMPTS.md`
 - Conventions every agent follows: `AGENTS.md`

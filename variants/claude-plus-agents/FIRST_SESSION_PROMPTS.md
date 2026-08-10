@@ -3,6 +3,7 @@
 Copy-paste-ready prompts for each cycle at the project, stage, and spec levels. Fill in the bracketed parts before pasting.
 
 **Prompts at a glance:**
+- **0:** Spike (bounded exploration) · **0b:** Land the Spike
 - **1a:** Project Frame (starting a new project)
 - **1b:** Project Brief (approved frame → populated brief.md)
 - **1c:** Stage Frame (starting a new stage)
@@ -14,6 +15,94 @@ Copy-paste-ready prompts for each cycle at the project, stage, and spec levels. 
 - **4:** Verify (review PR)
 - **5:** Ship (merge + reflect)
 - **6:** Weekly Review
+
+---
+
+## Prompt 0 — SPIKE (bounded exploration)
+
+> **Use when:** You don't know the shape yet — a question to answer, or an
+> idea worth building before committing to it. Runs BEFORE (or beside) a project.
+> **Time:** your timebox.
+
+```
+I want to run a spike — a bounded exploration, not committed work.
+
+I ran `just new-spike "<the question>" "<timebox>" "<question|build>"`
+which created:
+[REPLACE: paste path]
+
+The question: [REPLACE — what am I trying to learn?]
+Timebox: [REPLACE — e.g. 2h, 1 day, 1 session]
+Mode: [REPLACE — question (investigation) | build (vibe-coding session)]
+
+Read first (briefly — do NOT do a full cold-read; this is a spike):
+- /AGENTS.md § "The spike lane"
+- /guidance/toolchain-brief.md, if it exists
+
+Rules for this session:
+- NO spec, NO failing tests, NO DEC-* required while exploring. Speed is
+  the value; `test-before-implementation` does not apply here (DEC-012).
+- Do NOT ship user-facing behavior. If that's what we're doing, stop and
+  tell me it's a spec.
+- Keep rough notes in the spike's ## Log — no structure required.
+- When the timebox is up, STOP and tell me, even with no answer.
+  "Inconclusive" is a real result.
+
+Your task: explore. Tell me what you find as you go.
+```
+
+---
+
+## Prompt 0b — LAND THE SPIKE (mandatory)
+
+> **Use when:** The spike is done, the timebox hit, or you're about to build
+> on the code. **A spike that never lands is the failure this lane exists to
+> prevent.**
+> **Time:** 10–20 min.
+
+```
+Land SPIKE-NNN. Read the spike file at:
+[REPLACE: paste path]
+
+Your task:
+
+1. Answer the ## Question directly. If inconclusive, say what would make
+   it answerable next time.
+
+2. **Surface the decisions this exploration already made.** It made real
+   choices without writing them down — that was allowed during, and gets
+   settled now. For each one that STILL CONSTRAINS what we build next,
+   write a /decisions/DEC-NNN-<slug>.md with HONEST confidence.
+   - Load-bearing only. This is not archaeology.
+   - If the rationale is genuinely lost, `confidence: 0.4` + a note is the
+     truthful record, not a failure.
+
+3. Decide the code's fate and set `spike.outcome`:
+   - `answered` / `inconclusive` — no code graduates
+   - `discarded` — thrown away (a win: we bought an answer cheaply).
+     Say what's worth keeping in writing instead.
+   - `graduated` — becomes real work. Complete the five-item contract:
+     [ ] .repo-context.yaml describes what now exists
+     [ ] AGENTS.md carries the real stack, commands, conventions
+     [ ] guidance/toolchain-brief.md filled from what this spike learned
+         the hard way
+     [ ] retroactive DEC-* (load-bearing only, honest confidence)
+     [ ] a project brief framed on WHAT COMES NEXT — this spike is prior
+         art in Dependencies → Depends on, not the subject of the project
+
+     **Do NOT retro-write specs for code that already works.**
+
+4. Name the concrete next action.
+
+5. Then:
+     just advance-cycle SPIKE-NNN land
+     just archive-spike SPIKE-NNN
+
+   (`archive-spike` refuses an un-landed spike, and `just validate` fails a
+   landed spike with a null outcome — that's deliberate.)
+
+Stop and let me review before archiving.
+```
 
 ---
 
@@ -511,6 +600,46 @@ When done:
 
 ---
 
+## Prompt 3h — DELEGATED BUILD / VERIFY (hand this to the other agent)
+
+> **Use when:** delegating a cycle to a non-Claude agent.
+> Paste the handoff path; the agent works from that file alone.
+
+```
+You are running the **[REPLACE: build | verify]** cycle for [REPLACE: SPEC-NNN].
+
+Your instructions are in: [REPLACE: paste handoff path]
+
+Read that handoff first. It lists everything you need — the spec, the stage,
+the decisions and constraints that apply, and the toolchain brief. Read the
+toolchain brief; it exists so you don't rediscover this repo's quirks.
+
+COMPLETING THIS CYCLE HAS TWO PARTS, AND THE SECOND IS NOT OPTIONAL:
+
+1. Do the work described under "Expected Deliverables".
+
+2. Hand back. Fill in BOTH the `handback:` front-matter block and the
+   `## Handback` section of the handoff file:
+   - handback.status: completed | blocked | rejected
+   - **handback.tokens_total: the REAL total token count for this session.**
+       Claude Code  → run `/cost`
+       API          → the `usage` object, input + output summed
+       other        → whatever your harness reports as total tokens
+     If your platform exposes NO token count, set it to null AND write why in
+     handback.notes. Do NOT invent or estimate a number — a fabricated cost is
+     worse than a missing one, because it looks real downstream.
+   - handback.estimated_usd, duration_minutes, branch, pr, completed_at
+   - The three reflection questions in the ## Handback section.
+
+If you hit a real blocker: still fill the handback (including tokens — blocked
+work costs money too), set handoff.status: rejected, and say what blocked you.
+
+Do not edit the spec's cost.sessions yourself — the orchestrator transcribes
+your handback with `just handback-sync`.
+```
+
+---
+
 ## Prompt 4 — VERIFY
 
 > **Use when:** Implementer opens a PR.
@@ -703,6 +832,8 @@ Tight report. Actionable in 10 minutes.
 
 | You just... | Use this prompt |
 |---|---|
+| Don't know the shape yet | **0 (Spike)** — bounded exploration |
+| Spike done / timebox hit | **0b (Land the Spike)** — mandatory |
 | Had a new project idea | 1a (Project Frame) |
 | Approved a project frame | 1b (Project Brief) |
 | Ready to frame a new stage | 1c (Stage Frame) |

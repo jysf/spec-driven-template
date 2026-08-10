@@ -16,8 +16,8 @@ if [ -z "$SPEC_ID" ] || [ -z "$NEW_CYCLE" ]; then
 fi
 
 case "$NEW_CYCLE" in
-    frame|design|build|verify|ship|patch) ;;
-    *) die "Invalid cycle: ${NEW_CYCLE}. Must be one of: frame, design, build, verify, ship (specs), or patch (the patch lane)." ;;
+    frame|design|build|verify|ship|patch|spike|land) ;;
+    *) die "Invalid cycle: ${NEW_CYCLE}. Must be one of: frame, design, build, verify, ship (specs), patch (the patch lane), or spike|land (the spike lane)." ;;
 esac
 
 SPEC_FILE=$(find_spec "$SPEC_ID")
@@ -56,5 +56,10 @@ case "$NEW_CYCLE" in
         ;;
     ship)
         echo "Next: use Prompt 5 (Ship), then run 'just archive-spec ${SPEC_ID}'"
+        ;;
+    land)
+        echo "Next: fill the spike's ## Land section — answer, DECs for load-bearing"
+        echo "  choices, the code's fate — then 'just archive-spike ${SPEC_ID}'"
+        echo "  ${DIM}spike.outcome must be set: answered | inconclusive | graduated | discarded${RESET}"
         ;;
 esac

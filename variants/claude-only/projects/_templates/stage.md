@@ -24,6 +24,22 @@ value_contribution:
   advances: null                    # one sentence; which part of project.value.thesis
   delivers: []                      # user-visible capabilities this stage delivers
   explicitly_does_not: []           # what this stage is NOT trying to do
+
+# Orchestration cost — the spend that has no spec to attach to (roadmap:
+# orchestration + framing cost attribution). Framing a stage, deciding the spec
+# breakdown, and cross-spec steering all happen BEFORE/BETWEEN specs, so today
+# they are invisible and recorded cost is systematically under-counted.
+#
+# THE ORCHESTRATOR FILLS THIS — not the human. At stage close, read your own
+# session total (`/cost` in Claude Code; the `usage` object via API) and append
+# one entry. Stage grain ONLY: do not try to split orchestration across specs —
+# that is a division you cannot observe, so any per-spec number is invented.
+# Warn-only, never a gate. A null here is honest; a guess is not. (DEC-013 §5)
+orchestration_cost:
+  sessions: []                      # - tokens_total: N
+                                    #   estimated_usd: N
+                                    #   recorded_at: YYYY-MM-DD
+                                    #   notes: "framing + spec breakdown"
 ---
 
 # STAGE-XXX: <Short Title — the coherent outcome>

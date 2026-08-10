@@ -1185,6 +1185,26 @@ just validate >/dev/null 2>&1 \
 # --json: the structured-output contract (DEC-001 §2)
 # ============================================================
 HAVE_PY3=0; command -v python3 >/dev/null 2>&1 && HAVE_PY3=1
+# Like json_ok, but for GATES: a gate exits non-zero by design when it finds
+# violations, and `out=$(cmd)` under `set -e` would abort the suite. The
+# contract being tested is "emits a valid envelope regardless of exit code".
+json_ok_gate() {
+    local label="$1"; shift
+    local out; out=$("$@" 2>/dev/null || true)
+    if printf '%s' "$out" | grep -q '"schema_version":1'; then
+        pass "${label}: emits the envelope"
+    else
+        fail "${label}: missing envelope: $out"
+    fi
+    if [ "$HAVE_PY3" = 1 ]; then
+        if printf '%s' "$out" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null; then
+            pass "${label}: valid JSON"
+        else
+            fail "${label}: invalid JSON: $out"
+        fi
+    fi
+}
+
 json_ok() {
     local label="$1"; shift
     local out; out=$("$@" 2>/dev/null)
@@ -1592,6 +1612,195 @@ assert_contains "$weekly_file" "## Patches" "report-weekly includes a Patches se
 rm -rf projects/PROJ-001-example-mvp/patches
 
 # ============================================================
+# Gate --json contracts (DEC-001 §2)
+# ============================================================
+json_ok_gate "validate --json"    just validate --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just validate --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="validate" and d["data"]["ok"] is True and d["data"]["checked"]>=1 and d["data"]["violations"]==[]' \
+        && pass "validate --json (clean gate: ok=true, empty violations)" || fail "validate --json clean payload wrong"
+fi
+# A broken artifact must appear as a STRUCTURED finding, not just an exit code.
+BADJ="projects/PROJ-001-example-mvp/specs/SPEC-997-badjson.md"
+cp projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec.md "$BADJ" 2>/dev/null || \
+  cp "$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | head -n1)" "$BADJ"
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  cycle: .*/  cycle: bogus/' "$BADJ"; else sed -i 's/^  cycle: .*/  cycle: bogus/' "$BADJ"; fi
+assert_cmd_fails "validate --json still exits 1 on violations" just validate --json
+# Capture BEFORE piping: the gate exits 1 on violations, and under `pipefail` a
+# live `just … | python3` would fail the pipeline on the gate's exit code rather
+# than on the payload (same trap the patches test documents).
+if [ "$HAVE_PY3" = 1 ]; then
+    vjson=$(just validate --json 2>/dev/null || true)
+    printf '%s' "$vjson" | python3 -c 'import json,sys; d=json.load(sys.stdin); v=d["data"]["violations"]; assert d["data"]["ok"] is False and any("task.cycle" in p for x in v for p in x["problems"]) and any(x["kind"]=="spec" for x in v)' \
+        && pass "validate --json names the artifact and the failed check" || fail "validate --json violation payload wrong"
+fi
+rm -f "$BADJ"
+
+json_ok_gate "cost-audit --json"  just cost-audit --json
+if [ "$HAVE_PY3" = 1 ]; then
+    cjson=$(just cost-audit --json 2>/dev/null || true)
+    printf '%s' "$cjson" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="cost-audit" and d["data"]["gate"] in ("enforced","disabled") and "violations" in d["data"]' \
+        && pass "cost-audit --json (gate + violations payload)" || fail "cost-audit --json payload wrong"
+fi
+
+# ============================================================
+# Spike lane (v0.6.27, DEC-012)
+# ============================================================
+assert_file "projects/_templates/spike.md"
+
+# new-spike scaffolds at the REPO root (not under a project — a spike may
+# precede any project), with its own SPIKE-* sequence.
+just new-spike "Can Bubbletea Do Split Panes" "2h" >/dev/null 2>&1
+SPIKE_FILE=$(ls spikes/SPIKE-*-can-bubbletea-do-split-panes.md 2>/dev/null | head -n1)
+SPIKE_ID=$(basename "$SPIKE_FILE" 2>/dev/null | grep -oE 'SPIKE-[0-9]+')
+if [ -n "$SPIKE_FILE" ] && [ "$SPIKE_ID" = "SPIKE-001" ]; then
+    pass "new-spike scaffolds SPIKE-001 at the repo root (own sequence)"
+else
+    fail "new-spike did not scaffold spikes/SPIKE-001 (got '${SPIKE_ID:-none}')"
+fi
+assert_contains "$SPIKE_FILE" "type: spike"   "spike uses task.type: spike"
+assert_contains "$SPIKE_FILE" "cycle: spike"  "spike starts at cycle: spike"
+
+# Every __TOKEN__ placeholder must be substituted. This is the regression guard
+# for the v5.8 substitution-escaping bug class: a prose placeholder containing
+# the sed delimiter silently fails to substitute and ships a broken artifact.
+if grep -q '__[A-Z_]*__' "$SPIKE_FILE"; then
+    fail "new-spike left an unsubstituted placeholder: $(grep -o '__[A-Z_]*__' "$SPIKE_FILE" | sort -u | tr '\n' ' ')"
+else
+    pass "new-spike substitutes every __TOKEN__ placeholder"
+fi
+assert_contains "$SPIKE_FILE" "timebox: 2h"      "new-spike TIMEBOX lands in front-matter"
+assert_contains "$SPIKE_FILE" "mode: question"   "new-spike defaults to mode: question"
+assert_contains "$SPIKE_FILE" "id: null"         "spike project.id is null (may precede any project)"
+if grep -qE '^[[:space:]]+stage:' "$SPIKE_FILE"; then
+    fail "spike should have NO project.stage line"
+else
+    pass "spike has no project.stage (attaches to the repo, not a stage)"
+fi
+
+# A timebox containing the sed delimiter must survive substitution intact —
+# the exact input that broke the original prose-placeholder implementation.
+just new-spike "Pipe Timebox" "2h | then stop" >/dev/null 2>&1
+PIPE_SPIKE=$(ls spikes/SPIKE-*-pipe-timebox.md 2>/dev/null | head -n1)
+assert_contains "$PIPE_SPIKE" "2h | then stop" "new-spike survives a timebox containing '|'"
+rm -f "$PIPE_SPIKE"
+
+# --mode build is the vibe-coding session; an invalid mode is rejected.
+just new-spike "Vibe Session" "1 session" "build" >/dev/null 2>&1
+BUILD_SPIKE=$(ls spikes/SPIKE-*-vibe-session.md 2>/dev/null | head -n1)
+assert_contains "$BUILD_SPIKE" "mode: build" "new-spike MODE=build sets the vibe-coding mode"
+rm -f "$BUILD_SPIKE"
+assert_cmd_fails "new-spike rejects an invalid mode" just new-spike "Bad Mode" "1d" "sideways"
+assert_cmd_fails "new-spike requires a question" just new-spike
+
+sed_test() { if [ "$(uname)" = "Darwin" ]; then sed -i '' "$@"; else sed -i "$@"; fi; }
+
+# validate treats a mid-exploration spike as first-class and PASSES it: a spike
+# still at `cycle: spike` has legitimately not answered anything yet.
+if just validate >/dev/null 2>&1; then
+    pass "validate passes a mid-exploration spike (cycle: spike, outcome null)"
+else
+    fail "validate failed on a well-formed mid-exploration spike"
+fi
+
+# ...but rejects a spike carrying a spec-only cycle (design ∉ spike|land).
+BADSPIKE="spikes/SPIKE-999-bad.md"
+cp "$SPIKE_FILE" "$BADSPIKE"
+sed_test 's/^  cycle: spike.*/  cycle: design/' "$BADSPIKE"
+assert_cmd_fails "validate rejects a spike with an invalid (spec-only) cycle" just validate
+rm -f "$BADSPIKE"
+
+# ...and rejects a spike with no question (a spike with no question is coding).
+NOQ="spikes/SPIKE-998-noq.md"
+cp "$SPIKE_FILE" "$NOQ"
+sed_test 's/^  question: .*/  question: null/' "$NOQ"
+assert_cmd_fails "validate rejects a spike with no spike.question" just validate
+rm -f "$NOQ"
+
+# advance-cycle accepts the spike lane's cycles and finds a repo-root spike.
+just advance-cycle "$SPIKE_ID" land >/dev/null 2>&1
+assert_contains "$SPIKE_FILE" "cycle: land" "advance-cycle moves a spike spike->land"
+
+# THE TOOTH (DEC-012): a LANDED spike with a null outcome fails the gate. An
+# un-landed spike is the exact failure this lane exists to prevent.
+assert_cmd_fails "validate fails a landed spike with a null spike.outcome" just validate
+
+# archive-spike refuses an un-landed spike (outcome still null).
+assert_cmd_fails "archive-spike refuses a spike with no outcome" just archive-spike "$SPIKE_ID"
+
+# With a real outcome it lands, files under spikes/done/, and stamps landed_at.
+sed_test 's/^  outcome: null.*/  outcome: graduated/' "$SPIKE_FILE"
+if just validate >/dev/null 2>&1; then
+    pass "validate passes once spike.outcome is set"
+else
+    fail "validate still failing after spike.outcome was set"
+fi
+just archive-spike "$SPIKE_ID" >/dev/null 2>&1
+ARCHIVED="spikes/done/$(basename "$SPIKE_FILE")"
+if [ -f "$ARCHIVED" ]; then
+    pass "archive-spike moves a landed spike to spikes/done/"
+else
+    fail "archive-spike did not move the spike to done/"
+fi
+assert_contains "$ARCHIVED" "landed_at: 2" "archive-spike stamps landed_at"
+assert_cmd_fails "double archive-spike fails" just archive-spike "$SPIKE_ID"
+
+# An unrecognized outcome is rejected rather than silently archived.
+just new-spike "Bogus Outcome Spike" >/dev/null 2>&1
+BOGUS=$(ls spikes/SPIKE-*-bogus-outcome-spike.md 2>/dev/null | head -n1)
+BOGUS_ID=$(basename "$BOGUS" | grep -oE 'SPIKE-[0-9]+')
+sed_test 's/^  outcome: null.*/  outcome: mostly-fine/' "$BOGUS"
+assert_cmd_fails "archive-spike rejects an unrecognized outcome" just archive-spike "$BOGUS_ID"
+assert_cmd_fails "validate rejects an unrecognized spike.outcome" just validate
+rm -f "$BOGUS"
+
+# status surfaces open spikes; `spike` is an accepted project.activity value.
+just new-spike "Open Spike" "1d" >/dev/null 2>&1
+OPEN_SPIKE=$(ls spikes/SPIKE-*-open-spike.md 2>/dev/null | head -n1)
+status_out=$(just status 2>&1)
+if printf '%s\n' "$status_out" | grep -q "Spikes"; then
+    pass "status lists open spikes"
+else
+    fail "status missing the Spikes section"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just status --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); s=d["data"]["spikes"]; assert s and s[0]["task.id"].startswith("SPIKE-")' \
+        && pass "status --json carries a spikes[] array" || fail "status --json missing spikes[]"
+fi
+# --- dash spikes lens (the house rule: add a lens, not a new command) ---
+ds=$(just dash spikes 2>&1)
+if printf '%s\n' "$ds" | grep -qE "^Spikes — bounded exploration" && printf '%s\n' "$ds" | grep -q "SPIKE-"; then
+    pass "dash spikes lists the spike lane by cycle"
+else
+    fail "dash spikes output unexpected: $ds"
+fi
+json_ok "dash spikes --json"   just dash spikes --json
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash spikes --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["command"]=="spikes" and d["data"]["total"]>=1 and d["data"]["spikes"][0]["task.id"].startswith("SPIKE-")' \
+        && pass "dash spikes --json (task.*/spike.* payload)" || fail "dash spikes --json wrong/invalid"
+fi
+# The lens flags an un-landed spike (at `land` with a null outcome) — the one
+# state the lane exists to make visible.
+just advance-cycle "$(basename "$OPEN_SPIKE" | grep -oE 'SPIKE-[0-9]+')" land >/dev/null 2>&1
+if just dash spikes 2>&1 | grep -q "un-landed"; then
+    pass "dash spikes flags a landed spike with no outcome"
+else
+    fail "dash spikes did not flag the un-landed spike"
+fi
+assert_cmd_fails "dash spikes: validate agrees the un-landed spike is invalid" just validate
+
+rm -f "$OPEN_SPIKE"
+rm -rf spikes
+
+# `spike` is a recognized project.activity (AGENTS.md §8 reserved it; DEC-012
+# makes it official) — so it must NOT draw the unrecognized-activity advisory.
+act_probe=$(just validate 2>&1 || true)
+if printf '%s\n' "$act_probe" | grep -q "unrecognized project.activity"; then
+    fail "validate warned on activity before the spike-activity probe ran"
+else
+    pass "validate is quiet on activity with no spikes present"
+fi
+
+# ============================================================
 # dash constraints + dash handoffs lenses (v0.6.2)
 # ============================================================
 # constraints lens: severity-grouped view of guidance/constraints.yaml.
@@ -1975,6 +2184,202 @@ if [ "$HAVE_PY3" = 1 ]; then
     assert_eq "$ap3" "PROJ-051-new-wave" "resolver skips an on_hold project in favor of the active one"
 fi
 rm -rf projects/PROJ-049-paused projects/PROJ-050-old-wave projects/PROJ-051-new-wave
+
+# ============================================================
+# dash defects lens — the defect-escape distribution (reads ship Reflection Q4)
+# ============================================================
+dd=$(just dash defects 2>&1)
+if printf '%s\n' "$dd" | grep -q "Defect-escape distribution"; then
+    pass "dash defects renders the distribution"
+else
+    fail "dash defects output unexpected: $dd"
+fi
+json_ok "dash defects --json"   just dash defects --json
+# An UNANSWERED template must not be counted as data: the vocabulary words appear
+# in the template's own prompt text (in backticks) and must never be parsed as
+# an answer. This is the parser's central risk.
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash defects --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["answered"]==0 and sum(d["distribution"].values())==0, d' \
+        && pass "dash defects ignores the unanswered template vocabulary" || fail "dash defects counted template prose as an answer"
+fi
+# Now answer Q4 on a real spec and confirm it lands in the right bucket.
+DSPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | grep -v timeline | head -n1)
+cat >> "$DSPEC" <<'DEFEOF'
+
+## Reflection (Ship)
+
+4. **Where was the worst defect caught?** — one word from a fixed vocabulary so
+   the defect-escape distribution is greppable across specs:
+   `design` | `build` | `verify` | `ship` | `escaped` (reached prod/runtime) |
+   `none` (clean first try).
+   — escaped
+DEFEOF
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash defects --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["answered"]==1 and d["distribution"]["escaped"]==1, d; assert d["escaped_artifacts"][0]["kind"]=="spec"' \
+        && pass "dash defects counts an answered escaped defect" || fail "dash defects did not record the escaped answer"
+fi
+# Capture before grepping: `grep -q` closes the pipe on match, SIGPIPE-ing the
+# producer, which `pipefail` then reports as failure (same trap as dash patches).
+dd2=$(just dash defects 2>&1)
+if printf '%s\n' "$dd2" | grep -q "ESCAPED"; then
+    pass "dash defects surfaces escaped defects prominently"
+else
+    fail "dash defects did not highlight the escaped defect"
+fi
+# A different vocabulary word must land in its own bucket, not 'escaped'.
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^   — escaped$/   — verify/' "$DSPEC"; else sed -i 's/^   — escaped$/   — verify/' "$DSPEC"; fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash defects --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["distribution"]["verify"]==1 and d["distribution"]["escaped"]==0, d' \
+        && pass "dash defects buckets a non-escaped answer correctly" || fail "dash defects mis-bucketed a verify answer"
+fi
+
+# ============================================================
+# Stage carries an orchestration_cost slot (the spend with no spec to attach to)
+# ============================================================
+# A stage scaffolded FROM the template (the shipped example stage is
+# hand-authored and is asserted separately below).
+just new-stage "Orchestration Cost Probe" >/dev/null 2>&1
+SFILE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-orchestration-cost-probe.md | head -n1)
+assert_contains "$SFILE" "orchestration_cost:" "stage template carries orchestration_cost"
+assert_contains "$SFILE" "THE ORCHESTRATOR FILLS THIS" "orchestration_cost says who fills it"
+if just validate >/dev/null 2>&1; then
+    pass "validate unaffected by the stage orchestration_cost slot"
+else
+    fail "validate broke after adding orchestration_cost to stages"
+fi
+# The shipped EXAMPLE stage must stay in sync with the template it demonstrates —
+# a stale example teaches the wrong shape on day one.
+EXSTAGE="projects/PROJ-001-example-mvp/stages/STAGE-001-foundational-infra.md"
+assert_contains "$EXSTAGE" "orchestration_cost:" "example stage stays in sync with the template"
+rm -f "$SFILE"
+
+# ============================================================
+# claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)
+#
+# Until now the suite ONLY ever scaffolded claude-only, so the entire
+# plus-agents variant — handoffs included — shipped with zero coverage. This
+# section scaffolds the OTHER variant in its own scratch repo and exercises the
+# delegated-cost path, which is the whole reason a non-Claude build/verify agent
+# can satisfy the cost gate at all.
+# ============================================================
+PA_SCRATCH=$(mktemp -d 2>/dev/null || mktemp -d -t 'template-plus-agents-test')
+cp -R "$TEMPLATE_ROOT" "$PA_SCRATCH/repo"
+rm -rf "$PA_SCRATCH/repo/.git"
+# NOT a subshell: pass/fail counters live in this process, and a `( … )` would
+# silently discard every pass recorded inside it (the suite would under-report
+# its own coverage). cd back to the primary scratch when done.
+cd "$PA_SCRATCH/repo"
+printf "2\n" | just init >/dev/null 2>&1 || fail "just init (claude-plus-agents) exited non-zero"
+if [ "$(cat .variant 2>/dev/null)" = "claude-plus-agents" ]; then
+    pass "init scaffolds the claude-plus-agents variant"
+else
+    fail "init did not select claude-plus-agents (got '$(cat .variant 2>/dev/null)')"
+fi
+assert_file "projects/_templates/handoff.md"
+
+# The variant's own gates must pass on a fresh scaffold.
+if just validate >/dev/null 2>&1; then
+    pass "plus-agents: validate passes on a fresh scaffold"
+else
+    fail "plus-agents: validate failed on a fresh scaffold"
+fi
+if just status >/dev/null 2>&1; then
+    pass "plus-agents: status runs on a fresh scaffold"
+else
+    fail "plus-agents: status failed on a fresh scaffold"
+fi
+
+just new-stage "Delegated Infra" >/dev/null 2>&1
+PA_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-delegated-infra.md | head -n1)
+PA_STAGE_ID=$(basename "$PA_STAGE" | grep -oE 'STAGE-[0-9]+')
+just new-spec "Delegated Widget" "$PA_STAGE_ID" >/dev/null 2>&1
+PA_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-delegated-widget.md | grep -v timeline | head -n1)
+PA_SPEC_ID=$(basename "$PA_SPEC" | grep -oE 'SPEC-[0-9]+')
+
+# ONE handoff per delegated CYCLE — a build/verify split gets one each.
+just new-handoff "$PA_SPEC_ID" build >/dev/null 2>&1
+HB=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md 2>/dev/null | head -n1)
+if [ -n "$HB" ]; then
+    pass "new-handoff build scaffolds a build handoff"
+else
+    fail "new-handoff build produced no file"
+fi
+assert_contains "$HB" "cycle: build"        "build handoff records cycle: build"
+assert_contains "$HB" "to_role: implementer" "build handoff sets to_role: implementer"
+assert_contains "$HB" "handback:"            "handoff carries the handback block"
+if grep -q '__[A-Z_]*__' "$HB"; then
+    fail "new-handoff left an unsubstituted placeholder: $(grep -o '__[A-Z_]*__' "$HB" | sort -u | tr '\n' ' ')"
+else
+    pass "new-handoff substitutes every __TOKEN__ placeholder"
+fi
+# to_agent comes from tier_map.<cycle> (DEC-005) — build and verify differ by default.
+if grep -q "to_agent: claude-sonnet-4-6" "$HB"; then
+    pass "build handoff picks to_agent from tier_map.build"
+else
+    fail "build handoff did not use tier_map.build"
+fi
+
+just new-handoff "$PA_SPEC_ID" verify >/dev/null 2>&1
+HV=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md 2>/dev/null | head -n1)
+assert_contains "$HV" "cycle: verify"     "verify handoff records cycle: verify"
+assert_contains "$HV" "to_role: verifier" "verify handoff sets to_role: verifier"
+if grep -q "to_agent: claude-opus-4-7" "$HV"; then
+    pass "verify handoff picks to_agent from tier_map.verify (different from build)"
+else
+    fail "verify handoff did not use tier_map.verify"
+fi
+assert_cmd_fails "new-handoff rejects a non-delegated cycle" just new-handoff "$PA_SPEC_ID" design
+
+# --- handback-sync: the cost path -------------------------------------------
+# Nothing handed back yet → must FAIL and name the offender, not silently pass.
+assert_cmd_fails "handback-sync fails while handoffs are un-returned" just handback-sync "$PA_SPEC_ID"
+hs=$(just handback-sync "$PA_SPEC_ID" 2>&1 || true)
+if printf '%s\n' "$hs" | grep -q "has not reported\|not set"; then
+    pass "handback-sync explains WHICH handoff is outstanding"
+else
+    fail "handback-sync gave no actionable reason: $hs"
+fi
+
+# Agent reports back WITHOUT a token count while the gate is enforced → still fails.
+sed_pa() { if [ "$(uname)" = "Darwin" ]; then sed -i '' "$@"; else sed -i "$@"; fi; }
+sed_pa 's/^  status: null.*/  status: completed/' "$HB"
+assert_cmd_fails "handback-sync refuses a handback with no tokens_total" just handback-sync "$PA_SPEC_ID"
+
+# With a real self-reported count it transcribes into the spec's cost.sessions.
+sed_pa 's/^  tokens_total: null.*/  tokens_total: 48211/' "$HB"
+sed_pa 's/^  estimated_usd: null.*/  estimated_usd: 0.32/' "$HB"
+sed_pa 's/^  status: null.*/  status: completed/' "$HV"
+sed_pa 's/^  tokens_total: null.*/  tokens_total: 12044/' "$HV"
+sed_pa 's/^  estimated_usd: null.*/  estimated_usd: 0.08/' "$HV"
+if just handback-sync "$PA_SPEC_ID" >/dev/null 2>&1; then
+    pass "handback-sync transcribes reported cost once both handbacks are filled"
+else
+    fail "handback-sync failed with complete handbacks"
+fi
+assert_contains "$PA_SPEC" "48211" "build cost landed in the spec's cost.sessions"
+assert_contains "$PA_SPEC" "12044" "verify cost landed in the spec's cost.sessions"
+assert_contains "$PA_SPEC" "^ +- cycle: build$"  "transcribed session carries cycle: build"
+assert_contains "$PA_SPEC" "^ +- cycle: verify$" "transcribed session carries cycle: verify"
+assert_contains "$HB" "synced_at: 2"         "handback-sync stamps synced_at"
+
+# Idempotence: re-running must not double-count (the cost record's integrity).
+just handback-sync "$PA_SPEC_ID" >/dev/null 2>&1 || true
+occurrences=$(grep -c "48211" "$PA_SPEC" || true)
+if [ "$occurrences" = "1" ]; then
+    pass "handback-sync is idempotent (no double-counting on re-run)"
+else
+    fail "handback-sync double-counted: 48211 appears ${occurrences}× in the spec"
+fi
+
+# The transcribed cost must satisfy the real gate — the entire point of the path.
+just advance-cycle "$PA_SPEC_ID" ship >/dev/null 2>&1
+if just cost-audit >/dev/null 2>&1; then
+    pass "cost-audit passes on a shipped spec costed purely from handbacks"
+else
+    fail "cost-audit still fails after handback-sync — the delegated-cost path is broken"
+fi
+cd "$SCRATCH/repo"
+rm -rf "$PA_SCRATCH"
 
 # ============================================================
 # Done

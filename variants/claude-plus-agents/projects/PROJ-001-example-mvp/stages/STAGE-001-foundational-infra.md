@@ -12,6 +12,13 @@ repo:
 
 created_at: 2026-04-19
 shipped_at: null
+# Orchestration cost — the spend that has no spec to attach to. THE ORCHESTRATOR
+# FILLS THIS at stage close (read your own session total; `/cost` in Claude Code).
+# Stage grain only — splitting orchestration across specs invents a number you
+# cannot observe. Warn-only. A null is honest; a guess is not.
+orchestration_cost:
+  sessions: []
+
 ---
 
 # STAGE-001: Foundational infrastructure

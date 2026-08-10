@@ -2,6 +2,119 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-10 — defect-escape reader, plus-agents coverage, orchestration slot (v0.6.29)
+
+Three gaps closed before kicking off a two-agent project, plus the decision
+record the handback shipped without ([DEC-013](docs/decisions/DEC-013-delegated-cost-handback.md)).
+
+- **`just dash defects`** — the reader for `defect-catch-stage`. Every shipped
+  spec already answered *"where was the worst defect caught?"* and **nothing read
+  it**; the retro that asked for the field said its value is "only visible in a
+  cross-project view", so it had shipped half-finished (the reserved-but-not-wired
+  pattern, harvest signal #7). Renders the distribution with `escaped` highlighted
+  — the class that got through design, build *and* verify. `--json`; scans all
+  projects by default. The parser deliberately ignores the template's own
+  vocabulary prose (backticked) so an unanswered spec is never counted as data.
+- **The `claude-plus-agents` variant now has test coverage — it previously had
+  NONE.** The suite only ever scaffolded `claude-only`, so handoffs (and the new
+  handback) were entirely unverified. A second scratch repo now scaffolds the
+  other variant and exercises the delegated-cost path end to end: one handoff per
+  cycle, `to_agent` from `tier_map.<cycle>`, `handback-sync` refusing an
+  un-returned or token-less handback, transcription into `cost.sessions`,
+  idempotence on re-run, and **`cost-audit` passing on a spec costed purely from
+  handbacks** — the whole point of the path.
+- **`orchestration_cost:` on the stage template.** Framing a stage and deciding
+  its spec breakdown happen before any spec exists, so that spend had nowhere to
+  live and recorded cost was structurally under-counted. **The orchestrator fills
+  it** at stage close from its own session total — the human never hand-counts.
+  Stage grain only: splitting orchestration across specs invents a number you
+  cannot observe. Warn-only, no gate, no view yet — capture first (roadmap:
+  orchestration + framing cost attribution, now N=2-ready).
+- **Fixed:** the shipped example stage had drifted from the template it
+  demonstrates; a test now pins them together.
+
+## 2026-08-10 — the handback: delegated cycles report their own cost (v0.6.28)
+
+Groundwork for running build and verify on two different non-Claude agents. The
+blocker was cost: `cost-captured-per-cycle` requires a real `tokens_total` on
+build and verify, and an orchestrator has no meter for an agent it doesn't host.
+
+- **`handback:` block on every handoff.** The executing agent fills it before
+  reporting done — status, **a real `tokens_total`**, USD, duration, branch/PR.
+  The prompt says explicitly: if your platform has no meter, set null and say why;
+  **do not invent a number** — a fabricated cost looks real in every downstream
+  rollup.
+- **`just handback-sync SPEC-NNN`** transcribes reported cost into the spec's
+  `cost.sessions`. Idempotent (stamps `synced_at`), and **exits 1 naming any
+  handoff that hasn't handed back cleanly**. The orchestrator never estimates a
+  delegated cycle.
+- **`just new-handoff SPEC-NNN build|verify`** — ONE handoff per delegated
+  *cycle*, so a build/verify split gets one each. `to_agent` comes from
+  `tier_map.<cycle>`; a `verify` handoff carries the cold-review contract.
+- **`--json` on the gates** (DEC-001 §2): `just validate --json` and
+  `just cost-audit --json` now emit structured findings — which artifact failed
+  which check — instead of prose an agent has to screen-scrape. Both still exit 1.
+- **`just dash spikes`** — the spike lane's lens (the house rule is *add a lens,
+  not a new command*); flags a spike landed with no outcome.
+
+## 2026-08-09 — the spike lane: bounded exploration, and vibe-coding sessions (v0.6.27)
+
+The template modelled **committed** work well — a project is a wave, a stage a
+chunk, a spec a task, a patch a fix. Every one of those assumes you already know
+what you're building. It had no home for the phase *before* that. `just new-spike`
+adds one.
+
+- **A third lane: `spike → land`.** Two modes, one discipline.
+  `mode: question` is a timeboxed investigation (code is evidence);
+  **`mode: build` is a vibe-coding session** (code is the deliverable). During
+  the spike there is **no spec, no failing tests, and no `DEC-*` required** —
+  `test-before-implementation` explicitly does not apply (AGENTS.md §12), because
+  the speed is the value.
+- **No verify step, deliberately.** The patch lane keeps its independent verify
+  because it fixes *known* behavior against a *known* expectation. A spike has
+  neither acceptance criteria nor a spec, so a verify would have nothing to check
+  and would degrade into theater — eroding the real verify in the other lanes.
+  The **timebox** and the **mandatory land step** replace it.
+- **`land` is the whole point.** Answer the question, emit `DEC-*` for the
+  load-bearing choices the exploration already made (honest confidence; not
+  archaeology), and set `spike.outcome` ∈ `answered | inconclusive | graduated |
+  discarded`. Hitting the timebox with no answer is `inconclusive` — a real
+  result. Extending a timebox twice means it isn't a spike, it's an unframed
+  project.
+- **The graduation contract** (vibe-coding → real work) is a five-item checklist
+  in the artifact: `.repo-context.yaml`, `AGENTS.md`, `guidance/toolchain-brief.md`,
+  retroactive `DEC-*` for load-bearing choices only, and a brief framed on **what
+  comes next**. Explicitly *not* a sixth: **do not retro-write specs for code that
+  already works.**
+- **Repo-level, not project-scoped.** Spikes live at `spikes/SPIKE-NNN-<slug>.md`
+  with their own repo-wide sequence; `project.id` is optional and back-linked at
+  land. This is the decisive difference from a patch — a spike often *precedes*
+  any project, which is the case that motivated the lane.
+- **One mechanical tooth.** `just validate` requires `spike.question` +
+  `spike.timebox`, and **fails a spike at `cycle: land` with a null
+  `spike.outcome`**; `just archive-spike` refuses to file an un-landed spike. A
+  spike still at `cycle: spike` passes untouched — mid-exploration is a legitimate
+  state. `just cost-audit` does **not** gate spikes (cost advisory).
+- **Also:** `just dash spikes` (the lens — the house rule is *add a lens, not a new
+  command*; it flags an un-landed spike); `just status` gets a repo-level Spikes
+  section + `spikes[]` in `--json`; `advance-cycle` accepts `spike|land`; `spike` becomes an official
+  `project.activity` value (AGENTS.md had reserved it as the example extension);
+  Prompts **0 / 0b** (Spike, Land the Spike) in both variants;
+  `docs/PLAYBOOK.md` + `docs/USAGE.md` cover the lane.
+- **Fixed in passing:** `new-spike` uses `__TOKEN__` placeholders rather than
+  prose ones. A prose placeholder containing the `sed` delimiter (`2h | 1d`)
+  silently fails to substitute — the v5.8 bug class — and the `justfile` passes
+  each parameter quoted rather than through a `*ARGS` splat, which would splice
+  a `|` into the recipe shell as a pipe. Both are covered by regression tests.
+
+**Evidence level, stated plainly:** this is **N=1** (`standup`), below the
+template's own N=3-same / N=2-paired-opposing codification bar, and shipped on
+the owner's explicit direction as a deliberate exception to the deliberate-lag
+discipline. [DEC-012](docs/decisions/DEC-012-spike-lane.md) records it as one,
+with a revisit trigger at the next harvest: if spikes are being *landed*, it
+earned its place; if they're created and abandoned un-landed, the lane is failing
+at its only job and should be cut back to prose.
+
 ## 2026-07-27 — expected vs actual: the estimation feedback loop (v0.6.26)
 
 The template recorded what work *cost* but never what you *predicted*, so it

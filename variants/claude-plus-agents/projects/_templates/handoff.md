@@ -1,13 +1,23 @@
 ---
 # Maps to ContextCore handoff.* semantic conventions.
+#
+# ONE handoff per delegated CYCLE. With build and verify running on different
+# agents you get TWO handoffs per spec (HANDOFF-N build, HANDOFF-M verify) —
+# `handoff.cycle` is what distinguishes them.
+#
+# The `handback:` block below is the RETURN path and it is not optional: it is
+# how cost gets into the spec without the orchestrator hand-counting anything.
+# `just handback-sync SPEC-NNN` reads it and appends the cost session for you.
+# Rationale + the full contract: docs/decisions/DEC-013-delegated-cost-handback.md
 
 handoff:
   id: HANDOFF-XXX
-  from_agent: claude-opus-4-7
-  to_agent: kilo-code              # or factory-droid, adal, etc.
+  cycle: __CYCLE__                 # build | verify — which cycle is delegated
+  from_agent: __FROM_AGENT__       # the orchestrator (tier_map.design; DEC-005)
+  to_agent: __TO_AGENT__           # from tier_map.<cycle> — the executing agent
   from_role: architect
-  to_role: implementer
-  created_at: YYYY-MM-DD
+  to_role: __TO_ROLE__             # implementer | verifier
+  created_at: __TODAY__
   status: pending                  # pending | accepted | completed | rejected
 
 task:
@@ -18,6 +28,29 @@ project:
   stage: STAGE-XXX
 repo:
   id: __REPO_ID__
+
+# ── THE HANDBACK ────────────────────────────────────────────────────────────
+# Filled in by the EXECUTING AGENT before it reports done. This is a required
+# part of completing the handoff, not a courtesy.
+#
+# `tokens_total` is the one field the cost gate reads. Report the REAL number
+# from your own interface:
+#   Claude Code   → run `/cost`
+#   API           → the `usage` object (input + output, summed)
+#   another agent → whatever your harness reports as total tokens
+# If your platform genuinely exposes NO token count, set tokens_total: null AND
+# write why in `notes` — then set `cost.metering_source: none` in
+# .repo-context.yaml so the gate stops asking. Do not invent a number.
+handback:
+  status: null                     # completed | blocked | rejected
+  tokens_total: null               # REAL combined count — what cost-audit reads
+  estimated_usd: null              # tokens_total × your rate, or your harness's number
+  duration_minutes: null
+  branch: null
+  pr: null
+  completed_at: null               # YYYY-MM-DD
+  notes: null                      # one line if unusual (rework, no meter, etc.)
+  synced_at: null                  # stamped by `just handback-sync` — do not edit
 ---
 
 # HANDOFF-XXX: <Task Title — same as the spec's title>
@@ -25,8 +58,7 @@ repo:
 ## Delegation Summary
 
 One sentence: `<from_agent>` (acting as `<from_role>`) hands `SPEC-XXX`
-to `<to_agent>` (acting as `<to_role>`) for implementation during the
-**build** cycle.
+to `<to_agent>` (acting as `<to_role>`) for the **`<cycle>`** cycle.
 
 ## Context the Receiving Agent Needs
 
@@ -38,6 +70,9 @@ list tight, but don't omit anything necessary.
 - **Project brief:** `./projects/PROJ-XXX-<slug>/brief.md`
 - **Stage:** `./projects/PROJ-XXX-<slug>/stages/STAGE-XXX-<slug>.md`
 - **Spec:** `./projects/PROJ-XXX-<slug>/specs/SPEC-XXX-<slug>.md`
+- **Toolchain brief:** `./guidance/toolchain-brief.md` — this repo's test
+  framework, lint quirks, runtime globals and gotchas. Read it; it exists so a
+  cold agent doesn't rediscover them (DEC-004 rule 5).
 
 ### Decisions that apply
 
@@ -59,6 +94,8 @@ apply to the paths touched by this task:
 
 ## Expected Deliverables
 
+*(For a `verify` handoff, replace this block with the verify contract below.)*
+
 - Code changes implementing SPEC-XXX's Acceptance Criteria.
 - All failing tests in SPEC-XXX now passing.
 - Any new tests required to cover edge cases.
@@ -67,40 +104,71 @@ apply to the paths touched by this task:
   ID, the project ID, all referenced `DEC-*`, and any new `DEC-*`
   created during implementation.
 
+### If `cycle: verify` — the verify contract
+
+You are **not** the agent that implemented this. Review it cold.
+
+- Acceptance criteria met? Tests actually pass? Build reflection answered
+  honestly (*"nothing was unclear"* is suspicious)?
+- Decision drift — run `just decisions-audit --changed`.
+- Constraint violations; non-trivial choices missing a `DEC-*`.
+- For any criterion claiming **runtime behavior** (a component registers, a hook
+  fires, a binary resolves on PATH, a config takes effect), confirm the
+  *behavioral* surface was exercised — not just the shape validated. That is the
+  defect class that escapes (AGENTS.md §12).
+- Output exactly ONE of: ✅ APPROVED / ⚠ PUNCH LIST / ❌ REJECTED.
+
 ## Out of Scope
 
-Explicit list of what this handoff does NOT include. If the implementer
+Explicit list of what this handoff does NOT include. If the receiving agent
 thinks any of these need to happen, they should create a new spec in
 the stage's backlog, not expand this handoff.
 
 - ...
 
-## Return Criteria
+## Return Criteria — how to hand back
 
-The implementer signals completion by:
-1. Filling in the `## Completion` section (including reflection).
-2. Updating `handoff.status` → `completed`.
-3. Updating the spec's `task.cycle` → `verify` (or use `just advance-cycle SPEC-XXX verify`).
-4. Opening a PR.
+**Completing this handoff means filling in the `handback:` front-matter block
+above AND the `## Handback` section below.** An unfilled handback is an
+incomplete cycle, and `just handback-sync` will tell the orchestrator so.
 
-If the implementer cannot complete the task:
-1. Fill in the `## Completion` section with what was done and what blocked.
-2. Update `handoff.status` → `rejected`.
-3. Set the spec's `task.blocked: true` and add a question to
+On success:
+1. Fill the `handback:` front-matter — **including a real `tokens_total`**.
+2. Fill the `## Handback` section (the reflection is part of it, not optional).
+3. Set `handoff.status` → `completed` and `handback.status` → `completed`.
+4. Open a PR (build) or return your verdict (verify).
+
+If you cannot complete the task:
+1. Fill the `## Handback` section with what was done and what blocked you.
+2. Set `handoff.status` → `rejected`, `handback.status` → `blocked`.
+3. **Still report your token usage** — blocked work costs money too.
+4. Set the spec's `task.blocked: true` and add a question to
    `/guidance/questions.yaml`.
 
 ---
 
-## Completion
+## Handback
 
-*Filled in by the receiving agent when the handoff is complete. The
-three reflection questions below are part of completion, not optional.*
+*Filled in by the receiving agent. The orchestrator does not reconstruct any of
+this — it transcribes it. The reflection questions are part of completion.*
 
 ### Execution notes
 
-- **PR:** [link]
+- **Branch / PR:** [link]
 - **Completed at:** YYYY-MM-DD
 - **All acceptance criteria met?** yes/no (if no, explain)
+- **For `verify`:** the verdict — ✅ APPROVED (at commit SHA) / ⚠ PUNCH LIST / ❌ REJECTED
+
+### Cost self-report
+
+Mirror what you put in the `handback:` front-matter, and say where the number
+came from. **This is the number that lands in the spec** — the orchestrator
+transcribes it via `just handback-sync`, it does not estimate it.
+
+- **Tokens (total):** <real number, or null + why>
+- **Estimated USD:** <number, or null>
+- **Duration (minutes):** <estimate>
+- **Source of the number:** `/cost` | API `usage` | harness report | none available
 
 ### Drift and new artifacts
 
@@ -111,7 +179,7 @@ three reflection questions below are part of completion, not optional.*
 - **Follow-up work identified:**
   - [any new specs that should be added to the stage's backlog]
 
-### Implementer reflection (3 questions, short answers)
+### Reflection (3 questions, short answers)
 
 1. **What was unclear in the spec or handoff that slowed you down?**
    — <answer>

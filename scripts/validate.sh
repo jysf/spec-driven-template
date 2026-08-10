@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
 require_initialized
+JSON_OUT=$(has_json_flag "$@")
 
 # fm_scalar FILE TOP SUB → first token of TOP.SUB (2-space-nested scalar),
 # empty if absent. Tolerates trailing "# ..." comments (takes field $2).
@@ -30,14 +31,18 @@ fm_scalar() {
 
 VALID_CYCLE=" frame design build verify ship "
 VALID_PATCH_CYCLE=" patch verify ship "
+VALID_SPIKE_CYCLE=" spike land "        # the spike lane (DEC-012)
+VALID_SPIKE_OUTCOME=" answered inconclusive graduated discarded "
 VALID_COMPLEXITY=" XS S M L XL XXL "   # t-shirt scale; S|M|L predate it and stay valid
 # `project.activity` is an OPEN, suggested set — not a hard enum. An
 # unrecognized value is advisory (warn-only), never a gate failure, so
-# people can extend the vocabulary (e.g. add `spike`). See DEC / AGENTS.
-SUGGESTED_ACTIVITY=" requirements design build test blocked "
+# people can extend the vocabulary. `spike` was the documented example
+# extension and became official with the spike lane (DEC-012).
+SUGGESTED_ACTIVITY=" requirements design build test blocked spike "
 
 offenders=0
 checked=0
+off_names=(); off_problems=(); off_kinds=()
 activity_notes=""
 depends_notes=""
 actual_notes=""
@@ -91,7 +96,8 @@ while IFS= read -r pdir; do
 
         checked=$((checked + 1))
         if [ -n "$problems" ]; then
-            printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
+            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spec")
+            [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
             offenders=$((offenders + 1))
         fi
     done < <(find_all_specs "$pdir")
@@ -121,7 +127,8 @@ while IFS= read -r pdir; do
 
         checked=$((checked + 1))
         if [ -n "$problems" ]; then
-            printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
+            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("patch")
+            [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
             offenders=$((offenders + 1))
         fi
     done < <(find_all_patches "$pdir")
@@ -137,6 +144,87 @@ while IFS= read -r pdir; do
         esac
     fi
 done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sort)
+
+# Spikes (the bounded-exploration lane, DEC-012). REPO-level, not project-scoped
+# — a spike may precede any project, so this loop sits outside the project walk.
+# Cycle enum is spike|land; `project.stage` is absent and `project.id` optional.
+#
+# The one real tooth: a spike at `cycle: land` MUST carry a spike.outcome. An
+# un-landed spike is precisely the failure this lane exists to prevent
+# (undocumented decisions leaking into production), so it fails the gate rather
+# than warning. A spike still at `cycle: spike` is mid-exploration — left alone.
+while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in
+        */done/*) continue ;;
+        */prompts/*) continue ;;
+    esac
+    name=$(basename "$f" .md)
+    problems=""
+
+    [ -n "$(fm_scalar "$f" task id)" ]   || problems="${problems} task.id"
+    [ -n "$(fm_scalar "$f" task type)" ] || problems="${problems} task.type"
+    [ -n "$(fm_scalar "$f" repo id)" ]   || problems="${problems} repo.id"
+
+    cyc=$(fm_scalar "$f" task cycle)
+    case "$VALID_SPIKE_CYCLE" in *" $cyc "*) : ;; *) problems="${problems} task.cycle(='${cyc:-∅}')" ;; esac
+
+    # spike.question and spike.timebox are what make it a spike rather than
+    # undirected coding — both required from creation.
+    q=$(get_spike_field "$f" question)
+    [ -n "$q" ] && [ "$q" != "null" ] || problems="${problems} spike.question"
+    tb=$(get_spike_field "$f" timebox)
+    [ -n "$tb" ] && [ "$tb" != "null" ] || problems="${problems} spike.timebox"
+
+    md=$(get_spike_field "$f" mode)
+    case " question build " in *" $md "*) : ;; *) problems="${problems} spike.mode(='${md:-∅}')" ;; esac
+
+    out=$(get_spike_field "$f" outcome)
+    if [ "$cyc" = "land" ]; then
+        case "$VALID_SPIKE_OUTCOME" in
+            *" $out "*) : ;;
+            *) problems="${problems} spike.outcome(='${out:-∅}'; a LANDED spike must record one of${VALID_SPIKE_OUTCOME})" ;;
+        esac
+    elif [ -n "$out" ] && [ "$out" != "null" ]; then
+        # Mid-spike with an outcome already set is fine, but it must be valid.
+        case "$VALID_SPIKE_OUTCOME" in
+            *" $out "*) : ;;
+            *) problems="${problems} spike.outcome(='${out}')" ;;
+        esac
+    fi
+
+    checked=$((checked + 1))
+    if [ -n "$problems" ]; then
+        off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spike")
+        [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
+        offenders=$((offenders + 1))
+    fi
+done < <(find_all_spikes)
+
+# --- Machine-readable output (DEC-001 §2): the gate's findings, not just its
+# exit code. An agent that hits a red gate can act on WHICH artifact failed
+# WHICH check instead of screen-scraping prose.
+if [ "$JSON_OUT" = 1 ]; then
+    items=()
+    i=0
+    while [ "$i" -lt "${#off_names[@]}" ]; do
+        # Trim the leading space the accumulator adds, then split on spaces.
+        probs="${off_problems[$i]# }"
+        parts=(); for tok in $probs; do parts+=("$(json_qs "$tok")"); done
+        [ "${#parts[@]}" -gt 0 ] && parr=$(json_arr "${parts[@]}") || parr="[]"
+        items+=("$(json_obj \
+            artifact "$(json_qs "${off_names[$i]}")" \
+            kind "$(json_qs "${off_kinds[$i]}")" \
+            problems "$parr")")
+        i=$((i + 1))
+    done
+    [ "${#items[@]}" -gt 0 ] && arr=$(json_arr "${items[@]}") || arr="[]"
+    json_emit validate "$(json_obj \
+        checked "$checked" offenders "$offenders" ok "$([ "$offenders" -eq 0 ] && echo true || echo false)" \
+        violations "$arr")"
+    [ "$offenders" -gt 0 ] && exit 1
+    exit 0
+fi
 
 # Advisory: an unrecognized `project.activity` (open set). Printed after
 # the gate result — never changes the exit code.
@@ -162,4 +250,4 @@ if [ "$offenders" -gt 0 ]; then
     echo ""
     die "validate: ${offenders} artifact(s) with invalid/missing required front-matter (checked ${checked}). See DEC-001 §1 / docs/schema-reference.md."
 fi
-success "validate: ${checked} artifact(s) (specs + patches) have valid required front-matter."
+success "validate: ${checked} artifact(s) (specs + patches + spikes) have valid required front-matter."

@@ -139,6 +139,35 @@ new-patch TITLE PROJECT_ID="":
 archive-patch PATCH_ID:
     @./scripts/archive-patch.sh "{{PATCH_ID}}"
 
+# Scaffold a delegation handoff (claude-plus-agents). ONE per delegated CYCLE —
+# with build and verify on different agents you get two per spec. Picks to_agent
+# from .repo-context tier_map.<cycle>. Usage: just new-handoff SPEC-NNN build|verify
+new-handoff SPEC_ID CYCLE:
+    @./scripts/new-handoff.sh "{{SPEC_ID}}" "{{CYCLE}}"
+
+# Transcribe agent-reported cost from a spec's handoffs into its cost.sessions.
+# The orchestrator never estimates: the agent that ran the cycle self-reports in
+# its handback: block and this copies it across. Idempotent (stamps synced_at).
+# Exits 1 if any handoff hasn't handed back cleanly. Usage: just handback-sync SPEC-NNN
+handback-sync SPEC_ID *FLAGS:
+    @./scripts/handback-sync.sh "{{SPEC_ID}}" {{FLAGS}}
+
+# Scaffold a spike (the bounded-exploration lane, DEC-012): the phase BEFORE you
+# know the shape. spike -> land; no verify (nothing to verify against). Lives at
+# the repo root — a spike may precede any project.
+#   MODE=question  a timeboxed investigation (default; code is evidence)
+#   MODE=build     a vibe-coding session (code is the deliverable)
+# Every parameter is quoted individually — a `*ARGS` splat would splice raw text
+# into the recipe shell, so a timebox like "2h | then stop" would become a pipe.
+# Usage: just new-spike "the question" [TIMEBOX] [MODE] [PROJ-NNN]
+new-spike TITLE TIMEBOX="1 session" MODE="question" PROJECT_ID="":
+    @./scripts/new-spike.sh "{{TITLE}}" --timebox "{{TIMEBOX}}" --mode "{{MODE}}" "{{PROJECT_ID}}"
+
+# Archive a LANDED spike: move to spikes/done/. Refuses an un-landed spike
+# (no spike.outcome) — the land step is the point. Usage: just archive-spike SPIKE-NNN
+archive-spike SPIKE_ID:
+    @./scripts/archive-spike.sh "{{SPIKE_ID}}"
+
 #   just report daily [--json]         → curated daily report (reports/daily/YYYY-MM-DD.md)
 #   just report weekly [DATE] [--json] → weekly report for the ISO week (reports/weekly/YYYY-WNN.md)
 #   just report status                 → uncurated status snapshot (reports/daily/YYYY-MM-DD-status.md)
@@ -252,16 +281,14 @@ decisions-audit *FLAGS:
 # Fail if any shipped spec is missing real build/verify cost data
 # (AGENTS.md §4 / docs/cost-tracking.md). Same check the CI `cost-data`
 # job runs; also surfaced in `just status` and `just report-weekly`.
-cost-audit:
-    @./scripts/cost-audit.sh
-
+cost-audit *FLAGS:
+    @./scripts/cost-audit.sh {{FLAGS}}
 # Validate that every spec's front-matter carries the required structural
 # fields with valid values (the schema contract; DEC-001 §1 /
 # docs/schema-reference.md). Exits non-zero on any violation — gate-style,
 # suitable for CI. Cost-on-shipped is enforced separately by `just cost-audit`.
-validate:
-    @./scripts/validate.sh
-
+validate *FLAGS:
+    @./scripts/validate.sh {{FLAGS}}
 # ----------------------------------------------------------------------------
 # HELPERS
 # ----------------------------------------------------------------------------

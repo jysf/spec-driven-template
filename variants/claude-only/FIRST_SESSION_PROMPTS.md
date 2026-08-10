@@ -3,6 +3,7 @@
 Copy-paste-ready prompts for each cycle. Fill in bracketed parts before pasting.
 
 **Prompts at a glance:**
+- **0:** Spike (bounded exploration) · **0b:** Land the Spike
 - **1a:** Project Frame
 - **1b:** Project Brief
 - **1c:** Stage Frame
@@ -18,6 +19,94 @@ Copy-paste-ready prompts for each cycle. Fill in bracketed parts before pasting.
 > **Session discipline:** Claude plays every role. Start a NEW Claude
 > session for each cycle. The spec file is the handoff between sessions.
 > Skipping this breaks the variant.
+
+---
+
+## Prompt 0 — SPIKE (bounded exploration)
+
+> **Use when:** You don't know the shape yet — a question to answer, or an
+> idea worth building before committing to it. Runs BEFORE (or beside) a project.
+> **Time:** your timebox.
+
+```
+I want to run a spike — a bounded exploration, not committed work.
+
+I ran `just new-spike "<the question>" "<timebox>" "<question|build>"`
+which created:
+[REPLACE: paste path]
+
+The question: [REPLACE — what am I trying to learn?]
+Timebox: [REPLACE — e.g. 2h, 1 day, 1 session]
+Mode: [REPLACE — question (investigation) | build (vibe-coding session)]
+
+Read first (briefly — do NOT do a full cold-read; this is a spike):
+- /AGENTS.md § "The spike lane"
+- /guidance/toolchain-brief.md, if it exists
+
+Rules for this session:
+- NO spec, NO failing tests, NO DEC-* required while exploring. Speed is
+  the value; `test-before-implementation` does not apply here (DEC-012).
+- Do NOT ship user-facing behavior. If that's what we're doing, stop and
+  tell me it's a spec.
+- Keep rough notes in the spike's ## Log — no structure required.
+- When the timebox is up, STOP and tell me, even with no answer.
+  "Inconclusive" is a real result.
+
+Your task: explore. Tell me what you find as you go.
+```
+
+---
+
+## Prompt 0b — LAND THE SPIKE (mandatory)
+
+> **Use when:** The spike is done, the timebox hit, or you're about to build
+> on the code. **A spike that never lands is the failure this lane exists to
+> prevent.**
+> **Time:** 10–20 min.
+
+```
+Land SPIKE-NNN. Read the spike file at:
+[REPLACE: paste path]
+
+Your task:
+
+1. Answer the ## Question directly. If inconclusive, say what would make
+   it answerable next time.
+
+2. **Surface the decisions this exploration already made.** It made real
+   choices without writing them down — that was allowed during, and gets
+   settled now. For each one that STILL CONSTRAINS what we build next,
+   write a /decisions/DEC-NNN-<slug>.md with HONEST confidence.
+   - Load-bearing only. This is not archaeology.
+   - If the rationale is genuinely lost, `confidence: 0.4` + a note is the
+     truthful record, not a failure.
+
+3. Decide the code's fate and set `spike.outcome`:
+   - `answered` / `inconclusive` — no code graduates
+   - `discarded` — thrown away (a win: we bought an answer cheaply).
+     Say what's worth keeping in writing instead.
+   - `graduated` — becomes real work. Complete the five-item contract:
+     [ ] .repo-context.yaml describes what now exists
+     [ ] AGENTS.md carries the real stack, commands, conventions
+     [ ] guidance/toolchain-brief.md filled from what this spike learned
+         the hard way
+     [ ] retroactive DEC-* (load-bearing only, honest confidence)
+     [ ] a project brief framed on WHAT COMES NEXT — this spike is prior
+         art in Dependencies → Depends on, not the subject of the project
+
+     **Do NOT retro-write specs for code that already works.**
+
+4. Name the concrete next action.
+
+5. Then:
+     just advance-cycle SPIKE-NNN land
+     just archive-spike SPIKE-NNN
+
+   (`archive-spike` refuses an un-landed spike, and `just validate` fails a
+   landed spike with a null outcome — that's deliberate.)
+
+Stop and let me review before archiving.
+```
 
 ---
 
@@ -657,6 +746,8 @@ Tight report. Actionable in 10 min.
 
 | You just... | Use this prompt |
 |---|---|
+| Don't know the shape yet | **0 (Spike)** — bounded exploration |
+| Spike done / timebox hit | **0b (Land the Spike)** — mandatory |
 | New project idea | 1a (Project Frame) |
 | Frame approved | 1b (Project Brief) |
 | Ready to frame a stage | 1c (Stage Frame) |

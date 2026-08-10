@@ -82,12 +82,32 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
             missing_cost "$pmc_json")")
     done < <(find_all_patches "$ACTIVE_PROJECT_DIR")
     [ "${#patches_json[@]}" -gt 0 ] && patches_arr=$(json_arr "${patches_json[@]}") || patches_arr="[]"
+
+    # Spikes (the bounded-exploration lane, DEC-012) — REPO-level, so this is not
+    # scoped to the active project. Only un-landed spikes are interesting here.
+    spikes_json=()
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        case "$f" in */done/*|*/prompts/*) continue ;; esac
+        sid=$(basename "$f" | sed -E 's/^(SPIKE-[0-9]+).*/\1/')
+        cyc=$(get_spec_cycle "$f"); [ -n "$cyc" ] || cyc="?"
+        sout=$(get_spike_field "$f" outcome); [ -n "$sout" ] || sout="null"
+        spikes_json+=("$(json_obj \
+            "task.id" "$(json_qs "$sid")" \
+            "task.cycle" "$(json_qs "$cyc")" \
+            "spike.mode" "$(json_qs "$(get_spike_field "$f" mode)")" \
+            "spike.timebox" "$(json_qs "$(get_spike_field "$f" timebox)")" \
+            "spike.outcome" "$(json_qs "$sout")")")
+    done < <(find_all_spikes)
+    [ "${#spikes_json[@]}" -gt 0 ] && spikes_arr=$(json_arr "${spikes_json[@]}") || spikes_arr="[]"
+
     summary=$(json_obj total_specs "${total_specs:-0}" shipped "${shipped_specs:-0}" decisions "${total_decisions:-0}")
     data=$(json_obj \
         variant "$(json_qs "$VARIANT")" \
         active_project "$(json_qs "$ACTIVE_PROJECT")" \
         specs "$specs_arr" \
         patches "$patches_arr" \
+        spikes "$spikes_arr" \
         missing_cost_specs "$missing_arr" \
         summary "$summary")
     json_emit status "$data"
@@ -196,6 +216,32 @@ if [ "${patch_total:-0}" -gt 0 ]; then
         printf "  ${BOLD}%-8s${RESET} (%d)\n" "$cycle" "$count"
         [ -n "$names" ] && printf "%b" "$names"
     done
+    echo ""
+fi
+
+# --- Spikes (the bounded-exploration lane, DEC-012) ---
+# Repo-level, not project-scoped: a spike may precede any project. Only open
+# (un-archived) spikes are shown — a landed spike is settled history.
+spike_open=0
+if [ -d "${REPO_ROOT}/spikes" ]; then
+    spike_open=$(find "${REPO_ROOT}/spikes" -maxdepth 1 -name 'SPIKE-*.md' 2>/dev/null | wc -l | tr -d ' ')
+fi
+if [ "${spike_open:-0}" -gt 0 ]; then
+    echo "${BOLD}Spikes — open exploration (repo-level)${RESET}"
+    for f in "${REPO_ROOT}/spikes"/SPIKE-*.md; do
+        [ -f "$f" ] || continue
+        sc=$(get_spec_cycle "$f"); [ -n "$sc" ] || sc="?"
+        smode=$(get_spike_field "$f" mode)
+        stb=$(get_spike_field "$f" timebox)
+        sout=$(get_spike_field "$f" outcome)
+        line="    - $(basename "$f" .md) ${DIM}[${smode:-?} · timebox ${stb:-?} · ${sc}]${RESET}"
+        # A spike at `land` with no outcome is the failure this lane prevents.
+        if [ "$sc" = "land" ] && { [ -z "$sout" ] || [ "$sout" = "null" ]; }; then
+            line="${line} ${YELLOW}← landed with no outcome; validate will fail${RESET}"
+        fi
+        printf "%b\n" "$line"
+    done
+    echo "  ${DIM}Land every spike (just archive-spike) — an un-landed spike is undocumented decisions.${RESET}"
     echo ""
 fi
 
