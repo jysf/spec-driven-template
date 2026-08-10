@@ -146,7 +146,9 @@ Full ranked detail + evidence lives in
   backlog's "stage backlog" is un-promoted *specs* inside a framed stage, a
   different layer from un-framed *stages*.
 - **#9** — a per-language "known gotchas" appendix the build prompt links (complements
-  the toolchain brief). Optional.
+  the toolchain brief). Optional. *(2026-08-10: reframed as one half of the
+  **golden paths + gotchas** candidate below — the gap is not the appendix, it is
+  that the template has no instance-to-instance transfer mechanism at all.)*
 - **#10** — a scheduled-advisory CI convention (cron gate for vuln-DB drift). Optional.
 - **DEC-index at scale** — an auto-generated `decisions/INDEX.md` (id · title · status ·
   supersedes) once a project passes ~25 DECs, so the decision log stays navigable and
@@ -192,7 +194,26 @@ These are shaped by real usage — start them *on* a live project, not in the ab
 
   Lean: coarse `overhead` bucket first, per-sub-task residual later. **Don't build cold —
   this is N=1.** It co-designs naturally *on the MCP-server project above* (orchestrating
-  sub-agents to build it produces exactly this framing+orchestration spend). Touches
+  sub-agents to build it produces exactly this framing+orchestration spend).
+
+  > **Update 2026-08-10 — the handback materially unblocked (b).** Approach (b) was
+  > stuck because the residual is only computable when every delegated cycle is
+  > metered, and non-Claude agents weren't. The **`handback:` block** (v0.6.28) now
+  > yields Σ(delegated cost) for *any* agent, so **orchestration = session total −
+  > Σ(handbacks)** is computable outside Claude Code for the first time. Two gaps
+  > remain, and the second is the interesting one:
+  > 1. Reading the orchestrator's own session total (manual `/cost` — fine).
+  > 2. **Pre-spec framing still has nowhere to live.** Deciding a stage's breakdown
+  >    happens before any spec exists, so there is no artifact to attach cost to.
+  >    `stage.cost` does not exist — that's a schema gap, and the cheapest honest
+  >    first cut. **Resist per-spec attribution of orchestration**: it is a split you
+  >    cannot observe, so any number is false precision. Stage grain or nothing.
+  >
+  > Still don't build it cold. **grebe makes it N=2** — instrument grebe to *collect*
+  > orchestrator session totals by hand into the stage file, then let real numbers
+  > shape the tooling.
+
+  Touches
   [DEC-002](decisions/DEC-002-cost-convention.md) (cost convention),
   [DEC-004](decisions/DEC-004-subagent-execution-mode.md) (delegated-exec cost
   attribution), [DEC-009](decisions/DEC-009-business-value-metrics.md)
@@ -232,6 +253,62 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   `depends_on:`. A "what breaks past this scale" list, not current defects. *(The
   `decisions/INDEX.md`-past-~25-DECs item graduated to the buildable backlog above,
   2026-07-17 — crustyimg's 73 DECs made it real.)*
+
+- **Build bake-off — N-version build, and what it really buys (raised 2026-08-10).**
+  Run the *same* spec through two or more build agents, verify each independently,
+  then pick. The template accidentally already emits the artifact a fair bake-off
+  needs: a self-contained work order with testable acceptance criteria and
+  prescribed failing tests. Two design constraints, both learned from the existing
+  lanes:
+  - **Verify must not select.** The moment a verify session picks a winner it is
+    invested in that winner and stops being a cold reviewer for it. Verify each
+    build independently against the spec; make selection a *separate* step.
+  - **Record the losers.** Two builds = two branches, two `## Build Completion`
+    blocks, two cost entries, one discard. Throwing the loser away discards the
+    actual prize.
+
+  **The prize is not the better build — it's learning which agent is better at
+  what.** `spec.agent.tier_map` is currently set once, by judgement, with zero
+  evidence behind it; a handful of bake-offs turns it into a *measured* setting
+  that compounds across every later spec. It is N× build cost, so it is a **stakes
+  tier, not a default** (same shape as the patch lane, pointed the other way).
+  Open: where a bake-off is recorded (N `claimed_by` holders on one spec breaks
+  the single-holder lease); whether the loser's cost counts toward the spec.
+  **Do not build tooling first** — run it by hand on 3–5 high-stakes specs and
+  record which agent won and why. grebe (two external agents already configured)
+  is the natural first bed.
+
+- **Golden paths + per-language gotchas — the sideways gap (raised 2026-08-10).**
+  Two faces of one thing: **gotchas are the anti-pattern list, golden paths the
+  pattern list**, and both are per-stack knowledge. What makes this more than
+  roadmap #9: `guidance/toolchain-brief.md` is **per-repo and instance-local**,
+  but this knowledge wants to be **cross-repo** — the whole point is carrying what
+  bragfile learned into grebe. **The template has no instance-to-instance transfer
+  mechanism at all.** Everything flows *up* through harvests into the template and
+  *down* into new scaffolds; there is no sideways. That absence is the real
+  finding.
+  - Capture seam that already fits: `guidance/signals.yaml` types are all
+    *problems* (`lesson` / `process-debt` / `product` / `risk`). There is **no type
+    for "this worked so well another project should copy it wholesale."** A
+    `golden-path` type raised at project close would inherit the disposition
+    ritual unchanged.
+  - **The bar applies harder here, not softer.** A wrong paved road is worse than
+    no road, because people follow it. Capture candidates aggressively; promote
+    almost nothing. N=3 or it stays a preference.
+  - Open: does a golden path live in the template (shipped to every scaffold), in
+    a cross-instance store, or only as a harvest note? Ties to the artifact-storage
+    question above and to the `instances.md` registry.
+
+- **Clone-per-agent — asked and answered (2026-08-10): no.** When several coding
+  agents work one repo, isolate with **`git worktree`, not clones**. The rule:
+  **the code can be isolated; the record must not be.** A clone forks the memory —
+  a spec's cost lands in one copy and its `DEC-*` in another, `signals.yaml`
+  diverges — which destroys the one thing the template exists to protect. Recorded
+  here so the question doesn't get re-asked; it strengthens the case for
+  [DEC-004](decisions/DEC-004-subagent-execution-mode.md) Phase 3 rather than
+  competing with it. If the real need is *different instructions per agent*, that
+  is a `guidance/agents/<name>.md` the handoff links (sibling of the toolchain
+  brief), not a repo fork.
 
 ---
 
