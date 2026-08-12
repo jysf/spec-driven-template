@@ -2,6 +2,38 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-10 — init stops leaking the template's own docs into your app (v0.6.30)
+
+`just init` copied the variant over the root and deleted `variants/`, but never
+removed the **template's own** root docs — so every scaffolded instance inherited
+a 100 KB+ CHANGELOG of the template's version history, its "projects built with
+this template" showcase, its CONTRIBUTING guide (bash 3.2, variant parity), and
+stale migration notes. None of it describes the app being built.
+
+That was not just noise. The patch lane and the release spec both tell an
+instance to *"add a CHANGELOG entry under `[Unreleased] → Fixed`"* — against a
+file that was the template's history and contained **no `[Unreleased]` section
+at all**. An app's first patch either appended to the template's changelog or
+quietly went unrecorded.
+
+- **`scripts/scaffold-clean.sh`**, run by `init`: removes `PROJECTS.md`,
+  `CONTRIBUTING.md`, `KNOWN_LIMITATIONS.md`, `MIGRATION_TO_REPORTS_AND_COSTS.md`,
+  and seeds a fresh app `CHANGELOG.md` **with the `## [Unreleased]` section the
+  patch lane writes to**. It prints what it removed — no silent deletion.
+- **Kept:** `VERSION` (template provenance — an instance reports the version it
+  was scaffolded from) and `LICENSE`, which is never auto-deleted because that
+  could leave a repo unlicensed; it's flagged for review instead.
+- **Fixed in passing:** the VERSION↔CHANGELOG drift guards were reading the
+  *scaffolded* changelog rather than the template's. They guard the template's
+  own consistency, so they now target it explicitly.
+
+Root entries in a fresh instance: **26 → 22**, and the changelog goes from
+~106 KB of someone else's history to 349 bytes of yours.
+
+Credit: surfaced by an external review flagging root-level clutter. The specific
+files it named (`.repo-context.yaml`, `.variant`) are staying — they're dotfiles
+and the app's own metadata — but checking the claim found this underneath.
+
 ## 2026-08-10 — defect-escape reader, plus-agents coverage, orchestration slot (v0.6.29)
 
 Three gaps closed before kicking off a two-agent project, plus the decision

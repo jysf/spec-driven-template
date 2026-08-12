@@ -107,6 +107,35 @@ pass "init: scaffolded claude-only successfully"
 # 1b) app.just: project-owned recipes, imported by the template justfile
 # ============================================================
 # app.just is a root file (not in variants/), so it ships and survives init.
+# --- init leaves the app's root free of the TEMPLATE's own docs -------------
+# Every instance used to inherit the template's 100KB+ CHANGELOG, its
+# "built with this template" showcase, and its CONTRIBUTING guide — none of
+# which describe the app. Worse, the patch lane writes to `[Unreleased]` in a
+# CHANGELOG that was the template's history and had no such section.
+for tf in PROJECTS.md CONTRIBUTING.md KNOWN_LIMITATIONS.md MIGRATION_TO_REPORTS_AND_COSTS.md; do
+    if [ -f "$tf" ]; then
+        fail "init left the template's own ${tf} in the scaffolded repo"
+    fi
+done
+pass "init removes the template's own root docs"
+assert_file "VERSION"
+pass "init keeps VERSION (template provenance survives, per CONTRIBUTING)"
+assert_file "LICENSE"
+pass "init keeps LICENSE (never auto-deleted — could leave a repo unlicensed)"
+# The app gets a FRESH changelog carrying the section the patch lane writes to.
+assert_contains "CHANGELOG.md" "## \\[Unreleased\\]" "init seeds an app CHANGELOG with an [Unreleased] section"
+if grep -q "spec-driven-template" CHANGELOG.md; then
+    fail "the scaffolded CHANGELOG still contains the template's own history"
+else
+    pass "the scaffolded CHANGELOG is the app's, not the template's"
+fi
+cl_bytes=$(wc -c < CHANGELOG.md | tr -d ' ')
+if [ "$cl_bytes" -lt 2000 ]; then
+    pass "scaffolded CHANGELOG is small (${cl_bytes} bytes, was 100KB+)"
+else
+    fail "scaffolded CHANGELOG is ${cl_bytes} bytes — template history leaked in?"
+fi
+
 assert_file "app.just"
 # The template justfile opts into it via an OPTIONAL import (escaped: ? and .
 # are ERE metachars). `import?` keeps a fresh clone working before the file exists.
@@ -1269,7 +1298,7 @@ if [ "$HAVE_PY3" = 1 ]; then
     fi
 fi
 # Drift guard: the VERSION value must appear in the newest CHANGELOG entry.
-if grep -qE "v${ver}([^0-9]|\$)" CHANGELOG.md; then
+if grep -qE "v${ver}([^0-9]|\$)" "$TEMPLATE_ROOT/CHANGELOG.md"; then
     pass "VERSION matches a CHANGELOG entry (no drift)"
 else
     fail "VERSION ${ver} not found in CHANGELOG.md (version/changelog drift)"
@@ -1278,14 +1307,14 @@ fi
 # current VERSION — catches a VERSION bump whose new entry was never added on top
 # (the old top would still "appear" and pass the weaker check above). And every
 # versioned header must be unique — no accidental duplicate release sections.
-newest_hdr_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' CHANGELOG.md \
+newest_hdr_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' "$TEMPLATE_ROOT/CHANGELOG.md" \
     | head -n1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//')
 if [ "$newest_hdr_ver" = "$ver" ]; then
     pass "newest CHANGELOG header is the current VERSION (v${ver} on top)"
 else
     fail "newest CHANGELOG header is v${newest_hdr_ver:-∅}, not VERSION ${ver}"
 fi
-dup_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' CHANGELOG.md \
+dup_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' "$TEMPLATE_ROOT/CHANGELOG.md" \
     | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort | uniq -d | head -n1)
 if [ -z "$dup_ver" ]; then
     pass "no duplicate versioned CHANGELOG headers"

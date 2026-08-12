@@ -61,6 +61,7 @@ init:
     cp -r "variants/$VARIANT/." . && \
     rm -rf variants/ && \
     echo "$VARIANT" > .variant && \
+    ./scripts/scaffold-clean.sh && \
     echo "" && \
     echo "✓ Done. Your variant: $VARIANT" && \
     echo "" && \
