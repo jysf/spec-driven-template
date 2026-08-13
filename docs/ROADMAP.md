@@ -10,6 +10,15 @@ recurs (N=3 same-outcome / N=2 paired-opposing). "Don't push it to codify sooner
 Full ranked detail + evidence lives in
 [`docs/harvests/2026-07-06-three-project-dogfood-harvest.md`](harvests/2026-07-06-three-project-dogfood-harvest.md).
 
+**Signal provenance — a new category (2026-08-12).** Until now every input to
+this list came from an instance we own: the template grading its own corpus. The
+external-comparison harvest folded in below is the first exception — a read
+against *Kalendar Part 1*, an independently-developed spec-driven process. Worth
+naming as its own provenance category, because an outside process is the only
+source that can surface a hole we have no vocabulary for. Corpus at that survey:
+**28 projects · 104 stages · 362 specs (352 shipped) · 208 DECs** across 8 live
+instances — roughly 3× the 121 specs the 2026-07-06 harvest covered.
+
 ## Proposed — awaiting a real project to validate
 
 - ~~**Expected-vs-actual estimation loop (raised 2026-07-18).**~~ **✅ Shipped v0.6.26** — the cheap half is built (t-shirt `XS|S|M|L|XL|XXL` expected size + `task.complexity_actual` at ship + optional `cost.tokens_estimate` + `just calibration`, warn-only). The size→token band is **derived from this repo's own shipped specs** rather than a shipped lookup table, so it earns trust as n grows. Still open, and deliberately not built cold: whether the drift view belongs in the project-close rollup, and whether stage-level estimates are worth capturing at all. Original capture:
@@ -36,11 +45,28 @@ Full ranked detail + evidence lives in
     the size→token-band mapping only once there's real data to calibrate against.
     Don't build the calibration view cold.
 
-- **Closing / ending a project (raised 2026-07-18).** The template is strong on
-  *starting* a wave (frame → brief → stage plan) and near-silent on *ending* one.
-  Today closing is manual and easy to half-do: flip `status`, maybe stamp
-  `shipped_at`, maybe fill the Project-Level Reflection. Nothing checks it, and
-  nothing distinguishes the ways a project can end. Ideas to shape:
+- **Closing / ending a project (raised 2026-07-18) — ⬆ no longer cold
+  (2026-08-12).** This entry carried a "don't build cold" gate. **28 projects
+  have now closed**; the gate is spent.
+
+  A sharper framing than "close is thin," which this entry carried and which was
+  never quite right — the close *ritual* is genuinely detailed (Prompt 1d is
+  eight steps, 1e seven-plus, and its signal-disposition step is more rigorous
+  than anything in the external source). The real finding is an **asymmetry:
+  close is the only major ritual with no mechanical counterpart.**
+
+  | Ritual | Prompt | Command |
+  |---|---|---|
+  | Spec ship | ✅ | `archive-spec` — stamps `shipped_at`, computes `cost.totals`, runs `cost-audit` |
+  | Patch ship | ✅ | `archive-patch` |
+  | Spike land | ✅ | `archive-spike` — *refuses* without `spike.outcome` |
+  | Stage close | ✅ 1d | — |
+  | Project close | ✅ 1e | — |
+
+  The spike lane refuses to land without an outcome; project close will happily
+  flip a status with specs in flight, an empty Project-Level Reflection, and four
+  signals silently carried. The honest minimum below still stands — but the
+  command has earned itself. Ideas to shape:
   - **Name the end states honestly.** `shipped` (delivered the thesis) is not the
     only ending. A project can be **abandoned** (stopped, thesis unproven),
     **superseded** (its thesis moved into another project), or **parked**
@@ -66,9 +92,66 @@ Full ranked detail + evidence lives in
     client/delivery handover (#11) and ties to the open "where do spec-driven
     artifacts live / repo declutter" question. A closed project probably wants to
     stop cluttering active views without being deleted.
-  - **Don't over-build:** the honest minimum is *(a)* `closed_reason:` and *(b)* a
-    close checklist in `AGENTS.md`. The `just close-project` command should earn
-    itself on a real close, not be built cold.
+  - **Decision-density × supersession, in the close rollup (new 2026-08-12).**
+    A diagnostic from the scale survey. Density alone is noise; the *shape over a
+    project's life, paired with the supersession rate*, is the signal. Three
+    instances, three distinct shapes: zany **decays** (0.38 → 0.08), bragfile is
+    **flat** (~0.6), crustyimg **re-spikes** (0.96 … 0.78, 0.52, 1.00, 0.88).
+    crustyimg's sustained ~0.9 reads as thrash until you pair it with
+    supersession — 86 DECs, 3 superseded (**3%**). Not an unsettled architecture:
+    a genuinely novel domain, well recorded, where decisions hold. The pair is
+    the diagnostic:
+
+    |  | Low supersession | High supersession |
+    |---|---|---|
+    | **High density** | Novel domain, well recorded — *crustyimg* | Thrash: architecture won't settle |
+    | **Low density** | Settled, executing — *zany, late* | **Under-recording** — decisions made and lost |
+
+    Bottom-right is the dangerous cell **because it looks calm**: low density
+    reads as maturity, and only the supersession rate distinguishes "we settled"
+    from "we stopped writing things down." **Do not build a ninth dashboard lens
+    for this** — it changes a decision at exactly one moment, project close, as
+    input to "is the architecture settling?" It belongs in the close rollup or
+    nowhere. *Caveat: n=3 instances across very different domains — a diagnostic
+    to try at a close, not an established metric.* Corpus baseline worth
+    recording: 159 decisions across the three largest instances, mean confidence
+    **0.82–0.85**, no 1.0s, 2–14% supersession — the strongest quality evidence
+    the template has produced.
+  - **Don't over-build:** the honest minimum is still *(a)* `closed_reason:` and
+    *(b)* a close checklist in `AGENTS.md`. What changed 2026-08-12 is only the
+    gate — `just close-project` no longer has to wait for a real close to earn
+    itself; 28 of them have happened.
+
+- **Requirements traceability matrix (RTM) — the external steal (raised
+  2026-08-12).** The strongest idea in the external comparison, and a genuine
+  hole here: *"a requirements traceability matrix that a CI linter regenerates on
+  every change and that no human is allowed to hand-edit. Traceability runs from
+  requirement to spec to code to test, and the build fails if a thread is
+  broken."*
+
+  **We have every edge and nothing that walks the graph.** Specs carry
+  `references.decisions`, `references.constraints`, `depends_on`, `value_link`;
+  DECs carry `affected_scope`, `supersedes`, `project.id`. `validate` checks
+  shape, `decisions-audit` checks the DEC graph in isolation, `cost-audit` checks
+  cost. **No check asks whether a thread runs end to end.**
+
+  The argument for promoting it: **three existing items on this list collapse
+  into one traversal** — harvest signal #7 (reserve→adoption; DEC-024 shipped a
+  provenance namespace with zero readers) is *a decision node with no downstream
+  edge*; the never-populated `value_link` failure signature is *a spec with no
+  edge up to the thesis*; #14's cross-project `depends_on:` is *a missing edge
+  type*. Three symptoms, one missing check.
+
+  Phased like DEC-001:
+  - **Phase 1 — `decisions/INDEX.md`** (now-tier item 4 above). The decision
+    axis, shippable on its own. Not a detour from the RTM; its first slice.
+  - **Phase 2 — spec→DEC and spec→constraint closure**, warning on dangling
+    refs. Buildable now against existing data.
+  - **Phase 3 — spec→code→test. Do not build cold.** The open question to settle
+    first: *what is the unit at the code end* — file, module, symbol, test name?
+    And does the linter check that a thread **exists**, or that it is
+    **current**? Phase 3 is where every RTM in the wild dies; the answer decides
+    whether this is a live guard or a decorative matrix.
 
 - **[DEC-011](decisions/DEC-011-roadmap-structure.md) — roadmap structure
   (drafted 2026-07-13, proposed).** Unifies the two roadmaps that already exist and
@@ -137,34 +220,160 @@ Full ranked detail + evidence lives in
   convention upstream to ContextCore (which has no cost/USD convention). Proposed;
   ready prompt in the DEC appendix.
 
-## Open harvest backlog — buildable now (not urgent)
+## Open harvest backlog — buildable now
 
-- ~~**#8** — `roadmap` surface *planned-but-unframed* stages (parse the brief's
-  `## Stage Plan` checkboxes).~~ **✅ Shipped v0.6.14** — `just roadmap` renders a
-  `planned` bucket (human + `--json`) from the brief's Stage Plan, de-duped
-  against framed `STAGE-*.md` files. Scoped to `roadmap` only (not `backlog`):
-  backlog's "stage backlog" is un-promoted *specs* inside a framed stage, a
-  different layer from un-framed *stages*.
-- **#9** — a per-language "known gotchas" appendix the build prompt links (complements
-  the toolchain brief). Optional. *(2026-08-10: reframed as one half of the
-  **golden paths + gotchas** candidate below — the gap is not the appendix, it is
-  that the template has no instance-to-instance transfer mechanism at all.)*
-- **#10** — a scheduled-advisory CI convention (cron gate for vuln-DB drift). Optional.
-- **DEC-index at scale** — an auto-generated `decisions/INDEX.md` (id · title · status ·
-  supersedes) once a project passes ~25 DECs, so the decision log stays navigable and
-  cheap to cold-read. **Promoted from #14's "watching" list 2026-07-17 — now evidenced:**
-  a dogfood survey found crustyimg carries **73** DECs and bragfile **39**, both well
-  past the threshold. Ties to the `context-coldread-cost` signal; buildable now against
-  the DEC front-matter (the DEC-001 schema already gives id/status/supersedes).
+Ranked by (evidence × leverage) / cost after the 2026-08-12 external-comparison
+harvest. **The first four need no new project.** Items 2→3→4 are one chain and
+must land in that order.
 
-> #8 shipped, and the **DEC-index fix has since earned its way in** (crustyimg's 73 DECs
-> is the wall #14 predicted) — that's the one non-speculative "now-tier" solo build now on
-> the board. #9/#10 stay optional; everything else is co-design-with-a-real-project. Next
-> leverage is still *using* the template on real projects.
+1. **Run the verify-the-verify study, Tier 0.** *Cost: one command.* The
+   template's headline claim — that independent verify and the DEC log are the
+   two things that actually prevented errors (2026-07-06 harvest,
+   meta-conclusion #1) — is derived from retros written by *the same process
+   that produced the artifacts*. **The process grading its own homework, one
+   level up.** It has never been measured, and the instrument already exists:
+   [`scripts/defects-view.sh`](../scripts/defects-view.sh) reads ship Reflection
+   Q4 over `design | build | verify | ship | escaped`, and its own header says
+   `escaped` is the number that matters. We wrote the reader and never ran it as
+   a study. Run `just dash defects` across all instances; record verify's catch
+   rate and the escaped count against the **352-shipped-spec** denominator.
+   **Pre-commit the branch before running it:** if verify's catch rate is near
+   zero, the honest response is to thin the cycle and reinvest in the
+   design-time probe (harvest signal #2, N=17 — the highest-frequency efficiency
+   lesson we have). Trading an unproven gate for a measured one is a real
+   outcome; without a pre-committed branch this is a reassurance exercise.
+
+2. **Teach the auditor to see the template's own decisions.** `find_all_decisions()`
+   ([`scripts/_lib.sh:1253`](../scripts/_lib.sh)) and `decisions-audit.sh` both
+   hardcode `${REPO_ROOT}/decisions`. **This repo has no top-level `decisions/`** —
+   its 13 DECs live in `docs/decisions/`, so the decision records governing the
+   template itself receive zero structural checking, and `test.sh` only ever
+   exercises the auditor against a scaffolded fixture. That blind spot is *how
+   the schema fork below survived, and how `type: architecture` stayed
+   out-of-enum on 11 files*. Fix: resolve `decisions/`, fall back to
+   `docs/decisions/`. One path change — and it goes first because it is causal.
+
+3. **Harvest the DEC schema fork back into the shipped template.** Verified
+   13/13: the template's own DECs carry three fields the shipped
+   `variants/*/decisions/_template.md` does not — `status: accepted|proposed`,
+   `date:` (vs the shipped `created_at:`), and `deciders: [jysf, claude]` — and
+   use `type: architecture` on 11 of 13, which **is not in the shipped enum**
+   (`decision|analysis|recommendation|observation`). This is a **harvest, not a
+   new convention**: it closes a fork between two copies of a convention already
+   in use, so the N=3 bar (which exists to stop codifying *thin* evidence) does
+   not apply. The honest alternative is equally fine — write down *why* a
+   template repo's DECs need `status`/`deciders` and an app repo's don't.
+   Neither has happened. Three consequences, in order of interest:
+   - **`deciders:` matters most.** The shipped schema records only the agent, so
+     it is *structurally incapable* of distinguishing "the human made this call"
+     from "the agent made this call." [`PLAYBOOK.md`](PLAYBOOK.md) names four
+     calls that must not be delegated and names the failure mode — agent-graded
+     homework, where "every artifact is present, every gate is green, and the
+     record is fiction." `deciders:` is the cheapest mechanical trace of exactly
+     that.
+   - **`status:` is the only ADR-shaped gap in the DEC format** (see the rejected
+     list below). Add `rejected` and `deprecated` while we're here: today a
+     rejected decision has nowhere to live but prose in this file — the
+     instance-registration entry, which literally says *"Recorded here so the
+     question doesn't get re-asked,"* is a rejected-decision record in exile.
+   - **Nothing reads `status` even in our own log.** There is no
+     `get_dec_status()` in `_lib.sh`, and `decisions-view.sh` computes status
+     purely from `superseded_by` — so `just dash decisions` renders a `proposed`
+     DEC as `active`. Wire the reader and lint the combination
+     (`status: superseded` XOR `superseded_by: null`).
+
+   **Related, and a real question:** DEC-002, DEC-009 and DEC-011 hold allocated
+   IDs while being roadmap proposals with no binding force — a permanent ID with
+   no field saying it isn't real. Either give them `status: proposed`, or don't
+   burn an ID until acceptance. **Lean:** proposals live *here* in ROADMAP (which
+   already carries the evidence and the N-counts a bare `status: proposed` DEC
+   would lose); IDs get allocated on acceptance.
+
+4. **`decisions/INDEX.md` — the wall it predicted has arrived.** *(Promoted from
+   #14's "watching" list 2026-07-17; re-evidenced 2026-08-12.)* **208 DECs**
+   across the corpus, **crustyimg alone at 86** — this list logged crustyimg at
+   73, so it grew 18% while the item sat. A generated table, one row per DEC,
+   regenerated from front-matter and **never hand-edited**. Ship it in the
+   template as `scripts/decisions-index.sh` + `just decisions-index`, not as a
+   per-instance script. Small, because every reader already exists in `_lib.sh`
+   (`get_dec_id`, `get_dec_title`, `get_dec_confidence`, `get_dec_superseded_by`,
+   `get_dec_affected_scope`); the only new one is `get_dec_status`, **which item
+   3 requires anyway — so 3 lands first.** What it buys at this scale: cold-read
+   collapse (answering "what has already been decided about X?" opens 86 files in
+   crustyimg today — ties `context-coldread-cost`), and supersession chains
+   visible at a glance (crustyimg's 3-of-86 reversal rate currently takes a bash
+   loop to compute). **Discipline:** regenerate + `git diff --exit-code` in CI,
+   so a stale index fails the build — that is the difference between a derived
+   artifact and a decorative one.
+   - **Scope caution.** The survey also wants `confidence`, `project` and
+     `affected_scope` columns. Take the first two; **leave `affected_scope` out**
+     — multi-valued path globs make an unreadable table at 86 rows, and "which
+     paths are governed, which aren't" is a *different view* (that is RTM Phase 2
+     below, not the index).
+
+5. **Capture the verify verdict in front-matter.** No verdict field exists —
+   ✅/⚠/❌ lives in prose in the spec body. [`PLAYBOOK.md`](PLAYBOOK.md)'s
+   failure-signature table lists *"Verify never rejects anything"* as a tell, and
+   we cannot compute it. Add the enum, stamped at `advance-cycle … ship`. One
+   field turns a signature into a standing metric, and gives the Tier-0 study
+   above its second axis.
+
+6. **Lint unattributed decisions.** The scale survey found **10 DECs with no
+   `project.id`** (7 crustyimg, 3 bragfile, 0 zany), which had to be excluded
+   from every per-project computation — the concrete cost of a broken
+   traceability edge. `decisions-audit` should warn. Falls out of items 2–3
+   nearly free, and is a miniature of the RTM below.
+
+**Still optional, unchanged:** **#9** — a per-language "known gotchas" appendix
+the build prompt links *(2026-08-10: reframed as one half of the **golden paths +
+gotchas** candidate below — the gap is not the appendix, it is that the template
+has no instance-to-instance transfer mechanism at all)*; **#10** — a
+scheduled-advisory CI convention (cron gate for vuln-DB drift).
+
+~~**#8** — `roadmap` surface *planned-but-unframed* stages (parse the brief's
+`## Stage Plan` checkboxes).~~ **✅ Shipped v0.6.14** — `just roadmap` renders a
+`planned` bucket (human + `--json`) from the brief's Stage Plan, de-duped against
+framed `STAGE-*.md` files. Scoped to `roadmap` only (not `backlog`): backlog's
+"stage backlog" is un-promoted *specs* inside a framed stage, a different layer
+from un-framed *stages*.
+
+> **What changed 2026-08-12:** this section went from one non-speculative
+> now-tier build to six, and the top item is a **measurement, not a build**.
+> Everything above is solo work against data that already exists. Next leverage
+> is still *using* the template on real projects — but the case for measuring
+> before building more is now stronger than the case for either.
 
 ## Co-design with the next project(s)
 
 These are shaped by real usage — start them *on* a live project, not in the abstract:
+
+> **1–3 `claude-plus-agents` projects are starting (2026-08-12).** This closes a
+> standing variant blind spot: **uw is dead, and it was the only plus-agents
+> instance — never harvested.** Every lesson in this file was learned on
+> `claude-only`. Decide what to measure *before the first one starts*:
+> first-run friction happens once, and it is the one observation these projects
+> can produce that no later session can recover.
+
+- **Verify-the-verify, Tiers 2 and 3 (raised 2026-08-12).** Tier 0 (above) is a
+  one-command count; these two need a live bed.
+  - **Tier 2 — seeded-defect injection.** Pick 8–10 shipped specs, inject one
+    plausible defect each into the build output, run a cold verify blind, score
+    catch rate per defect class. **Draw the defects from our own escape taxonomy
+    rather than inventing them** — weight toward operational/runtime, since
+    `defects-view.sh` records that *every* escaped defect was operational rather
+    than spec-logic. Cheap, because the work order already exists: 352 shipped
+    specs with written acceptance criteria and prescribed failing tests. This is
+    mutation testing pointed at a process.
+  - **Tier 3 — the independence test.** The claim is not that verify works, it
+    is that **independence** is what makes it work. [`PLAYBOOK.md`](PLAYBOOK.md)
+    states flatly that "build and verify in one session produces a review that
+    finds nothing" — *an untested assertion presented as fact in our own
+    documentation*. Run verify twice on 3–5 specs (build-session continuation vs
+    cold) and diff the findings. plus-agents gives a third arm free, where the
+    implementer is genuinely a different tool rather than a different session.
+  - Both design constraints transfer from the **build bake-off** below — it is
+    the same harness pointed at the other cycle: **the scorer must not be a
+    verifier**, and **record the misses, not just the catches.**
 
 - **DEC-009's derivation aid** (above) — the frame-time metric prompt + escape hatch.
 - **#4 — contract-tests-as-guards kit** — a starter kit + named constraints
@@ -299,6 +508,57 @@ These are shaped by real usage — start them *on* a live project, not in the ab
     a cross-instance store, or only as a harvest note? Ties to the artifact-storage
     question above and to the `instances.md` registry.
 
+- **"One owner per field. No fact is authored in two places." (raised
+  2026-08-12) — needs a deliberate call, not a default.** The external source's
+  central rule; we do not state it. Three violations surfaced without looking:
+  the DEC schema forked between `docs/decisions/` and `variants/*/decisions/`
+  (now-tier item 3); two roadmaps that, in DEC-011's own words, "already exist
+  and disagree"; and every variant file existing twice (two `AGENTS.md`, two full
+  `docs/` trees, two `guidance/` trees).
+
+  **The counter-argument is strong enough to lead with:** all three are
+  duplication-by-copy — *one finding wearing three hats*, which makes it N=1, not
+  N=3. And the third is not a violation at all: variant duplication is a
+  *deliberate* choice (each scaffold must be self-contained after `init` consumes
+  `variants/`), so counting it as accidental duplication misreads the design.
+  What is left is the DEC schema fork, which is already being fixed on its own
+  merits. **Lean: don't codify the axiom.** Note we already apply it correctly
+  where it matters — `CLAUDE.md` is a pointer to `AGENTS.md` with a suggested
+  symlink — so the instinct exists; it simply doesn't generalize as cleanly as
+  the rule implies.
+
+- **Steering-doc split: product / tech / structure (raised 2026-08-12) — below
+  bar.** The external source splits steering docs three ways, read first by every
+  task. `AGENTS.md` mixes all three — repo purpose (product), stack and
+  conventions (tech), work hierarchy and layout (structure) — and signal #14
+  already flags its cold-read cost via the standing `context-coldread-cost`
+  signal. A build session needs tech + structure and can skip product. **That is
+  the shape of the fix when it bites; it has not bitten yet.**
+
+- **Two-tier QA as a named routing principle (raised 2026-08-12) — below bar,
+  but the cheapest item here.** The external source separates *mechanical
+  linting* (hard-fails: missing sections, broken traceability) from *judgment
+  review* ("is this statement actually observable, does this design truly realize
+  the spec"). **We have both and have never named the split** — which shows in
+  the verify checklist, where "acceptance criteria met? tests pass?" sits beside
+  "build reflection answered honestly?" Naming it gives a routing rule for every
+  future check: *can a linter decide it → script; needs judgment → prompt.* Costs
+  a paragraph; earns itself the first time it stops a judgment call from being
+  written as a gate.
+
+- **A completeness check inside verify (raised 2026-08-12) — below bar.** Their
+  "completeness checker" is a *role* we should not adopt (see the rejected list),
+  but the question is one verify never asks. **"What is missing?" is a different
+  question from "is this correct?"** A line in the verify prompt, not an agent.
+
+- **Extend the design-time probe to visual/interaction surfaces (raised
+  2026-08-12) — below bar.** Their UX artifact is "explored as runnable
+  components and approved before it is built" — which is `AGENTS.md` §12's
+  design-time probe, pointed at pixels. Ties to harvest signal #4
+  (contract-tests-as-guards, from zany inventing CI guards for motion/contrast/
+  perf). Not a new artifact; a one-line extension of an existing rule, when a
+  visual project turns up.
+
 - **Instance registration has no trigger (raised 2026-08-10) — parked, owner
   sees no value now.** Nothing registers a new instance in
   [`instances.md`](harvests/instances.md): no script or recipe touches it, and
@@ -316,7 +576,9 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   Discipline column in `instances.md` was *removed* on exactly this signal
   (nobody could fill it, so it was noise). A registry maintained in bulk every
   few months may simply be good enough for a handful of instances; the prompt
-  only earns itself if a harvest is ever actually blocked by a missing row. When several coding
+  only earns itself if a harvest is ever actually blocked by a missing row.
+
+- **Clone-per-agent — asked and answered (2026-08-10): no.** When several coding
   agents work one repo, isolate with **`git worktree`, not clones**. The rule:
   **the code can be isolated; the record must not be.** A clone forks the memory —
   a spec's cost lands in one copy and its `DEC-*` in another, `signals.yaml`
@@ -326,6 +588,60 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   competing with it. If the real need is *different instructions per agent*, that
   is a `guidance/agents/<name>.md` the handoff links (sibling of the toolchain
   brief), not a repo fork.
+
+## Explicitly rejected — recorded so it isn't re-asked
+
+From the 2026-08-12 external comparison. *(This section is itself the evidence
+for now-tier item 3's `status: rejected` — a rejected decision currently has
+nowhere to live but prose in this file.)*
+
+- **Adopting ADRs alongside DECs.** DEC is a structural *superset*: every Nygard
+  element, plus `confidence` (wired to three gates), plus `affected_scope` +
+  `--changed` (which solves the actual ADR failure mode — records nobody
+  re-reads), plus supersession-graph linting. The only missing element is
+  `status`, which item 3 adds. **Two decision logs is strictly worse than one.**
+- **Immutable decision records.** The external source's own history is the
+  argument against: reversing one platform choice took ADR-005, 008 *and* 009.
+  Our supersession model does it in one record and tells you how confident
+  anyone was.
+- **Role-based agent personas** (product owner / spec author / tech lead / task
+  generator / reviewer / completeness checker). **Independence is bought with the
+  session boundary, not the persona** — personas sharing a context window do not
+  produce a cold reader. `claude-plus-agents` is the honest version of this idea
+  and is about to get its first real evidence.
+- **A six-artifact pre-code pipeline.** Their day-13 / 41,000-words-before-first-code
+  against our same-day-or-next-day first ship across three projects. They name the
+  cost themselves — five domains fully specified with zero code, and the decay
+  risk stated outright: *"a spec written months before its code can be quietly
+  wrong by the time anyone implements it."* [`PLAYBOOK.md`](PLAYBOOK.md) Phase 1
+  already forbids this.
+
+## Hygiene — not roadmap items, just do them
+
+- ~~**Mark uw dead in `instances.md`.**~~ **✅ Done 2026-08-12.** It read as an
+  unharvested blind spot when it is an abandoned project. Same `closed_reason:`
+  gap as the close-project item, one level up: *"never harvested"* and
+  *"abandoned, nothing to harvest"* are different facts the registry could not
+  express.
+- **`git pull` the `maintenance_of_experiments/bragfile000` checkout.** Last
+  fetched 2026-08-08, strictly an ancestor of live `origin/main` — stale, not
+  diverged. Worth recording explicitly: the "a clone forks the memory" hazard
+  argued above is sound but **has not occurred** — two clones, zero forks. That
+  is evidence the discipline is holding, not evidence against it.
+- **Audit the eight advisory view scripts.** 43 scripts / 28 recipes / 8
+  `*-view.sh` for a corpus of 8 instances. The *gating* audits (`validate`,
+  `cost-audit`, `decisions-audit`) are well earned; the open question is only the
+  advisory views — **which has ever changed a decision?** Keep those; let the
+  rest be a `--json` query. The **productization axiom cuts here**: a
+  proliferation of read surfaces is a soft form of wrapping.
+- **`docs/` is 47,750 words against 25,858 shipped per variant.** Meta-commentary
+  about the process is **~1.8× the process we ship**. Not an action — a number
+  worth having in front of us before the next doc lands. (Whole repo: 124,044
+  words / 117 markdown files.)
+- **Re-confirm the dead `frame` cycle at the new scale.** Signal #12 recorded
+  **0/122** specs in `frame`. The corpus is now **362**. If it is still zero,
+  absorb `frame` into `design` and stop carrying it. Cheap, and it pairs
+  naturally with the Tier-0 study (both are one pass over the same corpus).
 
 ---
 
