@@ -656,6 +656,15 @@ get_spec_complexity() { get_task_scalar "$1" complexity; }
 # normal state, and never an error: the estimation loop is warn-only.
 get_spec_complexity_actual() { get_task_scalar "$1" complexity_actual; }
 
+# The verify cycle's OUTCOME: approved | punch-list | rejected. Empty when the
+# spec never reached verify, or shipped before this field existed.
+#
+# Why it's a field and not prose: PLAYBOOK.md lists "verify never rejects
+# anything" as a failure signature, and until now that was uncomputable — the
+# ✅/⚠/❌ that Prompt 4 returns lived only in the spec body. These three values
+# ARE Prompt 4's three verdicts, so nothing new is asked of the verifier.
+get_spec_verify_verdict() { get_task_scalar "$1" verify_verdict; }
+
 # Rank a t-shirt size so expected-vs-actual can be compared. 0 = unrecognized.
 # Usage: size_rank M
 size_rank() {
@@ -838,6 +847,49 @@ sum_cost_tokens_for_spec() {
         in_sessions && /^      tokens_input:/  { v = $2; if (v ~ /^[0-9]+$/) total += v }
         in_sessions && /^      tokens_output:/ { v = $2; if (v ~ /^[0-9]+$/) total += v }
         END { print total+0 }
+    ' "$file"
+}
+
+# Sum tokens across a STAGE's orchestration_cost.sessions[] — the framing and
+# cross-spec steering spend that has no spec to attach to. Prints an integer
+# (0 if empty/missing/absent).
+#
+# The slot shipped without a reader, which is the reserved-but-unwired pattern
+# the harvest flagged: a field nothing reads is a field nobody fills. Entries
+# are one indent shallower than a spec's cost sessions (4 spaces, not 6),
+# because orchestration_cost has no `totals:` sibling to disambiguate against.
+sum_orchestration_tokens_for_stage() {
+    local file="$1"
+    [ -f "$file" ] || { echo 0; return; }
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^orchestration_cost:/ { in_oc = 1; next }
+        in_oc && /^[a-zA-Z_]/ { in_oc = 0 }
+        in_oc && /^  sessions:/ { in_sessions = 1; next }
+        in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /tokens_total:/ {
+            v = $NF; if (v ~ /^[0-9]+$/) total += v
+        }
+        END { print total+0 }
+    ' "$file"
+}
+
+# Same, for estimated_usd. Prints a float with 2 decimal places.
+sum_orchestration_usd_for_stage() {
+    local file="$1"
+    [ -f "$file" ] || { printf '0.00\n'; return; }
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^orchestration_cost:/ { in_oc = 1; next }
+        in_oc && /^[a-zA-Z_]/ { in_oc = 0 }
+        in_oc && /^  sessions:/ { in_sessions = 1; next }
+        in_sessions && /^  [a-zA-Z_]/ { in_sessions = 0 }
+        in_sessions && /estimated_usd:/ {
+            v = $NF; if (v ~ /^[0-9]+(\.[0-9]+)?$/) total += v
+        }
+        END { printf "%.2f\n", total+0 }
     ' "$file"
 }
 
@@ -1216,6 +1268,54 @@ spec_mtime_date() {
 # comments (everything from the first '#' onward). Assumes the scalar
 # value itself contains no '#' — true for our front-matter (barewords
 # like `design`, `active`, etc).
+# Set a front-matter scalar, INSERTING the key if the block doesn't have it yet.
+#
+# update_frontmatter_scalar (below) only ever REPLACES. That is correct for
+# fields the scaffold always writes, but silently no-ops on an artifact created
+# before a field existed — and a command that reports "recorded: punch-list"
+# while writing nothing is worse than one that records nothing, because the
+# absence looks like data. Every live instance has in-flight specs predating
+# `task.verify_verdict`, so any newly-added stamped field needs this.
+#
+# Inserts at the END of the named block, carrying trailing blank lines with it
+# so the key stays visually inside its own block.
+upsert_frontmatter_scalar() {
+    local file="$1" key="$2" value="$3"
+    local top="${key%%.*}" leaf="${key##*.}"
+
+    if awk -v top="$top" -v leaf="$leaf" '
+        /^---$/ { n++; next }
+        n != 1 { next }
+        $0 ~ "^" top ":" { intop = 1; next }
+        intop && /^[a-zA-Z_]/ { intop = 0 }
+        intop && $0 ~ ("^[[:space:]]+" leaf ":") { found = 1 }
+        END { exit !found }
+    ' "$file"; then
+        update_frontmatter_scalar "$file" "$key" "$value"
+        return
+    fi
+
+    awk -v top="$top" -v leaf="$leaf" -v val="$value" '
+        BEGIN { n = 0; intop = 0; done = 0; blanks = "" }
+        /^---$/ {
+            n++
+            if (n == 2 && intop && !done) { print "  " leaf ": " val; done = 1 }
+            printf "%s", blanks; blanks = ""
+            print; next
+        }
+        n == 1 && intop && !done {
+            if ($0 ~ /^[[:space:]]*$/) { blanks = blanks $0 "\n"; next }
+            if ($0 ~ /^[a-zA-Z_]/) {
+                print "  " leaf ": " val; done = 1; intop = 0
+                printf "%s", blanks; blanks = ""
+                print; next
+            }
+        }
+        n == 1 && $0 ~ ("^" top ":") { intop = 1; print; next }
+        { printf "%s", blanks; blanks = ""; print }
+    ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
+
 update_frontmatter_scalar() {
     local file="$1"
     local key="$2"        # e.g. task.cycle or handoff.status
@@ -1479,8 +1579,10 @@ count_open_questions() {
 }
 
 # --- Signals registry (guidance/signals.yaml) ------------------------------
-# The one typed feedback ledger: lesson | process-debt | product | risk. See
-# docs/signals.md. Powers the `just dash signals` lens + the dashboard flag.
+# The one typed feedback ledger: lesson | process-debt | product | risk |
+# golden-path. See docs/signals.md. Powers the `just dash signals` lens + the
+# dashboard flag. (`golden-path` is the only type that records something that
+# WORKED — the others are all problems.)
 
 # Emit signals as TSV: id<TAB>type<TAB>status<TAB>disposition_at<TAB>bar<TAB>summary.
 # One record per line; the multi-key `val()` strips the `key:` prefix and quotes.

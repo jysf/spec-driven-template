@@ -339,12 +339,16 @@ must land in that order.
      paths are governed, which aren't" is a *different view* (that is RTM Phase 2
      below, not the index).
 
-5. **Capture the verify verdict in front-matter.** No verdict field exists —
-   ✅/⚠/❌ lives in prose in the spec body. [`PLAYBOOK.md`](PLAYBOOK.md)'s
-   failure-signature table lists *"Verify never rejects anything"* as a tell, and
-   we cannot compute it. Add the enum, stamped at `advance-cycle … ship`. One
-   field turns a signature into a standing metric, and gives the Tier-0 study
-   above its second axis.
+5. ~~**Capture the verify verdict in front-matter.**~~ **✅ Shipped v0.6.33** —
+   `task.verify_verdict` (`approved | punch-list | rejected` — Prompt 4's own
+   three verdicts, so nothing new is asked of the verifier), surfaced by
+   `just dash defects` as the second axis alongside the catch-stage
+   distribution. **One correction to the capture:** stamping "at
+   `advance-cycle … ship`" would have recorded every approval and **silently
+   dropped every rejection** — precisely the number worth having. It stamps when
+   a spec *leaves* verify in **either** direction, inferring from the
+   destination, with `--verdict rejected` for the one call the destination
+   cannot make.
 
 6. ~~**Lint unattributed decisions.**~~ **✅ Shipped v0.6.31** — `decisions-audit`
    now warns (advisory) on a DEC with no `project.id`, suppressed in a repo with
@@ -449,15 +453,21 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   > Σ(handbacks)** is computable outside Claude Code for the first time. Two gaps
   > remain, and the second is the interesting one:
   > 1. Reading the orchestrator's own session total (manual `/cost` — fine).
-  > 2. **Pre-spec framing still has nowhere to live.** Deciding a stage's breakdown
-  >    happens before any spec exists, so there is no artifact to attach cost to.
-  >    `stage.cost` does not exist — that's a schema gap, and the cheapest honest
-  >    first cut. **Resist per-spec attribution of orchestration**: it is a split you
-  >    cannot observe, so any number is false precision. Stage grain or nothing.
+  > 2. ~~**Pre-spec framing still has nowhere to live.**~~ **✅ Partly closed
+  >    v0.6.33 — and the diagnosis above was wrong.** The slot was not missing:
+  >    `orchestration_cost:` already existed on the stage template. **Nothing
+  >    read it** — the only references anywhere were tests asserting the slot was
+  >    *present*. That is the reserved-but-unwired pattern (harvest signal #7)
+  >    reappearing in the very thread that named it, and it is why the field was
+  >    never filled: a field nothing reads is a field nobody fills. `just roadmap`
+  >    now sums and surfaces it per stage, human + `--json`, and stays outside
+  >    `cost-audit` (a test asserts the gate's verdict is unchanged). Stage grain
+  >    only, as argued: **per-spec attribution of orchestration is a split you
+  >    cannot observe**, so any number is invented.
   >
-  > Still don't build it cold. **grebe makes it N=2** — instrument grebe to *collect*
-  > orchestrator session totals by hand into the stage file, then let real numbers
-  > shape the tooling.
+  > What remains is **collection, not schema** — nobody has recorded a real
+  > orchestrator session total yet. The incoming projects are the bed: read
+  > `/cost` at stage close, paste one entry, let real numbers shape the tooling.
 
   Touches
   [DEC-002](decisions/DEC-002-cost-convention.md) (cost convention),
@@ -533,11 +543,16 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   mechanism at all.** Everything flows *up* through harvests into the template and
   *down* into new scaffolds; there is no sideways. That absence is the real
   finding.
-  - Capture seam that already fits: `guidance/signals.yaml` types are all
-    *problems* (`lesson` / `process-debt` / `product` / `risk`). There is **no type
-    for "this worked so well another project should copy it wholesale."** A
-    `golden-path` type raised at project close would inherit the disposition
-    ritual unchanged.
+  - ~~Capture seam that already fits~~ **✅ Shipped v0.6.33 — the seam, not the
+    mechanism.** `guidance/signals.yaml` types were all *problems* (`lesson` /
+    `process-debt` / `product` / `risk`), with **no type for "this worked so well
+    another project should copy it wholesale."** `golden-path` now exists,
+    dispositioned at project close, inheriting the ritual unchanged.
+    **Be clear about what this does and doesn't do:** it makes the knowledge
+    *capturable*, so a close stops discarding it. It does **not** move anything
+    sideways between repos — the transfer mechanism is still missing, and that
+    remains the real finding. The incoming projects are the first chance to see
+    whether captured golden paths are worth transferring at all.
   - **The bar applies harder here, not softer.** A wrong paved road is worse than
     no road, because people follow it. Capture candidates aggressively; promote
     almost nothing. N=3 or it stays a preference.

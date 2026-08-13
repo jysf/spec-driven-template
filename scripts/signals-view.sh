@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # scripts/signals-view.sh — the `just dash signals` lens: the typed feedback
-# ledger from guidance/signals.yaml (lesson | process-debt | product | risk).
+# ledger from guidance/signals.yaml
+# (lesson | process-debt | product | risk | golden-path).
 # Lists signals awaiting disposition first (status open/watch), then settled
 # ones, so the cross-stage "what's queued / un-adopted" view is one glance.
 # Complements the close-disposition ritual (FIRST_SESSION_PROMPTS.md 1d/1e),
 # which is what actually forces the decisions. --json emits a template-native
-# signal.* payload (no ContextCore namespace spans all four types). Read-only.
+# signal.* payload (no ContextCore namespace spans these types). Read-only.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_lib.sh

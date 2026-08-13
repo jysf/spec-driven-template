@@ -2,6 +2,53 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-12 — three capture seams that can't be back-filled (v0.6.33)
+
+Three fields, one shared property: **none of them can be added retroactively.**
+A spec that ships without a verdict, a project that closes without recording
+what worked, a stage framed without its spend captured — those are permanent
+holes. With several projects starting, the seams have to exist first.
+
+**`task.verify_verdict` — `approved | punch-list | rejected`.** The template's
+headline claim is that independent verify is one of the two things that
+prevented errors, and `PLAYBOOK.md` lists *"verify never rejects anything"* as a
+failure signature — but nothing could compute it, because the ✅/⚠/❌ Prompt 4
+returns lived only in prose. The three values **are** Prompt 4's three verdicts,
+so nothing new is asked of the verifier.
+
+`just advance-cycle` stamps it whenever a spec **leaves** verify, in either
+direction, inferring from the destination (`→ ship` = approved, `→ build` =
+punch-list) and printing what it recorded. Stamping only on the way to ship
+would have recorded every approval and silently dropped every rejection —
+exactly the number worth having. `--verdict rejected` makes the one call the
+destination can't. Advisory in `validate`; read by `just dash defects`, which
+now pairs *where a defect was caught* with *whether verify ever pushed back*.
+
+**`golden-path` — a fifth signal type.** Every existing type in `signals.yaml`
+records a **problem** (`lesson`/`process-debt`/`product`/`risk`). There was no
+way to record *"this worked so well another project should copy it wholesale"*,
+so every close discarded it. That matters because the template has **no
+instance-to-instance transfer mechanism at all** — knowledge flows *up* through
+harvests and *down* into new scaffolds, never sideways. Dispositioned at project
+close, inheriting the existing ritual unchanged. **Its bar is harder than a
+lesson's, not softer:** a wrong paved road is worse than no road, because people
+follow it. Capture freely, promote almost nothing.
+
+**`orchestration_cost` finally has a reader.** The slot already existed on the
+stage template — and *nothing read it*, which is the reserved-but-unwired
+pattern (a field nothing reads is a field nobody fills). `just roadmap` now sums
+and surfaces it per stage, in human output and `--json`. Stage grain only: the
+roadmap is explicit that splitting orchestration across specs is a division you
+cannot observe, so any per-spec number is invented. It stays outside
+`cost-audit` — a test asserts the gate's verdict is unchanged by it.
+
+**Bug fixed on the way:** `update_frontmatter_scalar` only ever *replaced*, so
+stamping a newly-added field onto an artifact created before that field existed
+silently no-opped — while the command printed "recorded". Every live instance
+has in-flight specs predating `verify_verdict`, so this would have reported
+data it never wrote. New `upsert_frontmatter_scalar` inserts the key when the
+block lacks it.
+
 ## 2026-08-12 — `just roadmap` gets its declared half, DEC-011 Phase 1 (v0.6.32)
 
 A project's roadmap has two halves, and until now the template only knew one of

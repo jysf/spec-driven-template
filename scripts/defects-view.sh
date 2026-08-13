@@ -73,11 +73,29 @@ c_design=0; c_build=0; c_verify=0; c_ship=0; c_escaped=0; c_none=0
 answered=0; unanswered=0
 esc_ids=(); esc_where=()
 
+# The SECOND axis: what verify actually decided (task.verify_verdict). Q4 above
+# says where the worst defect was CAUGHT; this says whether verify ever pushed
+# back at all. Together they answer the question the template has never been
+# able to: is the verify gate doing work, or waving things through?
+v_approved=0; v_punch=0; v_rejected=0; v_unrecorded=0
+
+scan_verdict() {
+    local v
+    v=$(get_spec_verify_verdict "$1")
+    case "$v" in
+        approved)   v_approved=$((v_approved + 1)) ;;
+        punch-list) v_punch=$((v_punch + 1)) ;;
+        rejected)   v_rejected=$((v_rejected + 1)) ;;
+        *)          v_unrecorded=$((v_unrecorded + 1)) ;;
+    esac
+}
+
 scan_one() {
     local f="$1" kind="$2"
     case "$f" in *-timeline.md|*/prompts/*) return 0 ;; esac
     local id stage
     id=$(basename "$f" .md)
+    [ "$kind" = spec ] && scan_verdict "$f"
     stage=$(defect_stage_of "$f")
     if [ -z "$stage" ]; then
         unanswered=$((unanswered + 1)); return 0
@@ -122,9 +140,11 @@ if [ "$JSON_OUT" = 1 ]; then
     [ "${#items[@]}" -gt 0 ] && earr=$(json_arr "${items[@]}") || earr="[]"
     dist=$(json_obj design "$c_design" build "$c_build" verify "$c_verify" \
                     ship "$c_ship" escaped "$c_escaped" none "$c_none")
+    verdicts=$(json_obj approved "$v_approved" "punch-list" "$v_punch" \
+                    rejected "$v_rejected" unrecorded "$v_unrecorded")
     json_emit defects "$(json_obj \
         total "$total" answered "$answered" unanswered "$unanswered" \
-        distribution "$dist" escaped_artifacts "$earr")"
+        distribution "$dist" verify_verdicts "$verdicts" escaped_artifacts "$earr")"
     exit 0
 fi
 
@@ -164,6 +184,29 @@ row verify  "$c_verify"
 row ship    "$c_ship"
 row escaped "$c_escaped" highlight
 row none    "$c_none"
+
+# The second axis. Kept deliberately plain — it is a count, not a verdict on the
+# verdicts, and the interpretation belongs to whoever runs the study.
+v_recorded=$((v_approved + v_punch + v_rejected))
+if [ "$v_recorded" -gt 0 ]; then
+    echo ""
+    printf "${BOLD}Verify verdicts${RESET} ${DIM}(task.verify_verdict, %d spec(s) recorded)${RESET}\n" "$v_recorded"
+    pushback=$((v_punch + v_rejected))
+    printf "  approved    %3d\n" "$v_approved"
+    printf "  punch-list  %3d\n" "$v_punch"
+    printf "  rejected    %3d\n" "$v_rejected"
+    if [ "$pushback" -eq 0 ]; then
+        printf "  ${YELLOW}⚠${RESET}  verify has never pushed back on a recorded spec.\n"
+        printf "     ${DIM}PLAYBOOK.md lists this as a failure signature. Either the specs are\n"
+        printf "     that clean, or the gate is not doing work — worth knowing which.${RESET}\n"
+    else
+        printf "  ${DIM}pushback rate: %d%% (punch-list + rejected)${RESET}\n" \
+            $(( pushback * 100 / v_recorded ))
+    fi
+elif [ "$v_unrecorded" -gt 0 ]; then
+    echo ""
+    printf "${DIM}Verify verdicts: none recorded yet (%d spec(s) predate task.verify_verdict).${RESET}\n" "$v_unrecorded"
+fi
 
 if [ "$c_escaped" -gt 0 ]; then
     echo ""

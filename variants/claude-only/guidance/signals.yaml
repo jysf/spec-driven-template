@@ -6,7 +6,7 @@
 #
 # Every signal MUST have:
 #   - id:             stable kebab-case identifier
-#   - type:           lesson | process-debt | product | risk
+#   - type:           lesson | process-debt | product | risk | golden-path
 #   - summary:        one sentence
 #   - evidence:       the specs/usage that raised it; for lessons, the N-count
 #   - bar:            lessons only — 'N=3 same-outcome' | 'N=2 paired-opposing'
@@ -27,6 +27,14 @@
 #   process-debt → PROJECT close. open → accepted (scheduled) | rejected | done | dropped.
 #   product      → PROJECT close. a usage/dogfooding signal; feeds the NEXT project's framing.
 #   risk         → revisited at each close; no auto-action (watch indefinitely).
+#   golden-path  → PROJECT close. open → watch → codified | dropped, same as a lesson.
+#                  The ONLY type that records something that WORKED. Every other
+#                  type here is a problem, which meant "this approach worked so
+#                  well another project should copy it wholesale" had nowhere to
+#                  live and was lost at every close.
+#                  THE BAR IS HARDER HERE, NOT SOFTER: a wrong paved road is worse
+#                  than no road, because people follow it. Capture candidates
+#                  freely; promote almost none. N=3 or it stays a preference.
 #
 # The ritual (FIRST_SESSION_PROMPTS.md Prompt 1d / 1e): at each close, walk every
 # open/watch signal that close owns; each gets accept-and-schedule /

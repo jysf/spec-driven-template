@@ -34,6 +34,9 @@ VALID_PATCH_CYCLE=" patch verify ship "
 VALID_SPIKE_CYCLE=" spike land "        # the spike lane (DEC-012)
 VALID_SPIKE_OUTCOME=" answered inconclusive graduated discarded "
 VALID_COMPLEXITY=" XS S M L XL XXL "   # t-shirt scale; S|M|L predate it and stay valid
+# The verify cycle's outcome. ADVISORY, never a gate: every spec that shipped
+# before this field existed has none, and back-filling one would be fiction.
+VALID_VERDICT=" approved punch-list rejected "
 # `project.activity` is an OPEN, suggested set — not a hard enum. An
 # unrecognized value is advisory (warn-only), never a gate failure, so
 # people can extend the vocabulary. `spike` was the documented example
@@ -54,6 +57,7 @@ activity_notes=""
 depends_notes=""
 actual_notes=""
 roadmap_notes=""
+verdict_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -88,6 +92,17 @@ while IFS= read -r pdir; do
             case "$VALID_COMPLEXITY" in
                 *" $cxa "*) : ;;
                 *) actual_notes="${actual_notes}    ${name}: complexity_actual='${cxa}' (not a t-shirt size)"$'\n' ;;
+            esac
+        fi
+
+        # `task.verify_verdict`. ADVISORY, same reasoning as complexity_actual:
+        # an unrecorded verdict is normal (the spec may not have reached verify),
+        # and the verify study is a feedback loop, never a gate.
+        vv=$(get_spec_verify_verdict "$f")
+        if [ -n "$vv" ]; then
+            case "$VALID_VERDICT" in
+                *" $vv "*) : ;;
+                *) verdict_notes="${verdict_notes}    ${name}: verify_verdict='${vv}'"$'\n' ;;
             esac
         fi
 
@@ -267,6 +282,12 @@ fi
 if [ -n "$roadmap_notes" ]; then
     warn "validate: unrecognized roadmap kind/horizon (advisory — suggested sets, not enforced):"
     printf '%s' "$roadmap_notes"
+fi
+
+# Advisory: an unrecognized `task.verify_verdict`. Never changes the exit code.
+if [ -n "$verdict_notes" ]; then
+    warn "validate: unrecognized task.verify_verdict (advisory — expected one of${VALID_VERDICT}):"
+    printf '%s' "$verdict_notes"
 fi
 
 # Advisory: an unrecognized `task.complexity_actual`. Never changes the exit code.

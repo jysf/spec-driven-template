@@ -1633,6 +1633,46 @@ if just dash 2>&1 | grep -qE "signal\(s\) awaiting disposition"; then
 else
     fail "default dash missing signals flag"
 fi
+# --- golden-path: the only signal type that records something that WORKED ----
+# Every other type is a problem, so "this worked, copy it" had nowhere to live.
+assert_contains "guidance/signals.yaml" "golden-path" \
+    "signals.yaml documents the golden-path type"
+assert_contains "docs/signals.md" "wrong paved road is worse" \
+    "signals.md states the harder bar for golden paths"
+cat >> guidance/signals.yaml <<'GPEOF'
+  - id: example-golden-path
+    type: golden-path
+    summary: "Table-driven tests for the parser made every later change cheap."
+    evidence: "PROJ-001 SPEC-003/007/011 — N=3 same-outcome"
+    bar: 'N=3 same-outcome'
+    status: watch
+    disposition_at: project-close
+    first_flagged: 2026-08-12
+    last_touched: 2026-08-12
+    raised_by: human
+    notes: null
+GPEOF
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash signals --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert any(s["signal.type"]=="golden-path" for s in d["signals"]), d' \
+        && pass "dash signals --json carries a golden-path signal" || fail "golden-path missing from signals --json"
+fi
+gp=$(just dash signals 2>&1)
+if printf '%s\n' "$gp" | grep -q "example-golden-path"; then
+    pass "dash signals lists a golden-path signal"
+else
+    fail "dash signals did not list the golden-path: $gp"
+fi
+# It must be a PROJECT-close signal — a golden path is only knowable once the
+# whole wave is done, and it inherits that ritual rather than inventing one.
+if printf '%s\n' "$gp" | grep -q "project-close"; then
+    pass "golden-path is dispositioned at project close"
+else
+    fail "golden-path did not carry a project-close disposition"
+fi
+just validate >/dev/null 2>&1 \
+    && pass "validate unaffected by the golden-path signal type" \
+    || fail "validate broke after adding a golden-path signal"
+
 # The close-disposition ritual is wired into both close prompts.
 assert_contains "FIRST_SESSION_PROMPTS.md" "disposition_at: stage-close" \
     "stage-close prompt wires the signal disposition ritual"
@@ -2433,6 +2473,57 @@ if [ "$HAVE_PY3" = 1 ]; then
         && pass "dash defects buckets a non-escaped answer correctly" || fail "dash defects mis-bucketed a verify answer"
 fi
 
+# --- task.verify_verdict: the second axis -----------------------------------
+# The field ships with a READER, not just a slot — the reserved-but-unwired
+# pattern (harvest signal #7) is the thing to avoid here.
+VSPEC_ID=$(basename "$DSPEC" .md | sed -E 's/^(SPEC-[0-9]+).*/\1/')
+just advance-cycle "$VSPEC_ID" verify >/dev/null 2>&1
+
+# verify → build infers punch-list: a spec that goes BACK is one verify pushed
+# on. Stamping only on the way to ship would drop every rejection silently.
+adv=$(just advance-cycle "$VSPEC_ID" build 2>&1)
+if printf '%s\n' "$adv" | grep -q "punch-list (inferred from → build)"; then
+    pass "advance-cycle infers punch-list when a spec leaves verify backwards"
+else
+    fail "advance-cycle did not infer a punch-list verdict: $adv"
+fi
+assert_contains "$DSPEC" "verify_verdict: punch-list" "punch-list landed in front-matter"
+
+# verify → ship infers approved.
+just advance-cycle "$VSPEC_ID" verify >/dev/null 2>&1
+just advance-cycle "$VSPEC_ID" ship >/dev/null 2>&1
+assert_contains "$DSPEC" "verify_verdict: approved" "verify → ship infers approved"
+
+# An explicit --verdict wins over the inference: rejected vs punch-list is the
+# one call the destination cannot make for you.
+just advance-cycle "$VSPEC_ID" verify >/dev/null 2>&1
+just advance-cycle "$VSPEC_ID" build --verdict rejected >/dev/null 2>&1
+assert_contains "$DSPEC" "verify_verdict: rejected" "--verdict overrides the inference"
+assert_cmd_fails "advance-cycle rejects an unknown verdict" \
+    just advance-cycle "$VSPEC_ID" build --verdict maybe
+
+# The reader surfaces it, and the zero-pushback case says so explicitly —
+# that is the PLAYBOOK failure signature this field exists to make computable.
+if [ "$HAVE_PY3" = 1 ]; then
+    just dash defects --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["verify_verdicts"]["rejected"]==1, d' \
+        && pass "dash defects --json reports the verdict distribution" || fail "dash defects --json missing verify_verdicts"
+fi
+dd3=$(just dash defects 2>&1)
+if printf '%s\n' "$dd3" | grep -q "Verify verdicts"; then
+    pass "dash defects renders the verify-verdict axis"
+else
+    fail "dash defects did not render verify verdicts: $dd3"
+fi
+# Advisory only — an unrecognized verdict must never fail the gate.
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  verify_verdict: rejected$/  verify_verdict: bogus/' "$DSPEC"; else sed -i 's/^  verify_verdict: rejected$/  verify_verdict: bogus/' "$DSPEC"; fi
+vout=$(just validate 2>&1) || fail "validate failed on an unrecognized verify_verdict (must be advisory)"
+if printf '%s\n' "$vout" | grep -q "unrecognized task.verify_verdict"; then
+    pass "validate warns (advisory) on an unrecognized verify_verdict"
+else
+    fail "validate did not surface the verify_verdict advisory: $vout"
+fi
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  verify_verdict: bogus$/  verify_verdict: rejected/' "$DSPEC"; else sed -i 's/^  verify_verdict: bogus$/  verify_verdict: rejected/' "$DSPEC"; fi
+
 # ============================================================
 # Stage carries an orchestration_cost slot (the spend with no spec to attach to)
 # ============================================================
@@ -2442,6 +2533,48 @@ just new-stage "Orchestration Cost Probe" >/dev/null 2>&1
 SFILE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-orchestration-cost-probe.md | head -n1)
 assert_contains "$SFILE" "orchestration_cost:" "stage template carries orchestration_cost"
 assert_contains "$SFILE" "THE ORCHESTRATOR FILLS THIS" "orchestration_cost says who fills it"
+
+# The slot must have a READER. It shipped without one, which is the
+# reserved-but-unwired pattern (harvest signal #7): a field nothing reads is a
+# field nobody fills, and the framing spend stays invisible.
+if [ "$HAVE_PY3" = 1 ]; then
+    just roadmap --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert all("orchestration_tokens" in s for s in d["stages"]), d' \
+        && pass "roadmap --json exposes orchestration_tokens per stage" || fail "roadmap --json missing orchestration_tokens"
+fi
+# An empty slot reads as 0, not as an error — a null here is the honest state.
+if [ "$HAVE_PY3" = 1 ]; then
+    just roadmap --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert all(s["orchestration_tokens"]==0 for s in d["stages"]), d' \
+        && pass "an unfilled orchestration_cost sums to 0" || fail "unfilled orchestration_cost did not sum to 0"
+fi
+# Snapshot the spec cost gate BEFORE populating orchestration spend. The gate is
+# not necessarily green here (other fixtures own that), so the meaningful
+# assertion is that orchestration does not CHANGE its verdict — it is
+# stage-grained and deliberately outside per-spec enforcement.
+ca_before=$(just cost-audit 2>&1 || true)
+
+# Record real framing spend and confirm it is summed and surfaced.
+if [ "$(uname)" = "Darwin" ]; then
+    sed -i '' 's|^  sessions: \[\]                      # - tokens_total: N$|  sessions:\n    - tokens_total: 41000\n      estimated_usd: 0.27|' "$SFILE"
+else
+    sed -i 's|^  sessions: \[\]                      # - tokens_total: N$|  sessions:\n    - tokens_total: 41000\n      estimated_usd: 0.27|' "$SFILE"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    just roadmap --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; t=[s["orchestration_tokens"] for s in d["stages"]]; assert 41000 in t, t' \
+        && pass "roadmap --json sums recorded orchestration tokens" || fail "orchestration tokens not summed"
+fi
+rm_out=$(just roadmap 2>&1)
+if printf '%s\n' "$rm_out" | grep -q "41000 orch tok"; then
+    pass "roadmap surfaces orchestration spend on the stage row"
+else
+    fail "roadmap did not surface orchestration spend: $rm_out"
+fi
+# It must NOT leak into the spec cost gate.
+ca_after=$(just cost-audit 2>&1 || true)
+if [ "$ca_before" = "$ca_after" ]; then
+    pass "cost-audit verdict unchanged by stage orchestration_cost"
+else
+    fail "orchestration_cost leaked into the per-spec cost gate"
+fi
 if just validate >/dev/null 2>&1; then
     pass "validate unaffected by the stage orchestration_cost slot"
 else

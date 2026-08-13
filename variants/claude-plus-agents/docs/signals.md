@@ -28,6 +28,21 @@ across stage files. Each record is typed:
 | **process-debt** | Framework / tooling friction to fix (a `just` chore, a prompt tweak, a template change) | **project close** | `accepted`→`done`, `rejected`, `dropped` |
 | **product** | A usage / dogfooding signal about what to build; feeds the **next** project's framing | **project close** | `accepted`, `dropped` |
 | **risk** | Something to watch; no automatic action | revisited each close | stays `watch` |
+| **golden-path** | An approach that worked well enough that another project should copy it wholesale | **project close** | `codified`, `dropped` |
+
+**`golden-path` is the odd one out, deliberately.** Every other type records a
+*problem*. That meant the template could capture "this hurt" in five ways and
+"this worked" in none — so every close quietly discarded the more useful half.
+It exists because the template has **no instance-to-instance transfer mechanism
+at all**: knowledge flows *up* through harvests into the template and *down*
+into new scaffolds, but never sideways from one repo to the next. A
+`golden-path` is the seam where a thing one project learned can reach another.
+
+**Its bar is harder than a lesson's, not softer.** A wrong paved road is worse
+than no road, because people follow it without re-deriving it. So: capture
+candidates freely, promote almost none. `bar: 'N=3 same-outcome'` applies, and
+"it worked once and felt good" is a preference, not a golden path. When in
+doubt, leave it at `watch` for another project.
 
 `status`: `open` (raised, never dispositioned) · `watch` (deliberately parked —
 a lesson accumulating toward its bar, or a risk being monitored, or a deferred
@@ -73,7 +88,7 @@ of its own closes is a red flag: decide it.
 Owner by type, so the walk is short at each close:
 
 - **Stage close** → only the `lesson` signals (`disposition_at: stage-close`).
-- **Project close** → `process-debt`, `product`, and `risk`
+- **Project close** → `process-debt`, `product`, `risk`, and `golden-path`
   (`disposition_at: project-close`).
 
 ## Raising a signal (the capture half)
@@ -88,6 +103,11 @@ the signal down the moment it's raised but *not* acted on:
 - **Stage reflection**: lessons ready or accumulating → `type: lesson`.
 - **Project reflection / usage observations**: what-to-build-next →
   `type: product`; standing hazards → `type: risk`.
+- **Anything that worked unusually well** — a library choice, a test shape, a
+  file layout, a review habit — → `type: golden-path`. Ask it explicitly at
+  project close, because nothing else prompts for it: *what would I tell the
+  next project to just copy?* If the answer is "nothing", that is a fine answer;
+  a blank here is honest, while a golden path never written down is lost.
 
 Keep `feedback/` for the raw inbound capture (a dated dump from a user or a
 dogfooding session). `signals.yaml` is the **triaged** ledger those get distilled

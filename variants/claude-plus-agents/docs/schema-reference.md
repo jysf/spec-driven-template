@@ -111,7 +111,8 @@ value_contribution: { advances ◦, delivers[] ◦, explicitly_does_not[] ◦ }
 
 ```
 task: { id ✅, type ✅ enum{epic,story,task,bug,chore,release}, cycle ✅ enum{frame,design,build,verify,ship},
-        blocked ◦, priority ◦, complexity ✅ enum{XS,S,M,L,XL,XXL}, complexity_actual ◦ }
+        blocked ◦, priority ◦, complexity ✅ enum{XS,S,M,L,XL,XXL}, complexity_actual ◦,
+        verify_verdict ◦ enum{approved,punch-list,rejected} }
 project: { id ✅, stage ✅ }            repo.id ✅
 agents: { architect ◦, implementer ◦, created_at ◦ }
 references: { decisions[] ◦, constraints[] ◦, related_specs[] ◦ }
@@ -120,6 +121,35 @@ claimed_by ◦     # fan-out lease: who holds this spec now; null = free
 value_link ◦
 cost: …                                 ◦ structurally; ✅ on shipped specs via cost-audit
 ```
+
+**`verify_verdict` — what verify actually decided.** The three values are the
+three verdicts Prompt 4 already returns (`✅ APPROVED` / `⚠ PUNCH LIST` /
+`❌ REJECTED`), so nothing new is asked of the verifier — the answer just stops
+living only in prose. `just advance-cycle` stamps it whenever a spec **leaves**
+verify, in either direction:
+
+| Move | Recorded |
+|---|---|
+| `verify → ship` | `approved` |
+| `verify → build` (or `design`/`frame`) | `punch-list` |
+| either, with `--verdict rejected` | `rejected` |
+
+Stamping only on the way to `ship` would record approvals and silently drop
+every rejection — which is the number actually worth having. The destination
+can't distinguish `punch-list` from `rejected` (both go back to build), so that
+one call is manual; the command always prints what it recorded so an inferred
+value can be corrected.
+
+Advisory in `validate`, never a gate: a spec that never reached verify has no
+verdict, and back-filling one onto a spec that shipped before the field existed
+would be fiction. Read it with `just dash defects`, which pairs it with the
+defect-catch distribution — where a defect was *caught* versus whether verify
+ever *pushed back*.
+
+**In this variant the verdict is the delegated verifier's**, returned via the
+`HANDOFF-*` for the verify cycle. Stamp it from the handback, not from your own
+reading of the work — an orchestrator that grades the verify it commissioned is
+the failure this split exists to prevent.
 
 The **required structural set** `just validate` enforces: `task.id`,
 `task.type`, `task.cycle` (valid enum), `task.complexity` (valid enum),
@@ -238,20 +268,32 @@ from a critical/high/medium/low rating: `critical`/`high` → **blocking**,
 ## `guidance/signals.yaml` — the typed feedback ledger (template extension)
 
 ```
-signals[]: { id ✅, type ✅ enum{lesson,process-debt,product,risk}, summary ✅,
-             evidence ✅, bar ◦ (lessons only), status ✅ enum{open,watch,accepted,
+signals[]: { id ✅, type ✅ enum{lesson,process-debt,product,risk,golden-path}, summary ✅,
+             evidence ✅, bar ◦ (lessons + golden-paths), status ✅ enum{open,watch,accepted,
              rejected,codified,done,dropped}, disposition_at ✅ enum{stage-close,
              project-close}, first_flagged ✅, last_touched ✅, raised_by ✅, notes ◦ }
 ```
 
 One ledger for every feedback type, so nothing rots un-decided (`lesson` is
 dispositioned at a stage close and keeps the N=3/N=2 codification bar;
-`process-debt`/`product`/`risk` at a project close). The forcing function is the
-close-disposition ritual in `FIRST_SESSION_PROMPTS.md` (Prompts 1d/1e), not a CI
-gate. Browse with `just dash signals`; the open count surfaces in `just dash`'s
-flags. No ContextCore/OTel namespace spans all four types, so `--json` emits a
-template-native `signal.*` payload (like `cost.*`, a documented extension). Full
-authoring guide + migration note: `docs/signals.md`.
+`process-debt`/`product`/`risk`/`golden-path` at a project close). The forcing
+function is the close-disposition ritual in `FIRST_SESSION_PROMPTS.md`
+(Prompts 1d/1e), not a CI gate. Browse with `just dash signals`; the open count
+surfaces in `just dash`'s flags. No ContextCore/OTel namespace spans these
+types, so `--json` emits a template-native `signal.*` payload (like `cost.*`, a
+documented extension). Full authoring guide + migration note: `docs/signals.md`.
+
+**`golden-path` is the only type that records something that WORKED.** Every
+other type is a problem — a lesson, a debt, a risk, a usage gap. That left
+*"this approach worked so well another project should copy it wholesale"* with
+nowhere to live, so it was lost at every close. It matters because the template
+has **no instance-to-instance transfer mechanism at all**: knowledge flows *up*
+through harvests and *down* into new scaffolds, never sideways from one repo to
+the next.
+
+**The bar is harder here, not softer.** A wrong paved road is worse than no
+road, because people follow it. Capture candidates freely; promote almost none —
+N=3 or it stays a preference.
 
 ## `projects/PROJ-*/handoffs/HANDOFF-*.md` — *(claude-plus-agents only)* (ContextCore `handoff.*`)
 

@@ -158,7 +158,9 @@ EOF2
                 shipped_at "$([ -n "$sa" ] && json_qs "$sa" || printf null)" \
                 target_complete "$([ -n "$tg" ] && json_qs "$tg" || printf null)" \
                 in_flight "$inf" \
-                backlog "$bk")")
+                backlog "$bk" \
+                orchestration_tokens "$(sum_orchestration_tokens_for_stage "$s")" \
+                orchestration_usd "$(sum_orchestration_usd_for_stage "$s")")")
         done
     fi
     [ "${#stages_json[@]}" -gt 0 ] && stages_arr=$(json_arr "${stages_json[@]}") || stages_arr="[]"
@@ -285,6 +287,12 @@ $(declared_for_stage "$sid")
 EOF2
     hz_col=""
     [ -n "$dhz" ] && [ "$dhz" != "-" ] && hz_col=" ${DIM}[${dhz}]${RESET}"
+
+    # Orchestration spend recorded against this stage — the framing and
+    # cross-spec steering that never had a spec to attach to. Shown only when
+    # non-zero: a null here is the honest normal state, not a gap to nag about.
+    orch=$(sum_orchestration_tokens_for_stage "$s")
+    [ "$orch" -gt 0 ] 2>/dev/null && hz_col="${hz_col} ${DIM}+${orch} orch tok${RESET}"
 
     # Render. Bold the active row to make "you are here" obvious.
     if [ "$bucket" = "active" ]; then

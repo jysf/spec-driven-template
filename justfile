@@ -122,8 +122,12 @@ new-stage TITLE PROJECT_ID="":
     @./scripts/new-stage.sh "{{TITLE}}" "{{PROJECT_ID}}"
 
 # Advance a spec's cycle. Usage: just advance-cycle SPEC-NNN verify
-advance-cycle SPEC_ID NEW_CYCLE:
-    @./scripts/advance-cycle.sh "{{SPEC_ID}}" "{{NEW_CYCLE}}"
+#
+# Leaving `verify` also stamps `task.verify_verdict`, inferred from where the
+# spec goes (→ ship = approved, → build = punch-list). Pass `--verdict rejected`
+# for the one distinction the destination can't make for you.
+advance-cycle SPEC_ID NEW_CYCLE *FLAGS:
+    @./scripts/advance-cycle.sh "{{SPEC_ID}}" "{{NEW_CYCLE}}" {{FLAGS}}
 
 # Archive a shipped spec: move to done/ and update stage backlog.
 # Usage: just archive-spec SPEC-NNN

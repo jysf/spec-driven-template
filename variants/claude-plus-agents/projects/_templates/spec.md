@@ -13,6 +13,11 @@ task:
                                    #   (XL/XXL almost certainly means it's a stage, not a spec)
   complexity_actual: null          # stamped at ship: what it ACTUALLY took, same scale.
                                    #   Expected-vs-actual drift is what `just calibration` reads.
+  verify_verdict: null             # approved | punch-list | rejected — the OUTCOME of the verify
+                                   #   cycle, stamped by `just advance-cycle` when the spec leaves
+                                   #   verify (same three verdicts Prompt 4 already returns).
+                                   #   Recorded in front-matter, not just prose, so "verify never
+                                   #   rejects anything" stops being a hunch and becomes a number.
 
 project:
   id: PROJ-XXX
