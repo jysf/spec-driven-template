@@ -43,7 +43,39 @@ project: { id ✅, status ✅ enum{proposed,active,on_hold,shipped,cancelled}, a
 repo.id ✅
 created_at ✅   shipped_at ◦
 value: { thesis ◦, beneficiaries[] ◦, success_signals[] ◦, risks_to_thesis[] ◦ }
+roadmap[] ◦: { item ✅, kind ◦ set{framed,planned,pillar,goal}, horizon ◦ set{now,next,later}, resume_when ◦, target ◦ }
 ```
+
+### The declared `roadmap:` block (DEC-011)
+
+**A project's roadmap has two halves, and only one of them is a file.**
+`just roadmap` **derives** the first half — `framed` (a `STAGE-*.md` exists) and
+`planned` (a `## Stage Plan` checkbox with no file yet). That covers work that
+is shaped or at least named. It cannot express intent that isn't a stage yet.
+
+`roadmap:` is the **declared** half: themes and outcomes too coarse or too early
+to frame. `just roadmap` merges both and `--json` emits them together, so a
+portfolio tracker consumes **one typed surface** instead of re-parsing briefs.
+
+- **`kind`** — `pillar` (an unframed theme coarser than a stage) or `goal` (an
+  outcome rather than work; the seam where a future value metric attaches).
+  `framed`/`planned` are *inferred from files*, never authored.
+- **`horizon`** — `now | next | later`. Buckets are primary on purpose: a dated
+  roadmap you can't hit is worse than a bucketed one you can.
+- **`resume_when`** — an optional trigger ("after the daily report stabilizes").
+  Honest when a date can't be committed.
+- **`target`** — an optional `YYYY-MM-DD`. Discouraged as the *only* signal.
+
+**Reconciliation.** An `item:` naming a real stage (`item: STAGE-004`) is *not*
+listed twice. The derived record wins on status and dates — it is read from the
+file, which is ground truth — and the declared `horizon`/`resume_when` ride
+along on that row. Only items with no stage behind them appear in the
+`declared` bucket.
+
+Both vocabularies are **suggested sets, not enums**: `validate` warns on an
+unrecognized `kind`/`horizon` and never fails. The block is optional everywhere,
+and its absence is the normal case — most projects never need it, because the
+Stage Plan already says what is coming.
 
 **`status` vs `activity` — two axes, don't conflate them.** `status` is the
 **coarse, machine-keyed** lifecycle state that tooling branches on (keep it to the

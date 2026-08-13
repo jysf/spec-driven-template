@@ -82,6 +82,47 @@ $(parse_stage_plan "$ACTIVE_DIR")
 EOF
 }
 
+# --- The declared half (DEC-011) ---------------------------------------------
+# A declared item may REFERENCE a stage (`item: STAGE-004`). When it does, the
+# derived record wins on status and dates — it's read from the file, which is
+# ground truth — and the declared horizon rides along as an annotation. Emitting
+# both would double-list the same stage, which is the bug the planned-vs-framed
+# de-dupe already avoids one layer down.
+#
+# Look up a declared horizon/trigger/target for a stage id. Prints
+# `HORIZON|RESUME_WHEN|TARGET` (fields `-` when unset), or nothing if the stage
+# isn't referenced by the declared block.
+declared_for_stage() {
+    local sid="$1" ditem dkind dhz dresume dtarget
+    while IFS='|' read -r ditem dkind dhz dresume dtarget; do
+        [ -n "$ditem" ] || continue
+        if [ "$ditem" = "$sid" ]; then
+            printf '%s|%s|%s\n' "$dhz" "$dresume" "$dtarget"
+            return
+        fi
+    done <<EOF
+$(parse_declared_roadmap "$ACTIVE_DIR")
+EOF
+}
+
+# The declared rows that are NOT stage references — pure intent with no file
+# behind it. These are the rows only the declared block can produce.
+collect_declared_rows() {
+    local ditem dkind dhz dresume dtarget
+    while IFS='|' read -r ditem dkind dhz dresume dtarget; do
+        [ -n "$ditem" ] || continue
+        case "$ditem" in
+            STAGE-[0-9]*) continue ;;   # reconciled onto its derived row instead
+        esac
+        # `kind` is only authored for declared items; default to the coarser of
+        # the two declared kinds rather than guessing at an outcome.
+        [ "$dkind" = "-" ] && dkind="pillar"
+        printf '%s|%s|%s|%s|%s\n' "$ditem" "$dkind" "$dhz" "$dresume" "$dtarget"
+    done <<EOF
+$(parse_declared_roadmap "$ACTIVE_DIR")
+EOF
+}
+
 # --- JSON output (DEC-001 §2) ------------------------------------------------
 if [ "$(has_json_flag "$@")" = 1 ]; then
     active_stage_file=$(get_active_stage_file "$ACTIVE_DIR" || true)
@@ -101,10 +142,18 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
             esac
             ca=$(get_stage_created_at "$s"); sa=$(get_stage_shipped_at "$s"); tg=$(get_stage_target "$s")
             inf=$(count_in_flight_for_stage "$sid"); bk=$(count_backlog_bullets "$s")
+            # Declared annotation for this stage, if the brief references it.
+            dhz="-"; dresume="-"; dtarget="-"
+            IFS='|' read -r dhz dresume dtarget <<EOF2
+$(declared_for_stage "$sid")
+EOF2
             stages_json+=("$(json_obj \
                 "project.stage" "$(json_qs "$sid")" \
                 "stage.status" "$(json_qs "$status")" \
                 bucket "$(json_qs "$bucket")" \
+                kind "$(json_qs framed)" \
+                horizon "$([ -n "$dhz" ] && [ "$dhz" != "-" ] && json_qs "$dhz" || printf null)" \
+                resume_when "$([ -n "$dresume" ] && [ "$dresume" != "-" ] && json_qs "$dresume" || printf null)" \
                 created_at "$([ -n "$ca" ] && json_qs "$ca" || printf null)" \
                 shipped_at "$([ -n "$sa" ] && json_qs "$sa" || printf null)" \
                 target_complete "$([ -n "$tg" ] && json_qs "$tg" || printf null)" \
@@ -118,9 +167,18 @@ if [ "$(has_json_flag "$@")" = 1 ]; then
     planned_json=()
     while IFS='|' read -r pid pchecked ptitle; do
         [ -n "$pid" ] || [ -n "$ptitle" ] || continue
+        dhz="-"; dresume="-"; dtarget="-"
+        if [ "$pid" != "-" ]; then
+            IFS='|' read -r dhz dresume dtarget <<EOF2
+$(declared_for_stage "$pid")
+EOF2
+        fi
         planned_json+=("$(json_obj \
             "project.stage" "$([ "$pid" != "-" ] && json_qs "$pid" || printf null)" \
             bucket "$(json_qs planned)" \
+            kind "$(json_qs planned)" \
+            horizon "$([ -n "$dhz" ] && [ "$dhz" != "-" ] && json_qs "$dhz" || printf null)" \
+            resume_when "$([ -n "$dresume" ] && [ "$dresume" != "-" ] && json_qs "$dresume" || printf null)" \
             title "$(json_qs "$ptitle")" \
             checked "$([ "$pchecked" = x ] && printf true || printf false)")")
     done <<EOF
@@ -128,11 +186,28 @@ $(collect_planned_rows)
 EOF
     [ "${#planned_json[@]}" -gt 0 ] && planned_arr=$(json_arr "${planned_json[@]}") || planned_arr="[]"
 
+    # Declared-only items (DEC-011): intent with no stage file behind it.
+    declared_json=()
+    while IFS='|' read -r ditem dkind dhz dresume dtarget; do
+        [ -n "$ditem" ] || continue
+        declared_json+=("$(json_obj \
+            item "$(json_qs "$ditem")" \
+            bucket "$(json_qs declared)" \
+            kind "$(json_qs "$dkind")" \
+            horizon "$([ "$dhz" != "-" ] && json_qs "$dhz" || printf null)" \
+            resume_when "$([ "$dresume" != "-" ] && json_qs "$dresume" || printf null)" \
+            target "$([ "$dtarget" != "-" ] && json_qs "$dtarget" || printf null)")")
+    done <<EOF
+$(collect_declared_rows)
+EOF
+    [ "${#declared_json[@]}" -gt 0 ] && declared_arr=$(json_arr "${declared_json[@]}") || declared_arr="[]"
+
     data=$(json_obj \
         active_project "$(json_qs "$ACTIVE_PROJECT")" \
         active_stage "$([ -n "$active_stage_id" ] && json_qs "$active_stage_id" || printf null)" \
         stages "$stages_arr" \
-        planned "$planned_arr")
+        planned "$planned_arr" \
+        declared "$declared_arr")
     json_emit roadmap "$data"
     exit 0
 fi
@@ -202,13 +277,22 @@ for s in "${STAGES_DIR}"/STAGE-*.md; do
         counts_col="(${in_flight} in flight, ${backlog} backlog)"
     fi
 
+    # A declared horizon for this stage rides along as a suffix — the file is
+    # still the source of truth for everything else.
+    dhz="-"; dresume="-"; dtarget="-"
+    IFS='|' read -r dhz dresume dtarget <<EOF2
+$(declared_for_stage "$sid")
+EOF2
+    hz_col=""
+    [ -n "$dhz" ] && [ "$dhz" != "-" ] && hz_col=" ${DIM}[${dhz}]${RESET}"
+
     # Render. Bold the active row to make "you are here" obvious.
     if [ "$bucket" = "active" ]; then
-        printf "  ${BOLD}%-36s %-10s %-22s${RESET} %s\n" \
-            "$sname" "$bucket" "$date_col" "$counts_col"
+        printf "  ${BOLD}%-36s %-10s %-22s${RESET} %s%s\n" \
+            "$sname" "$bucket" "$date_col" "$counts_col" "$hz_col"
     else
-        printf "  %-36s %-10s %-22s %s\n" \
-            "$sname" "$bucket" "$date_col" "$counts_col"
+        printf "  %-36s %-10s %-22s %s%s\n" \
+            "$sname" "$bucket" "$date_col" "$counts_col" "$hz_col"
     fi
 done
 fi  # end: [ -d "$STAGES_DIR" ]
@@ -227,7 +311,24 @@ $planned_rows
 EOF
 fi
 
-if [ "$any_stage" = "0" ] && [ -z "$planned_rows" ]; then
+# Declared-only items (DEC-011): forward intent that isn't a stage yet, and so
+# can't be derived from any file. Rendered last — this is the coarsest altitude.
+declared_rows=$(collect_declared_rows)
+if [ -n "$declared_rows" ]; then
+    while IFS='|' read -r ditem dkind dhz dresume dtarget; do
+        [ -n "$ditem" ] || continue
+        when=""
+        [ "$dhz" != "-" ] && when="$dhz"
+        [ "$dtarget" != "-" ] && when="${when:+${when} }target: ${dtarget}"
+        [ "$dresume" != "-" ] && when="${when:+${when} }when: ${dresume}"
+        printf "  ${DIM}%-36s %-10s %-22s %s${RESET}\n" \
+            "$ditem" "$dkind" "${when:-—}" ""
+    done <<EOF
+$declared_rows
+EOF
+fi
+
+if [ "$any_stage" = "0" ] && [ -z "$planned_rows" ] && [ -z "$declared_rows" ]; then
     if [ -d "$STAGES_DIR" ]; then
         echo "  ${DIM}(no stages yet)${RESET}"
     else

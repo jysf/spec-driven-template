@@ -19,6 +19,6 @@ Regenerate after adding or superseding one; `just decisions-index --check` fails
 | [DEC-008](DEC-008-build-provenance.md) | build provenance — trace every build back to its source commit | 0.85 | accepted | — | — |
 | [DEC-009](DEC-009-business-value-metrics.md) | measurable business value + time-to-value | 0.6 | proposed | — | — |
 | [DEC-010](DEC-010-accomplishment-logging-default.md) | accomplishment logging on by default (via `brag`) | 0.8 | accepted | — | — |
-| [DEC-011](DEC-011-roadmap-structure.md) | roadmap structure | 0.6 | proposed | — | — |
+| [DEC-011](DEC-011-roadmap-structure.md) | roadmap structure | 0.6 | accepted | — | — |
 | [DEC-012](DEC-012-spike-lane.md) | a "spike" lane for bounded exploration (and vibe-coding sessions) | 0.7 | accepted | — | — |
 | [DEC-013](DEC-013-delegated-cost-handback.md) | delegated-cycle cost — the handback contract | 0.75 | accepted | — | — |

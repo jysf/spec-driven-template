@@ -1070,6 +1070,69 @@ parse_stage_plan() {
     ' "$brief"
 }
 
+# Parse a brief's optional `roadmap:` block (DEC-011) into one row per declared
+# item: `ITEM|KIND|HORIZON|RESUME_WHEN|TARGET`, with `-` for any unset field.
+#
+# This is the DECLARED half of the roadmap — forward intent that isn't a stage
+# yet. The derived half (framed STAGE-*.md files + `## Stage Plan` checkboxes)
+# is parsed elsewhere; `just roadmap` merges the two. The block is optional
+# everywhere and its absence is the normal case.
+#
+# Shape:
+#   roadmap:
+#     - item: "Weekly & monthly rollup reports"
+#       kind: pillar            # framed | planned | pillar | goal
+#       horizon: next           # now | next | later
+#       resume_when: "after the daily report stabilizes"
+#       target: 2026-09-01
+#     - item: STAGE-004         # a reference; reconciled against derived stages
+#       horizon: now
+#
+# Usage: parse_declared_roadmap projects/PROJ-001-foo
+parse_declared_roadmap() {
+    local dir="$1"
+    local brief="${dir}/brief.md"
+    [ -f "$brief" ] || return
+    awk '
+        function clean(v) {
+            sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v)
+            sub(/^"/, "", v); sub(/"$/, "", v)
+            sub(/^'\''/, "", v); sub(/'\''$/, "", v)
+            if (v == "null") v = ""
+            return v
+        }
+        function flush() {
+            if (item != "") {
+                printf "%s|%s|%s|%s|%s\n",
+                    item,
+                    (kind      != "" ? kind      : "-"),
+                    (horizon   != "" ? horizon   : "-"),
+                    (resume    != "" ? resume    : "-"),
+                    (target    != "" ? target    : "-")
+            }
+            item = ""; kind = ""; horizon = ""; resume = ""; target = ""
+        }
+        /^---$/ { fm = !fm; if (!fm) { flush(); exit } next }
+        !fm { next }
+        /^roadmap:/ { in_r = 1; next }
+        in_r && /^[a-zA-Z_]/ { flush(); in_r = 0 }
+        !in_r { next }
+        # A new list entry always starts with `- item:`.
+        /^[[:space:]]*-[[:space:]]*item:/ {
+            flush()
+            v = $0; sub(/^[[:space:]]*-[[:space:]]*item:[[:space:]]*/, "", v)
+            item = clean(v)
+            next
+        }
+        # Continuation keys belong to the entry above.
+        /^[[:space:]]+kind:/        { v = $0; sub(/^[[:space:]]+kind:[[:space:]]*/, "", v);        kind    = clean(v); next }
+        /^[[:space:]]+horizon:/     { v = $0; sub(/^[[:space:]]+horizon:[[:space:]]*/, "", v);     horizon = clean(v); next }
+        /^[[:space:]]+resume_when:/ { v = $0; sub(/^[[:space:]]+resume_when:[[:space:]]*/, "", v); resume  = clean(v); next }
+        /^[[:space:]]+target:/      { v = $0; sub(/^[[:space:]]+target:[[:space:]]*/, "", v);      target  = clean(v); next }
+        END { flush() }
+    ' "$brief"
+}
+
 # Extract value_contribution.advances from a stage file. Empty if null
 # or missing. Usage: get_stage_value_contribution path/to/STAGE-001.md
 get_stage_value_contribution() {

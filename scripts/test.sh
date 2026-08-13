@@ -600,6 +600,78 @@ else
     fail "roadmap --json missing planned stages"
 fi
 
+# --- The DECLARED half of the roadmap (DEC-011) -----------------------------
+# Absent by default: a brief with no roadmap: block emits an empty bucket, and
+# nothing else about the output changes.
+if printf '%s\n' "$roadmap_json" | grep -q '"declared":\[\]'; then
+    pass "roadmap --json emits an empty declared bucket by default"
+else
+    fail "roadmap --json missing the declared bucket"
+fi
+
+# Declare two items: a pure pillar (no stage behind it) and a reference to the
+# framed STAGE-001, which must reconcile rather than double-list.
+ACTIVE_BRIEF=$(ls projects/PROJ-*/brief.md | head -1)
+cp "$ACTIVE_BRIEF" "$SCRATCH/brief.orig"
+# Insert the block right after the opening front-matter fence.
+awk 'NR==1 && /^---$/ {
+        print
+        print "roadmap:"
+        print "  - item: \"Portfolio rollup reports\""
+        print "    kind: pillar"
+        print "    horizon: next"
+        print "    resume_when: \"after the daily report stabilizes\""
+        print "  - item: STAGE-001"
+        print "    horizon: now"
+        next
+     } { print }' "$SCRATCH/brief.orig" > "$ACTIVE_BRIEF"
+
+lib_rows=$(bash -c 'REPO_ROOT="$(pwd)"; source scripts/_lib.sh; parse_declared_roadmap "$(dirname "'"$ACTIVE_BRIEF"'")"')
+if printf '%s\n' "$lib_rows" | grep -q '^Portfolio rollup reports|pillar|next|after the daily report stabilizes|-$'; then
+    pass "parse_declared_roadmap reads item/kind/horizon/resume_when"
+else
+    fail "parse_declared_roadmap row wrong: $lib_rows"
+fi
+
+roadmap_json=$(just roadmap --json 2>&1)
+if printf '%s\n' "$roadmap_json" | grep -q '"item":"Portfolio rollup reports"'; then
+    pass "roadmap --json surfaces a declared pillar"
+else
+    fail "roadmap --json missing the declared pillar: $roadmap_json"
+fi
+# The STAGE-001 reference must NOT appear as its own declared item...
+if printf '%s\n' "$roadmap_json" | grep -q '"item":"STAGE-001"'; then
+    fail "roadmap --json double-listed a declared stage reference"
+else
+    pass "roadmap --json reconciles a declared stage reference (no double-listing)"
+fi
+# ...its horizon rides along on the derived stage row instead.
+if printf '%s\n' "$roadmap_json" | grep -q '"project.stage":"STAGE-001".*"horizon":"now"'; then
+    pass "a declared horizon attaches to the derived stage row"
+else
+    fail "declared horizon did not reconcile onto STAGE-001: $roadmap_json"
+fi
+# Human output carries the pillar and the annotation.
+roadmap_out=$(just roadmap 2>&1)
+if printf '%s\n' "$roadmap_out" | grep -q "Portfolio rollup reports"; then
+    pass "roadmap renders the declared pillar"
+else
+    fail "roadmap human output missing the declared pillar"
+fi
+
+# validate: unrecognized kind/horizon is ADVISORY — warns, never fails.
+sed -i.bak 's/^    horizon: now$/    horizon: someday/' "$ACTIVE_BRIEF"
+rm -f "${ACTIVE_BRIEF}.bak"
+val_out=$(just validate 2>&1) || fail "validate failed on an unrecognized roadmap horizon (must be advisory)"
+if printf '%s\n' "$val_out" | grep -q "unrecognized roadmap kind/horizon"; then
+    pass "validate warns (advisory) on an unrecognized roadmap horizon"
+else
+    fail "validate did not surface the roadmap advisory: $val_out"
+fi
+
+# Restore the brief so later sections see the fixture they expect.
+cp "$SCRATCH/brief.orig" "$ACTIVE_BRIEF"
+
 # ============================================================
 # security: titles with sed metachars are escaped, not injected
 # ============================================================

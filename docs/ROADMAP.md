@@ -154,18 +154,29 @@ instances — roughly 3× the 121 specs the 2026-07-06 harvest covered.
     whether this is a live guard or a decorative matrix.
 
 - **[DEC-011](decisions/DEC-011-roadmap-structure.md) — roadmap structure
-  (drafted 2026-07-13, proposed).** Unifies the two roadmaps that already exist and
-  disagree: the template's **derived** roadmap (`just roadmap` = framed + planned
-  stages) and standup's **declared** `roadmap:` brief block (pillars +
-  `resume_when`). One project-level structure fed by *derive + declare*, a small
-  `kind` set (`framed|planned|pillar|goal`), buckets-first horizon
-  (`now|next|later` + optional `resume_when`/`target`), emitted via `just roadmap
-  --json` so **standup consumes one typed surface** instead of re-parsing briefs.
-  Optional + degradable (not every tracked repo is spec-driven). Sits **below** the
+  (drafted 2026-07-13). ✅ Phase 1 shipped v0.6.32 (2026-08-12); accepted.**
+  Unifies the two roadmaps that already existed and disagreed: the template's
+  **derived** roadmap (`just roadmap` = framed + planned stages) and standup's
+  **declared** `roadmap:` brief block (pillars + `resume_when`). One
+  project-level structure fed by *derive + declare*, a small `kind` set
+  (`framed|planned|pillar|goal`), buckets-first horizon (`now|next|later` +
+  optional `resume_when`/`target`), emitted via `just roadmap --json` so
+  **standup consumes one typed surface** instead of re-parsing briefs. Optional +
+  degradable (not every tracked repo is spec-driven). Sits **below** the
   Goals/Plans layer and **beside** DEC-009 (a roadmap `goal` is where a
-  `value_metric` attaches). Phase 1 (bless schema + `just roadmap` merges
-  declared+derived + `--json`) is the smallest increment and ships value to standup
-  immediately. Don't build cold — validate on the harvest + by wiring standup.
+  `value_metric` attaches).
+  - **Shipped:** the block is blessed in both variants' brief scaffold +
+    `schema-reference.md`, parsed by `parse_declared_roadmap()` in `_lib.sh`,
+    merged into `just roadmap` (human output + a new `declared` bucket in
+    `--json`), and warned-on-but-never-gated by `validate`. Open questions 2–5
+    are resolved in the DEC — notably **reconciliation**: a declared
+    `item: STAGE-004` is not double-listed; the derived row wins on status and
+    dates and carries the declared horizon as an annotation.
+  - **Phase 2 is standup-side and unstarted.** The "don't build cold" gate was
+    half-satisfied: the schema is real and tested, but *nothing consumes it yet*,
+    so the producer/consumer fit is still unvalidated. **Wiring standup is the
+    next move**, and it is the only thing that can prove this was the right
+    shape.
 
 - **Higher-level Goals + Plans layer (raised 2026-07-12).** A layer *above* the
   current `Repo → Project → Stage → Spec → Cycle` hierarchy, for capturing intent
@@ -243,7 +254,10 @@ must land in that order.
    lesson we have). Trading an unproven gate for a measured one is a real
    outcome; without a pre-committed branch this is a reassurance exercise.
 
-2. **Teach the auditor to see the template's own decisions.** `find_all_decisions()`
+2. ~~**Teach the auditor to see the template's own decisions.**~~ **✅ Shipped
+   v0.6.31.** Pointing it at `docs/decisions/` for the first time reported **13
+   structural errors immediately** — the fork below, mechanically confirmed
+   rather than argued. Original capture: `find_all_decisions()`
    ([`scripts/_lib.sh:1253`](../scripts/_lib.sh)) and `decisions-audit.sh` both
    hardcode `${REPO_ROOT}/decisions`. **This repo has no top-level `decisions/`** —
    its 13 DECs live in `docs/decisions/`, so the decision records governing the
@@ -253,7 +267,15 @@ must land in that order.
    out-of-enum on 11 files*. Fix: resolve `decisions/`, fall back to
    `docs/decisions/`. One path change — and it goes first because it is causal.
 
-3. **Harvest the DEC schema fork back into the shipped template.** Verified
+3. ~~**Harvest the DEC schema fork back into the shipped template.**~~ **✅
+   Shipped v0.6.31** — `status:` and `deciders:` are now optional shipped fields
+   (absent = the old derived behavior, so no migration), and the template's own
+   13 DECs were conformed to `created_at:`. **One correction to the finding:**
+   `type: architecture` is not a missing enum value, it is a **category error** —
+   all 13 already carried `architecture` in `tags:`, so the domain was leaking
+   into the insight-*kind* field. Fixed to `type: decision`; the enum is
+   unchanged and `schema-reference.md` now says so. The ID-allocation question
+   below is **still open**. Original capture: Verified
    13/13: the template's own DECs carry three fields the shipped
    `variants/*/decisions/_template.md` does not — `status: accepted|proposed`,
    `date:` (vs the shipped `created_at:`), and `deciders: [jysf, claude]` — and
@@ -289,7 +311,13 @@ must land in that order.
    already carries the evidence and the N-counts a bare `status: proposed` DEC
    would lose); IDs get allocated on acceptance.
 
-4. **`decisions/INDEX.md` — the wall it predicted has arrived.** *(Promoted from
+4. ~~**`decisions/INDEX.md` — the wall it predicted has arrived.**~~ **✅ Shipped
+   v0.6.31** — `just decisions-index` writes a generated table (active and
+   superseded split), `--check` is wired into both variants' CI, and
+   `affected_scope` was left out as planned. One design addition the capture
+   didn't anticipate: the index is **opt-in by existence** — `--check` passes
+   quietly until a repo generates one, which is what makes shipping the CI gate
+   to every instance safe. Original capture: *(Promoted from
    #14's "watching" list 2026-07-17; re-evidenced 2026-08-12.)* **208 DECs**
    across the corpus, **crustyimg alone at 86** — this list logged crustyimg at
    73, so it grew 18% while the item sat. A generated table, one row per DEC,
@@ -318,11 +346,12 @@ must land in that order.
    field turns a signature into a standing metric, and gives the Tier-0 study
    above its second axis.
 
-6. **Lint unattributed decisions.** The scale survey found **10 DECs with no
-   `project.id`** (7 crustyimg, 3 bragfile, 0 zany), which had to be excluded
-   from every per-project computation — the concrete cost of a broken
-   traceability edge. `decisions-audit` should warn. Falls out of items 2–3
-   nearly free, and is a miniature of the RTM below.
+6. ~~**Lint unattributed decisions.**~~ **✅ Shipped v0.6.31** — `decisions-audit`
+   now warns (advisory) on a DEC with no `project.id`, suppressed in a repo with
+   no `projects/` to attribute to. It did fall out of items 2–3 nearly free, as
+   predicted. The survey's 10 orphans (7 crustyimg, 3 bragfile, 0 zany) had to be
+   excluded from every per-project computation — the concrete cost of a broken
+   traceability edge, and a miniature of the RTM below.
 
 **Still optional, unchanged:** **#9** — a per-language "known gotchas" appendix
 the build prompt links *(2026-08-10: reframed as one half of the **golden paths +
@@ -339,9 +368,17 @@ from un-framed *stages*.
 
 > **What changed 2026-08-12:** this section went from one non-speculative
 > now-tier build to six, and the top item is a **measurement, not a build**.
-> Everything above is solo work against data that already exists. Next leverage
-> is still *using* the template on real projects — but the case for measuring
-> before building more is now stronger than the case for either.
+> **Items 2, 3, 4 and 6 shipped the same day (v0.6.31)** — the whole decisions
+> chain, which turned out to be one causal thread: the auditor couldn't see the
+> template's own decision log, so a schema fork grew there unnoticed, so the
+> index that fork blocked couldn't be built. Fixing the blind spot surfaced the
+> fork within seconds of running it.
+>
+> **What's left here: item 1 (the verify study) and item 5 (the verify verdict
+> field) — and item 1 is now the most valuable thing on this page.** Everything
+> shipped today made the *record* better. None of it tested whether the process
+> works. Next leverage is still *using* the template on real projects, but the
+> case for measuring before building more keeps getting stronger.
 
 ## Co-design with the next project(s)
 

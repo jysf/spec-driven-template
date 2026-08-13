@@ -2,6 +2,38 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-12 — `just roadmap` gets its declared half, DEC-011 Phase 1 (v0.6.32)
+
+A project's roadmap has two halves, and until now the template only knew one of
+them. `just roadmap` **derives** what is shaped or named — framed `STAGE-*.md`
+files plus `## Stage Plan` checkboxes. It had no way to express forward intent
+that **isn't a stage yet**, so the `standup` portfolio tracker invented its own
+`roadmap:` front-matter block and parsed briefs directly. Two roadmaps, one
+never blessed, the consumer re-implementing the producer's schema.
+
+**`roadmap:` is now a blessed, optional brief block** — `item`, plus optional
+`kind` (`pillar | goal`; `framed`/`planned` stay inferred from files),
+`horizon` (`now | next | later`), `resume_when` trigger, and `target` date.
+`just roadmap` merges it with the derived half and `--json` emits a new
+`declared` bucket, so a tracker consumes **one typed surface** instead of
+re-parsing briefs.
+
+**Reconciliation:** a declared `item: STAGE-004` naming a real stage is *not*
+listed twice. The derived record wins on status and dates — it comes from the
+file, which is ground truth — and the declared `horizon`/`resume_when` ride
+along on that row. Only intent with no stage behind it lands in `declared`.
+(This resolves DEC-011's open question 2; questions 3, 4 and 5 are resolved in
+the DEC as well.)
+
+Buckets are the primary horizon axis on purpose: a dated roadmap you can't hit
+is worse than a bucketed one you can. Both vocabularies are **suggested sets,
+not enums** — `just validate` warns on an unrecognized `kind`/`horizon` and
+never fails, following the `project.activity` precedent. The block is optional
+everywhere and its absence is the normal case.
+
+**Phase 2 is standup-side and unstarted.** Until standup actually consumes
+`just roadmap --json`, the producer half is validated only by its own tests.
+
 ## 2026-08-12 — the decision log gets a lifecycle, an owner, and an index (v0.6.31)
 
 Three changes that turned out to be one chain. The first is the cause of the

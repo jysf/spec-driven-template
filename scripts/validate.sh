@@ -39,6 +39,13 @@ VALID_COMPLEXITY=" XS S M L XL XXL "   # t-shirt scale; S|M|L predate it and sta
 # people can extend the vocabulary. `spike` was the documented example
 # extension and became official with the spike lane (DEC-012).
 SUGGESTED_ACTIVITY=" requirements design build test blocked spike "
+# The declared roadmap block (DEC-011). Both vocabularies are SUGGESTED sets on
+# the same principle as `activity`: a roadmap you can't express is worse than an
+# unrecognized value, so validate advises and never gates. `framed`/`planned`
+# are derived from files rather than authored, but accepted here so a brief can
+# spell out what the tooling would have inferred.
+SUGGESTED_ROADMAP_KIND=" framed planned pillar goal "
+SUGGESTED_ROADMAP_HORIZON=" now next later "
 
 offenders=0
 checked=0
@@ -46,6 +53,7 @@ off_names=(); off_problems=(); off_kinds=()
 activity_notes=""
 depends_notes=""
 actual_notes=""
+roadmap_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -143,6 +151,27 @@ while IFS= read -r pdir; do
             *) activity_notes="${activity_notes}    $(basename "$pdir"): activity='${act}'"$'\n' ;;
         esac
     fi
+
+    # Declared roadmap block (DEC-011). Optional; advisory-only on both
+    # vocabularies, never counted as an offender.
+    pname=$(basename "$pdir")
+    while IFS='|' read -r r_item r_kind r_hz r_resume r_target; do
+        [ -n "$r_item" ] || continue
+        if [ "$r_kind" != "-" ]; then
+            case "$SUGGESTED_ROADMAP_KIND" in
+                *" $r_kind "*) : ;;
+                *) roadmap_notes="${roadmap_notes}    ${pname}: roadmap '${r_item}' kind='${r_kind}'"$'\n' ;;
+            esac
+        fi
+        if [ "$r_hz" != "-" ]; then
+            case "$SUGGESTED_ROADMAP_HORIZON" in
+                *" $r_hz "*) : ;;
+                *) roadmap_notes="${roadmap_notes}    ${pname}: roadmap '${r_item}' horizon='${r_hz}'"$'\n' ;;
+            esac
+        fi
+    done <<EOF
+$(parse_declared_roadmap "$pdir")
+EOF
 done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sort)
 
 # Spikes (the bounded-exploration lane, DEC-012). REPO-level, not project-scoped
@@ -231,6 +260,13 @@ fi
 if [ -n "$activity_notes" ]; then
     warn "validate: unrecognized project.activity (advisory — activity is an open set, not enforced; extend it freely):"
     printf '%s' "$activity_notes"
+fi
+
+# Advisory: an unrecognized declared-roadmap `kind`/`horizon` (DEC-011). Both
+# are suggested sets, not enums — never changes the exit code.
+if [ -n "$roadmap_notes" ]; then
+    warn "validate: unrecognized roadmap kind/horizon (advisory — suggested sets, not enforced):"
+    printf '%s' "$roadmap_notes"
 fi
 
 # Advisory: an unrecognized `task.complexity_actual`. Never changes the exit code.

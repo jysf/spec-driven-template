@@ -24,6 +24,28 @@ value:
   beneficiaries: []                 # 2-4 entries: users, team, function
   success_signals: []               # 3-5 observable outcomes
   risks_to_thesis: []               # 2-4 honest things that could make this wrong
+
+# OPTIONAL declared roadmap (DEC-011). Forward intent that is NOT a stage yet —
+# themes and outcomes too coarse or too early to frame. `just roadmap` merges
+# these with the DERIVED roadmap (framed STAGE-*.md files + the Stage Plan
+# below) and emits both via `--json`, so a portfolio tracker reads one surface
+# instead of re-parsing this file.
+#
+# Leave it empty. Most projects never need it: the Stage Plan already says what
+# is coming. Reach for it when intent outlives the current wave.
+#
+#   kind:    pillar | goal        (framed/planned are inferred from files)
+#   horizon: now | next | later   — buckets, because a date you can't hit is
+#                                   worse than a bucket you can
+# An `item:` naming a real STAGE-NNN is reconciled against that stage rather
+# than listed twice; its horizon rides along on the derived row.
+roadmap: []
+# roadmap:
+#   - item: "Weekly & monthly rollup reports"
+#     kind: pillar
+#     horizon: next
+#     resume_when: "after the daily report stabilizes"   # optional trigger
+#     target: null                                       # optional YYYY-MM-DD
 ---
 
 # PROJ-XXX: <Short Title — the wave of work>
