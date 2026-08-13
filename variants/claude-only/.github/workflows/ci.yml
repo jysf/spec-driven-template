@@ -18,3 +18,10 @@ jobs:
 
       - name: cost-audit (shipped specs have build/verify cost; AGENTS §4)
         run: ./scripts/cost-audit.sh
+
+      # Opt-in by existence: passes quietly until you run `just decisions-index`
+      # once and commit the result. After that it fails if the index falls
+      # behind the decisions — the difference between a derived artifact and a
+      # decorative one.
+      - name: decisions-index is not stale
+        run: ./scripts/decisions-index.sh --check

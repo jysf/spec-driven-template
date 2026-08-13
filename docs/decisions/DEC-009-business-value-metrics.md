@@ -1,10 +1,10 @@
 ---
 insight:
   id: DEC-009
-  type: architecture
+  type: decision
   confidence: 0.6
 status: proposed            # proposed | accepted | superseded
-date: 2026-07-06
+created_at: 2026-07-06
 deciders: [jysf, claude]
 supersedes: null
 superseded_by: null
@@ -18,7 +18,7 @@ affected_scope:
 tags: [architecture, value, metrics, time-to-value, measurement]
 ---
 
-# DEC-009: measurable business value + time-to-value (proposed)
+# DEC-009: measurable business value + time-to-value
 
 > **This is the template's own decision log** (meta). **Status: proposed** — a
 > draft for review, grounded on the 2026-07-06 three-project dogfood harvest

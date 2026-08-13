@@ -43,6 +43,38 @@ require_initialized() {
     fi
 }
 
+# Where DEC-* files live. A scaffolded instance keeps them at the repo root in
+# `decisions/`; the TEMPLATE repo keeps its own under `docs/decisions/`, because
+# its root is the scaffold surface rather than a project. Root wins when both
+# exist, so an instance's behavior is unchanged.
+#
+# Why this fallback exists: without it the decisions governing the template
+# itself get zero structural checking — which is exactly how the DEC schema
+# forked between the two copies (status/deciders/date, and `type: architecture`
+# on 11 of 13 files, out of the enum the auditor would have caught).
+decisions_dir() {
+    if [ -d "${REPO_ROOT}/decisions" ]; then
+        printf '%s' "${REPO_ROOT}/decisions"
+    elif [ -d "${REPO_ROOT}/docs/decisions" ]; then
+        printf '%s' "${REPO_ROOT}/docs/decisions"
+    else
+        printf '%s' "${REPO_ROOT}/decisions"   # canonical default; callers tolerate it missing
+    fi
+}
+
+# Guard for the DEC-facing commands, which are the only ones that work in BOTH
+# contexts: a scaffolded instance (AGENTS.md at root) and the template repo
+# itself (no AGENTS.md, but `variants/` + `VERSION` + its own docs/decisions/).
+# Every other command still requires a full instance.
+require_decisions_context() {
+    [ -f "${REPO_ROOT}/AGENTS.md" ] && return 0
+    if [ -f "${REPO_ROOT}/VERSION" ] && [ -d "${REPO_ROOT}/variants" ] \
+        && [ -d "${REPO_ROOT}/docs/decisions" ]; then
+        return 0
+    fi
+    die "Repo not initialized. Run 'just init' first."
+}
+
 # Get the active variant (claude-only or claude-plus-agents).
 get_variant() {
     if [ -f "${REPO_ROOT}/.variant" ]; then
@@ -1249,9 +1281,9 @@ has_json_flag() {
 # These browse repo-level governance artifacts (cf. `decisions-audit`, which
 # lints them). Shared by the dash lenses and the default-dash flag counts.
 
-# All decision files (repo-level), sorted. Empty if no decisions/ dir.
+# All decision files (repo-level), sorted. Empty if there's no decisions dir.
 find_all_decisions() {
-    find "${REPO_ROOT}/decisions" -maxdepth 1 -type f -name 'DEC-*.md' 2>/dev/null | sort
+    find "$(decisions_dir)" -maxdepth 1 -type f -name 'DEC-*.md' 2>/dev/null | sort
 }
 
 # insight.id; falls back to the filename's DEC-NNN stem.
@@ -1265,6 +1297,61 @@ get_dec_id() {
 # insight.confidence (e.g. 0.95). Empty if missing.
 get_dec_confidence() {
     awk '/^---$/{f=!f;next} !f{next} /^insight:/{i=1;next} i&&/^[a-zA-Z_]/{i=0} i&&/^[[:space:]]+confidence:/{print $2;exit}' "$1"
+}
+
+# Declared lifecycle (`status:`), if the DEC carries one. OPTIONAL — empty when
+# absent, and callers fall back to get_dec_effective_status. Harvested from the
+# template's own decision log, where 13/13 DECs carried it and the shipped
+# schema did not: the fork that the docs/decisions/ audit blind spot hid.
+get_dec_status() {
+    awk '/^---$/{f=!f;next} !f{next} /^status:/{v=$2; if(v!="null"&&v!="")print v; exit}' "$1"
+}
+
+# The lifecycle to render: a declared `status:` wins; otherwise derive it, as
+# this tooling always has, from `superseded_by`. `active` is the honest value
+# for "not superseded, and nothing further declared" — which keeps every
+# existing decision log (none of which declare a status) reading exactly as
+# before, so the new field is purely additive.
+get_dec_effective_status() {
+    local s
+    s=$(get_dec_status "$1")
+    if [ -n "$s" ]; then printf '%s' "$s"; return; fi
+    if [ -n "$(get_dec_superseded_by "$1")" ]; then printf 'superseded'; else printf 'active'; fi
+}
+
+# `deciders:` — who actually made the call, one name per line. Accepts a YAML
+# flow list (`[jysf, claude]`) or a block list. Empty if absent.
+#
+# Why it earns a field of its own: `agent.id` records which agent was in the
+# room, so the shipped schema was structurally incapable of separating "the
+# human decided" from "the agent decided". PLAYBOOK.md names four calls that
+# must not be delegated, and agent-graded homework as the failure mode; this is
+# the cheapest mechanical trace of it.
+get_dec_deciders() {
+    awk '
+        /^---$/ { f = !f; next } !f { next }
+        /^deciders:/ {
+            line = $0
+            sub(/^deciders:[[:space:]]*/, "", line)
+            if (line ~ /^\[/) {                      # flow list: [a, b]
+                gsub(/^\[|\]$/, "", line)
+                n = split(line, parts, ",")
+                for (i = 1; i <= n; i++) {
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", parts[i])
+                    gsub(/^["'\'']|["'\'']$/, "", parts[i])
+                    if (parts[i] != "" && parts[i] != "null") print parts[i]
+                }
+                exit
+            }
+            blk = 1; next                            # block list follows
+        }
+        blk && /^[a-zA-Z_]/ { exit }
+        blk && /^[[:space:]]*-[[:space:]]*/ {
+            v = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", v)
+            gsub(/^["'\'']|["'\'']$/, "", v)
+            if (v != "" && v != "null") print v
+        }
+    ' "$1"
 }
 
 # superseded_by (top-level). Empty if null/missing (i.e. the decision is active).

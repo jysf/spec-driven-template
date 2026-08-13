@@ -279,6 +279,13 @@ calibration *FLAGS:
 decisions-audit *FLAGS:
     @./scripts/decisions-audit.sh {{FLAGS}}
 
+# Regenerate decisions/INDEX.md — one row per DEC (id · title · confidence ·
+# status · project · supersedes), active and superseded split. Derived, never
+# hand-edited; `--check` writes nothing and fails if the committed index is
+# stale, so CI can keep it honest.
+decisions-index *FLAGS:
+    @./scripts/decisions-index.sh {{FLAGS}}
+
 # Fail if any shipped spec is missing real build/verify cost data
 # (AGENTS.md §4 / docs/cost-tracking.md). Same check the CI `cost-data`
 # job runs; also surfaced in `just status` and `just report-weekly`.

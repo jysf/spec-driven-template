@@ -24,6 +24,21 @@ created_at: YYYY-MM-DD
 supersedes: null                     # DEC-YYY if this replaces a prior decision
 superseded_by: null                  # filled in when this decision is replaced
 
+# OPTIONAL lifecycle. Omit it and tooling derives `active` / `superseded` from
+# superseded_by, exactly as before. Declare it when the record needs to say
+# something that link can't: that it isn't binding yet (`proposed`), that the
+# option was considered and turned down (`rejected` — otherwise a rejected
+# decision has nowhere to live and gets re-litigated), or that it's on the way
+# out (`deprecated`). `status: superseded` must agree with superseded_by;
+# decisions-audit errors if they contradict.
+status: accepted                     # proposed | accepted | rejected | deprecated | superseded
+
+# OPTIONAL. WHO made the call — distinct from `agent.id`, which only records
+# who was in the room. Without this the record cannot tell "the human decided"
+# from "the agent decided", which is the one distinction that matters for the
+# calls AGENTS.md says must not be delegated.
+deciders: []                         # e.g. [your-name, claude]
+
 # OPTIONAL. Path globs this decision governs. When present, `just
 # decisions-audit` warns if another active decision overlaps the same
 # scope, and `just decisions-audit --changed` flags this decision when

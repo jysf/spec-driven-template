@@ -2,6 +2,66 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-12 — the decision log gets a lifecycle, an owner, and an index (v0.6.31)
+
+Three changes that turned out to be one chain. The first is the cause of the
+other two.
+
+**`decisions-audit` could not see the decisions that govern the template.**
+`find_all_decisions()` and `decisions-audit.sh` both hardcoded
+`${REPO_ROOT}/decisions`. This repo has no top-level `decisions/` — its own 13
+DECs live in `docs/decisions/`, and `test.sh` only ever ran the auditor against
+a scaffolded fixture. So the template's own decision records had **never been
+linted, once**. Both now resolve `decisions/` and fall back to
+`docs/decisions/` (root wins when both exist, so nothing changes for an
+instance). Pointing the auditor at them for the first time reported **13
+structural errors** immediately.
+
+**Those errors were a schema fork.** All 13 used `date:` where the shipped
+schema says `created_at:`, and 11 used `type: architecture`, which is not in the
+`insight.type` enum. Both are now fixed in this repo's DECs — and the second one
+is a category error worth naming: `architecture` is a **tag, not a type**. Every
+one of those 13 decisions *already* carried `architecture` in `tags:`. The enum
+describes the kind of insight; the subject belongs in tags. Documented in
+`schema-reference.md` so it doesn't recur.
+
+**The fork ran the other way too, and that half is a genuine harvest.** The
+template's own DECs carried two fields the shipped `_template.md` did not, and
+both are now shipped — optional, with the old behavior as the default:
+
+- **`status:`** — `proposed | accepted | rejected | deprecated | superseded`.
+  Omit it and tooling derives `active`/`superseded` from `superseded_by` exactly
+  as before, so an existing log reads unchanged and no migration is needed.
+  `rejected` is the value that earns the field: with nowhere to record a
+  rejection, the same option gets re-litigated every few months. Unrecognized
+  values are advisory (the `project.activity` precedent), but a `status` that
+  **contradicts** `superseded_by` is a structural error — the two fields would
+  be disagreeing about the same fact.
+- **`deciders:`** — who made the call. `agent.id` only records which agent was
+  in the room, so the shipped schema was *structurally incapable* of separating
+  "the human decided" from "the agent decided" — the exact distinction
+  `PLAYBOOK.md` relies on when it names the calls that must not be delegated.
+
+**New: `just decisions-index`** regenerates `decisions/INDEX.md` — one row per
+DEC (id · title · confidence · status · project · supersedes), with active and
+superseded split into separate tables because the first question a cold reader
+asks is "what is in force." At the dogfood corpus's scale (208 decisions; 86 in
+one repo) answering "what have we already decided about X?" meant opening every
+file.
+
+`affected_scope` is deliberately **not** a column: multi-valued path globs are
+unreadable at 86 rows, and "which paths are governed" is a different view.
+
+The index is **opt-in by existence**. `--check` writes nothing and passes
+quietly on a repo that has never generated one; once committed, it fails when
+the index falls behind. Both variants' CI now run that check — safe to ship,
+because a repo that doesn't want an index never sees it fail.
+
+**Also:** `decisions-audit` now warns (advisory) on a decision with no
+`project.id` — unattributed decisions are invisible to every per-project view,
+and the dogfood survey found 10 of them. Suppressed where attribution isn't
+possible at all (a repo with no `projects/`).
+
 ## 2026-08-10 — init stops leaking the template's own docs into your app (v0.6.30)
 
 `just init` copied the variant over the root and deleted `variants/`, but never

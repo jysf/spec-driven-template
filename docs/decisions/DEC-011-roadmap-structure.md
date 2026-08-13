@@ -1,10 +1,10 @@
 ---
 insight:
   id: DEC-011
-  type: architecture
+  type: decision
   confidence: 0.6
 status: proposed            # proposed | accepted | superseded
-date: 2026-07-13
+created_at: 2026-07-13
 deciders: [jysf, claude]
 supersedes: null
 superseded_by: null
@@ -17,7 +17,7 @@ affected_scope:
 tags: [architecture, roadmap, interface-contract, portfolio, producer-consumer]
 ---
 
-# DEC-011: roadmap structure (proposed)
+# DEC-011: roadmap structure
 
 > **This is the template's own decision log** (meta). **Status: proposed** — a
 > draft for review. It is grounded on two things that already exist and

@@ -1,10 +1,10 @@
 ---
 insight:
   id: DEC-010
-  type: architecture
+  type: decision
   confidence: 0.8
 status: accepted            # proposed | accepted | superseded
-date: 2026-07-06
+created_at: 2026-07-06
 deciders: [jysf, claude]
 supersedes: null
 superseded_by: null

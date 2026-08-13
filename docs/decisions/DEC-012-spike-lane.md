@@ -4,7 +4,7 @@ insight:
   type: decision
   confidence: 0.7
 status: accepted            # proposed | accepted | superseded
-date: 2026-08-09
+created_at: 2026-08-09
 deciders: [jysf, claude]
 supersedes: null
 superseded_by: null

@@ -23,13 +23,20 @@ if [ "$JSON_OUT" = 1 ]; then
         scope_parts=()
         while IFS= read -r g; do [ -n "$g" ] && scope_parts+=("$(json_qs "$g")"); done < <(get_dec_affected_scope "$f")
         [ "${#scope_parts[@]}" -gt 0 ] && scope_arr=$(json_arr "${scope_parts[@]}") || scope_arr="[]"
-        if [ -n "$sb" ]; then status=superseded; sbj=$(json_qs "$sb"); else status=active; sbj=null; fi
+        decider_parts=()
+        while IFS= read -r d; do [ -n "$d" ] && decider_parts+=("$(json_qs "$d")"); done < <(get_dec_deciders "$f")
+        [ "${#decider_parts[@]}" -gt 0 ] && decider_arr=$(json_arr "${decider_parts[@]}") || decider_arr="[]"
+        # A declared `status:` wins; absent one, it derives from superseded_by
+        # exactly as before — so a log that declares nothing reads unchanged.
+        status=$(get_dec_effective_status "$f")
+        [ -n "$sb" ] && sbj=$(json_qs "$sb") || sbj=null
         case "$conf" in ''|null) confj=null ;; *) confj=$conf ;; esac
         items+=("$(json_obj \
             "insight.id" "$(json_qs "$id")" \
             "insight.confidence" "$confj" \
             status "$(json_qs "$status")" \
             superseded_by "$sbj" \
+            deciders "$decider_arr" \
             title "$(json_qs "$title")" \
             affected_scope "$scope_arr")")
     done
@@ -45,7 +52,8 @@ for f in "${decs[@]}"; do
     id=$(get_dec_id "$f"); conf=$(get_dec_confidence "$f")
     sb=$(get_dec_superseded_by "$f"); title=$(get_dec_title "$f")
     [ -n "$conf" ] || conf="—"
-    if [ -n "$sb" ]; then st="superseded→${sb}"; else st="active"; fi
+    st=$(get_dec_effective_status "$f")
+    [ -n "$sb" ] && st="${st}→${sb}"
     mark="  "
     case "$conf" in ''|—|null) : ;; *) awk -v x="$conf" 'BEGIN{exit !(x+0 < 0.7)}' && mark="⚠ " ;; esac
     printf "  %s%-9s  %-4s  %-20s  %s\n" "$mark" "$id" "$conf" "$st" "$title"

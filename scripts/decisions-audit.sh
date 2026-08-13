@@ -31,9 +31,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
-require_initialized
+# Works in an instance AND in the template repo itself (whose own DECs live in
+# docs/decisions/) — auditing those is the whole point of the fallback.
+require_decisions_context
 
-DECISIONS_DIR="${REPO_ROOT}/decisions"
+DECISIONS_DIR="$(decisions_dir)"
 
 # ---------------------------------------------------------------------
 # Front-matter readers (decision-specific; kept local to this script).
@@ -47,6 +49,19 @@ get_insight_id() {
         /^insight:/ { i = 1; next }
         i && /^[a-zA-Z_]/ { i = 0 }
         i && /^[[:space:]]+id:/ { print $2; exit }
+    ' "$1"
+}
+
+# project.id — nested one level under `project:`. Optional in the schema, but a
+# decision with no project is an orphan in every per-project computation: the
+# scale survey had to exclude 10 such DECs outright. Advisory, not a gate.
+get_dec_project_id() {
+    awk '
+        /^---$/ { f = !f; next }
+        !f { exit }
+        /^project:/ { p = 1; next }
+        p && /^[a-zA-Z_]/ { p = 0 }
+        p && /^[[:space:]]+id:/ { v = $2; if (v != "null" && v != "") print v; exit }
     ' "$1"
 }
 
@@ -246,6 +261,13 @@ fi
 errors=0
 warnings=0
 
+# `status:` is an open set like `project.activity`: an unrecognized value is
+# advisory so the vocabulary can be extended, but a value that contradicts
+# `superseded_by` is a hard error (see the check below).
+VALID_DEC_STATUS=" proposed accepted rejected deprecated superseded "
+status_notes=""
+unattributed=""
+
 MAP_IDS=()
 MAP_FILES=()
 
@@ -293,6 +315,37 @@ for file in "${DEC_FILES[@]}"; do
     if [ -z "$itype" ]; then
         warn "${fm_id}: missing insight.type"
         errors=$((errors + 1))
+    fi
+
+    # `status:` is OPTIONAL (absent = derive from superseded_by, as always).
+    # When declared, two checks with deliberately different severities:
+    #   - an unrecognized value is ADVISORY (open-set discipline, the
+    #     `project.activity` precedent) — collected, never an error;
+    #   - a value that CONTRADICTS superseded_by is a structural error, because
+    #     the two fields then disagree about the same fact.
+    dstatus=$(get_top_scalar "$file" status)
+    if [ -n "$dstatus" ] && [ "$dstatus" != "null" ]; then
+        case "$VALID_DEC_STATUS" in
+            *" $dstatus "*) : ;;
+            *) status_notes="${status_notes}    ${fm_id}: status='${dstatus}'"$'\n' ;;
+        esac
+        dsupby=$(get_top_scalar "$file" superseded_by)
+        if [ "$dstatus" = "superseded" ] && { [ -z "$dsupby" ] || [ "$dsupby" = "null" ]; }; then
+            warn "${fm_id}: status: superseded but superseded_by is null — say which decision replaced it"
+            errors=$((errors + 1))
+        elif [ "$dstatus" != "superseded" ] && [ -n "$dsupby" ] && [ "$dsupby" != "null" ]; then
+            warn "${fm_id}: superseded_by is ${dsupby} but status is '${dstatus}' (expected 'superseded')"
+            errors=$((errors + 1))
+        fi
+    fi
+
+    # An unattributed decision — no project.id — is invisible to every
+    # per-project view. Advisory: repo-wide decisions legitimately have no
+    # project, so this can never be a gate. Only checked where attribution was
+    # possible at all: a repo with no projects/ (the template itself) would
+    # otherwise flag every decision it has.
+    if [ -d "${REPO_ROOT}/projects" ] && [ -z "$(get_dec_project_id "$file")" ]; then
+        unattributed="${unattributed}    ${fm_id}"$'\n'
     fi
 done
 
@@ -394,6 +447,18 @@ for ((x = 0; x < n; x++)); do
         fi
     done
 done
+
+# Advisories: printed after the checks, never counted, never change the exit code.
+if [ -n "$status_notes" ]; then
+    echo
+    warn "unrecognized status (advisory — open set, expected one of${VALID_DEC_STATUS}):"
+    printf '%s' "$status_notes"
+fi
+if [ -n "$unattributed" ]; then
+    echo
+    warn "decision(s) with no project.id (advisory — invisible to per-project views):"
+    printf '%s' "$unattributed"
+fi
 
 echo
 if [ "$errors" -gt 0 ]; then

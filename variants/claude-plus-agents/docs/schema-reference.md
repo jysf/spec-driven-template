@@ -156,9 +156,39 @@ insight: { id ✅, type ✅ enum{decision,analysis,recommendation,observation}, 
 agent: { id ◦, session_id ◦ }
 project.id ◦   repo.id ✅
 created_at ✅   supersedes ◦   superseded_by ◦
+status ◦ set{proposed,accepted,rejected,deprecated,superseded}
+deciders[] ◦                             # WHO made the call (not which agent was present)
 affected_scope[] ◦                       # path globs; powers decisions-audit --changed
 tags[] ◦
 ```
+
+**`type` is the kind of insight, not the subject.** `architecture`, `security`,
+`process` and friends are **tags**, not types — put them in `tags[]`. (Learned
+the hard way: the template's own log used `type: architecture` on 11 of 13
+decisions while every one of them *also* carried `architecture` in `tags`.)
+
+**`status` is optional, and absent is the normal state.** Omit it and tooling
+derives `active` / `superseded` from `superseded_by` exactly as it always has, so
+an existing decision log reads unchanged. Declare it when the record has to say
+something that link cannot:
+
+- `proposed` — written down but not binding yet. Without this, a draft decision
+  is indistinguishable from a live one.
+- `rejected` — considered and turned down. **This is the one that earns the
+  field**: with nowhere to record a rejection, the same option gets re-litigated
+  every few months, and the reasoning survives only in prose.
+- `deprecated` — still true, on the way out, not yet replaced by a specific DEC.
+
+Vocabulary is an **open set** (the `project.activity` precedent): `decisions-audit`
+warns on an unrecognized value but never fails. The one hard rule is agreement —
+`status: superseded` with a null `superseded_by`, or a non-`superseded` status
+with `superseded_by` set, is a **structural error**, because the two fields then
+disagree about the same fact.
+
+**`deciders[]` records who decided, and `agent.id` does not.** `agent.id` says
+which agent was in the room; only `deciders` distinguishes *"the human made this
+call"* from *"the agent made this call."* For the calls `AGENTS.md` says must not
+be delegated, this is the cheapest mechanical trace that they weren't.
 
 ## `guidance/constraints.yaml` — repo rules (ContextCore `guidance.*`, type=constraint)
 

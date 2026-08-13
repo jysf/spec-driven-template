@@ -19,6 +19,8 @@ repo:
 created_at: 2026-04-19
 supersedes: null
 superseded_by: null
+status: accepted                     # proposed | accepted | rejected | deprecated | superseded
+deciders: [your-name, claude]        # WHO made the call — not just which agent was present
 
 # This decision governs the logger module and anything that imports it.
 affected_scope:
