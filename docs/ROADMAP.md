@@ -819,10 +819,20 @@ nowhere to live but prose in this file.)*
   about the process is **~1.8× the process we ship**. Not an action — a number
   worth having in front of us before the next doc lands. (Whole repo: 124,044
   words / 117 markdown files.)
-- **Re-confirm the dead `frame` cycle at the new scale.** Signal #12 recorded
-  **0/122** specs in `frame`. The corpus is now **362**. If it is still zero,
-  absorb `frame` into `design` and stop carrying it. Cheap, and it pairs
-  naturally with the Tier-0 study (both are one pass over the same corpus).
+- ~~**Re-confirm the dead `frame` cycle at the new scale.**~~ **✅ Checked
+  2026-08-13 — and the signal is measuring the wrong thing.** Result: **1 of 359**
+  specs currently at `cycle: frame` (signal #12 recorded 0/122). So the raw
+  number holds at ~0%.
+  **But do not act on it.** `task.cycle` is a **current-state** field, not a
+  history: a spec that passed through `frame` on its way to `ship` reads `ship`
+  today. "0 specs in frame" therefore means *"nothing is parked in frame right
+  now"* — exactly what a healthy, fast-moving cycle looks like — and cannot
+  support the conclusion that frame is unused. `just frame-stage` literally
+  creates specs at `cycle: frame`, so the cycle is mechanically in use.
+  **Absorbing `frame` into `design` on this evidence would be the same error the
+  Tier-0 study just caught** one level up: a metric that cannot answer the
+  question it is being cited for. To answer it properly you would need cycle
+  *transitions*, which nothing records. Park it, or add transition logging first.
 
 ---
 
