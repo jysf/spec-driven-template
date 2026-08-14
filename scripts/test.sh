@@ -2254,6 +2254,11 @@ assert_contains "AGENTS.md" "Delegated execution" \
     "AGENTS.md documents the delegated-execution sub-agent rules"
 assert_contains "AGENTS.md" "Reconcile over self-report" \
     "AGENTS.md carries the reconcile-over-self-report rule (DEC-004)"
+# Rule 1 generalized beyond build output: a stale number in a doc is a
+# self-report by a past session, and four of them were acted on before anyone
+# checked the corpus.
+assert_contains "AGENTS.md" "verify any claim you are about to act on" \
+    "AGENTS.md generalizes rule 1 past build output"
 
 # ============================================================
 # DEC-004 Phase 2: dev-dep sanction (rule 4) + toolchain-brief slot (rule 5)

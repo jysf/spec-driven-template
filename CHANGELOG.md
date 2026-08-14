@@ -2,6 +2,30 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-13 — rule 1 generalized past build output (v0.6.37)
+
+DEC-004's rule 1 said *reconcile over self-report*: never advance a cycle on a
+sub-agent's word — check git and disk. Correct, and scoped too narrowly.
+
+**The general form, now stated in both variants' `AGENTS.md`: verify any claim
+you are about to act on, against the thing it describes.** Build output is only
+the most obvious case. A number in a roadmap, a count in a harvest, a "we
+already tried that" in a decision record — each is a self-report by a past
+session, and each rots silently.
+
+Earned the hard way in one session, N=4 before lunch: an "every escaped defect
+was operational" claim with zero recorded escaped defects behind it; a
+"never-populated `value_link`" that was populated in 239 specs; an
+8-instance/208-DEC corpus baseline inflated by a stale checkout and inherited by
+three successive analyses; and a "dead frame cycle" measured by a field that
+only reports current state, where deleting the stage would have been the wrong
+call for the right-looking reason.
+
+The point is that **none of these needed cleverness to catch.** They needed
+someone to run the count. That is what makes the rule worth stating: it is
+cheap, mechanical, and requires no judgement — only the habit of looking before
+acting.
+
 ## 2026-08-13 — the template stops predicting without scoring (v0.6.36)
 
 **New `value_realized:` block on the project brief** — `thesis_held`

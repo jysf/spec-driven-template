@@ -547,6 +547,15 @@ This variant delegates build/verify to a separate implementer/reviewer agent via
    in the coordinator loop (don't re-run the whole cycle), and attribute cost to
    the sub-agent's metered portion (`subagent_tokens`), recording the coordinator
    finish as a separate null-with-note cost session.
+
+   **The general form: verify any claim you are about to act on, against the
+   thing it describes.** Build output is only the most obvious case. A number in
+   a roadmap, a count in a harvest, a "we already tried that" in a decision
+   record — each is a self-report by a past session, and each rots silently.
+   Prefer the source: run the count, read the corpus, check the remote. This is
+   *cheap* and it is *mechanical* — it needs no judgement, only the habit of
+   looking before acting. In this variant the surface is larger, because a
+   delegated agent's handback is a claim too.
 2. **One sub-agent at a time; no interleaved tree ops.** Launch exactly one
    build/verify sub-agent, then do **no** git/tree operations in the shared
    checkout — no `new-spec`, `checkout`, or commits, and don't design the next
