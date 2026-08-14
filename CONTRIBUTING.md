@@ -58,6 +58,24 @@ or change a recipe:
 4. If the change is user-facing, reflect it in the relevant `AGENTS.md`
    sections of **both** variants.
 
+## Keeping instances current
+
+Porting improvements into an existing instance is **manual, by hand, with an
+agent** — and that works. What breaks is knowing *what to port*: you port what
+you need today, which is rational every time and in aggregate strands the
+cross-cutting analytical tooling, whose whole value is being in every repo at
+once.
+
+```bash
+./scripts/instances-diff.sh ~/path/to/instance [more...]   # --json for the typed surface
+```
+
+It reports each instance's version, how many template scripts it has, and calls
+out the cross-repo readers separately — those are the ones selective porting
+reliably misses. Read-only; it never writes to an instance. It lives here rather
+than shipping as a recipe because an instance cannot diff itself against a
+template it has no pointer to.
+
 ## Versioning
 
 The template version lives in the top-level `VERSION` file (semver) and is

@@ -2,6 +2,35 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-13 — know which instance is missing what (v0.6.38)
+
+**New `scripts/instances-diff.sh`** — point it at instance checkouts and it
+reports what each is missing.
+
+This started as a different, wrong finding: *"instances freeze at scaffold time
+and there is no update path."* False. Hand-porting between repos works and has
+been done repeatedly — `lifetime-report` went template → crustyimg → zany.
+
+The scan that corrected it found partial, uneven coverage instead: standup
+29/45 scripts, zany 19, crustyimg 17, rspeed 13, bragfile000 10.
+
+**The real finding is the selection bias.** You port what you need *today*.
+Rational every single time — and in aggregate it strands exactly one class of
+tooling: the cross-cutting analytical readers, whose entire value is being
+present in every repo at once, which is precisely the value that never feels
+urgent in any one repo. `defects-view.sh` reached **zero** instances for this
+reason, and that is why the first Tier-0 verify study had nothing to read. It
+is **reserve-then-strand at the distribution layer** — not a field with no
+reader, but a reader with no distribution.
+
+It also explains bragfile000's zero cost data: it has no `cost-audit`, no
+`validate`, no `test`. Its 72 shipped specs are uncosted **structurally**, not
+carelessly.
+
+So the fix needed no mechanism — only visibility. The tool calls the cross-repo
+readers out separately, because "you are missing 28 scripts" is noise while
+"you are missing the four that make a corpus-wide study possible" is a decision.
+
 ## 2026-08-13 — rule 1 generalized past build output (v0.6.37)
 
 DEC-004's rule 1 said *reconcile over self-report*: never advance a cycle on a
