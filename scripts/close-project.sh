@@ -86,6 +86,27 @@ thesis=$(awk '
     }
 ' "$BRIEF")
 
+# The realized half — the answer to the thesis, recorded rather than remembered.
+thesis_held=$(awk '
+    /^---$/ { f = !f; next } !f { next }
+    /^value_realized:/ { inr = 1; next }
+    inr && /^[a-zA-Z_]/ { inr = 0 }
+    inr && /^[[:space:]]+thesis_held:/ {
+        v = $2; if (v != "null" && v != "") print v; exit
+    }
+' "$BRIEF")
+realized_evidence=$(awk '
+    /^---$/ { f = !f; next } !f { next }
+    /^value_realized:/ { inr = 1; next }
+    inr && /^[a-zA-Z_]/ { inr = 0 }
+    inr && /^[[:space:]]+evidence:/ {
+        v = $0; sub(/^[[:space:]]+evidence:[[:space:]]*/, "", v)
+        gsub(/^["'\'']|["'\'']$/, "", v)
+        if (v != "null" && v != "") print v
+        exit
+    }
+' "$BRIEF")
+
 # In-flight specs: anything not yet shipped/archived.
 in_flight=0; in_flight_ids=""
 while IFS= read -r f; do
@@ -204,9 +225,28 @@ ${open_signals}      Give each accept / reject-with-reason / defer-with-trigger 
       last_touched. 'defer' is a legal answer — silent carry is not.")
 fi
 
+# (4) You claimed a thesis AND you claim you shipped it — then say whether it
+# held. Same shape as the in-flight rule: the refusal is conditional on the
+# ending you claim, so it never blocks an abandoned or exploratory close.
+# `too-early` is a legal answer, which keeps the hatch honest.
+VALID_HELD=" yes partly no too-early "
+if [ -n "$thesis" ] && [ "$claims_shipped" = 1 ] && [ -z "$thesis_held" ]; then
+    refusals+=("value_realized.thesis_held is null on a project claiming 'shipped'.
+      You wrote a thesis when you knew least; close is the only moment it can be
+      scored, and an unanswered prediction is a wish, not a hypothesis. Answer
+      yes | partly | no | too-early — 'too-early' is legitimate and honest.")
+fi
+
 # Warnings — real signal, never a gate.
 [ -z "$closed_reason" ] && warnings+=("closed_reason is null — 'cancelled' flattens abandoned/superseded/parked, which destroys the most interesting signal: why work stopped.")
 [ -z "$thesis" ] && warnings+=("value.thesis is null — nothing to compare the outcome against. Fine for an exploratory project; note it in the reflection.")
+if [ -n "$thesis_held" ]; then
+    case "$VALID_HELD" in
+        *" $thesis_held "*) : ;;
+        *) warnings+=("value_realized.thesis_held='${thesis_held}' is not one of${VALID_HELD}(advisory).") ;;
+    esac
+    [ -z "$realized_evidence" ] && warnings+=("thesis_held is answered but value_realized.evidence is null — the verdict without the observation behind it is the part that rots first.")
+fi
 [ "$dec_count" = 0 ] && [ "$shipped_specs" -gt 3 ] && warnings+=("${shipped_specs} specs shipped and 0 decisions attributed to ${PROJECT_ID} — either genuinely settled work, or decisions were made and lost. Only the supersession rate distinguishes those, and there is nothing to compute it from.")
 
 # --- Emit --------------------------------------------------------------------
@@ -220,6 +260,7 @@ if [ "$JSON_OUT" = 1 ]; then
         "project.id" "$(json_qs "$PROJECT_ID")" \
         "project.status" "$(json_qs "$status")" \
         closed_reason "$([ -n "$closed_reason" ] && json_qs "$closed_reason" || printf null)" \
+        thesis_held "$([ -n "$thesis_held" ] && json_qs "$thesis_held" || printf null)" \
         dry_run "$([ "$DRY_RUN" = 1 ] && printf true || printf false)" \
         ok "$([ "${#refusals[@]}" -eq 0 ] && printf true || printf false)" \
         refusals "$rarr" warnings "$warr" \
@@ -279,9 +320,15 @@ echo ""
 
 if [ -n "$thesis" ]; then
     printf "${BOLD}Predicted vs realized${RESET} ${DIM}(close is the only moment this is knowable)${RESET}\n"
-    printf "  thesis was:      %s\n" "$thesis"
-    printf "  ${DIM}Compare it against what actually shipped, in the Reflection. The\n"
-    printf "  template does not score this for you — that judgement is the point.${RESET}\n"
+    printf "  predicted:       %s\n" "$thesis"
+    if [ -n "$thesis_held" ]; then
+        printf "  held?            ${BOLD}%s${RESET}\n" "$thesis_held"
+        [ -n "$realized_evidence" ] && printf "  evidence:        %s\n" "$realized_evidence"
+    else
+        printf "  held?            ${DIM}unanswered${RESET}\n"
+    fi
+    printf "  ${DIM}The template records the verdict; it does not compute it. That\n"
+    printf "  judgement is the point, and it is yours.${RESET}\n"
     echo ""
 fi
 

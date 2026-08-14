@@ -2,6 +2,38 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-13 — the template stops predicting without scoring (v0.6.36)
+
+**New `value_realized:` block on the project brief** — `thesis_held`
+(`yes | partly | no | too-early`), `signals_observed`, `evidence`, `notes`.
+
+`value:` was always the **prediction**, written at the moment you knew least.
+Nothing anywhere recorded the **outcome**. `close-project` printed the thesis
+back and told you to compare it in prose. So across 318 specs and 6 instances,
+*"was the idea any good?"* has never been answerable — not because nobody asked,
+but because **nobody's answer was ever a field.** A prediction with no recorded
+outcome is a wish, not a hypothesis.
+
+`just close-project` now **refuses** to close a project that claims `shipped`
+while `thesis_held` is null. The refusal is **conditional on the ending you
+claim**, the same shape as the in-flight-specs rule:
+
+- no thesis → never asked
+- `closed_reason: abandoned` / `parked` → not asked to score a thesis you
+  stopped testing
+- claims `shipped` with a thesis → must answer
+
+**`too-early` is a first-class answer.** Some theses need months of use, and
+offering that hatch is what stops the field collecting fabricated `yes`es —
+which would be worse than leaving it null.
+
+It also warns when `thesis_held` is answered but `evidence` is empty: the
+verdict without the observation behind it is the part that rots first.
+
+This is DEC-009's predicted-vs-realized loop, at the only moment it is
+knowable. It deliberately does **not** compute a score — the judgement is the
+point, and it is the human's.
+
 ## 2026-08-13 — ship the reader with the field, and a corrected corpus (v0.6.35)
 
 **New coding convention, in both variants' `AGENTS.md` §11 and in

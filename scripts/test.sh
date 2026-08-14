@@ -2593,6 +2593,50 @@ else
 fi
 if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^closed_reason: vaporized$/closed_reason: null/' "$CB"; else sed -i 's/^closed_reason: vaporized$/closed_reason: null/' "$CB"; fi
 
+# --- value_realized: predict, then SCORE ------------------------------------
+# The template captured predictions and never recorded outcomes, so "was the
+# idea any good?" was unanswerable across projects. The refusal is conditional
+# on the ending claimed — same shape as the in-flight rule — so it never blocks
+# an exploratory or abandoned close.
+# A project with NO thesis must not be asked to score one.
+cp_nothesis=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_nothesis" | grep -q "thesis_held is null"; then
+    fail "close-project demanded a verdict on a project with no thesis"
+else
+    pass "close-project does not demand a verdict when there is no thesis"
+fi
+# Give it a thesis: now claiming 'shipped' without scoring must refuse.
+awk '/^closed_reason:/ { print; print "value:"; print "  thesis: \"faster activation cuts month-2 churn\""; print "  success_signals: [\"activation < 5min\"]"; next } { print }' "$CB" > "$CB.tmp" && mv "$CB.tmp" "$CB"
+cp_unscored=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_unscored" | grep -q "thesis_held is null"; then
+    pass "close-project refuses a claimed-shipped project with an unscored thesis"
+else
+    fail "close-project let an unscored thesis through: $cp_unscored"
+fi
+# 'abandoned' lifts it — you can't be asked to score a thesis you stopped testing.
+awk '/^closed_reason: null/ { print "closed_reason: abandoned"; next } { print }' "$CB" > "$CB.tmp" && mv "$CB.tmp" "$CB"
+cp_ab2=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_ab2" | grep -q "thesis_held is null"; then
+    fail "closed_reason: abandoned did not lift the thesis-scoring refusal"
+else
+    pass "closed_reason: abandoned lifts the thesis-scoring refusal"
+fi
+# Answering it clears the refusal, and 'too-early' is a legal answer.
+awk '/^closed_reason: abandoned/ { print "closed_reason: null"; next }
+     /^  success_signals:/ { print; print "value_realized:"; print "  thesis_held: too-early"; print "  evidence: \"only 3 weeks of usage\""; next } { print }' "$CB" > "$CB.tmp" && mv "$CB.tmp" "$CB"
+cp_scored=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_scored" | grep -q "thesis_held is null"; then
+    fail "answering thesis_held did not clear the refusal"
+else
+    pass "thesis_held: too-early is a legal answer and clears the refusal"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    cp_j=$(just close-project PROJ-001 --json 2>/dev/null || true)
+    printf '%s' "$cp_j" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["thesis_held"]=="too-early", d' \
+        && pass "close-project --json carries thesis_held" || fail "thesis_held missing from --json"
+fi
+git checkout -- "$CB" 2>/dev/null || true
+
 # ============================================================
 # Stage carries an orchestration_cost slot (the spend with no spec to attach to)
 # ============================================================

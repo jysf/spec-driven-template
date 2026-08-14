@@ -40,6 +40,23 @@ value:
   success_signals: []               # 3-5 observable outcomes
   risks_to_thesis: []               # 2-4 honest things that could make this wrong
 
+# The OTHER HALF of `value:` above. That block is the prediction, written when
+# you knew least. This is what actually happened, written at close by
+# `just close-project` — the only moment the whole wave is knowable.
+#
+# Without it the template predicts and never scores, which is why "was the idea
+# any good?" has never been answerable across projects. A prediction with no
+# recorded outcome is not a hypothesis; it's a wish.
+#
+# `too-early` is a real, honest answer — some theses need months of use to
+# judge. What is NOT acceptable is leaving it null on a project you claim
+# shipped: close-project refuses that combination.
+value_realized:
+  thesis_held: null                 # yes | partly | no | too-early
+  signals_observed: []              # which success_signals above actually showed up
+  evidence: null                    # one line — the number if you have one, the observation if not
+  notes: null                       # what you'd predict differently next time
+
 # OPTIONAL declared roadmap (DEC-011). Forward intent that is NOT a stage yet —
 # themes and outcomes too coarse or too early to frame. `just roadmap` merges
 # these with the DERIVED roadmap (framed STAGE-*.md files + the Stage Plan

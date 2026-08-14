@@ -43,8 +43,28 @@ project: { id ✅, status ✅ enum{proposed,active,on_hold,shipped,cancelled}, a
 repo.id ✅
 created_at ✅   shipped_at ◦
 value: { thesis ◦, beneficiaries[] ◦, success_signals[] ◦, risks_to_thesis[] ◦ }
+value_realized: { thesis_held ◦ set{yes,partly,no,too-early}, signals_observed[] ◦, evidence ◦, notes ◦ }
+closed_reason ◦ set{shipped,abandoned,superseded,parked}
 roadmap[] ◦: { item ✅, kind ◦ set{framed,planned,pillar,goal}, horizon ◦ set{now,next,later}, resume_when ◦, target ◦ }
 ```
+
+**`value:` is the prediction; `value_realized:` is the score.** The template
+captured the first and never recorded the second, which is why *"was the idea
+any good?"* was unanswerable across a whole corpus — not because nobody asked,
+but because nobody's answer was ever a field. **A prediction with no recorded
+outcome is a wish, not a hypothesis.**
+
+`just close-project` **refuses** to close a project claiming `shipped` while
+`thesis_held` is null — but only then. The refusal is conditional on the ending
+you claim, exactly like the in-flight-specs rule: an `abandoned` or `parked`
+project is not asked to score a thesis it stopped testing, and a project with no
+thesis is never asked at all. **`too-early` is a legitimate answer** — some
+theses need months of use — and it keeps the hatch honest rather than inviting
+a fabricated `yes`.
+
+**`closed_reason` is load-bearing, not a label.** `project.status` stays the
+coarse machine state; this says *why* work stopped, the signal `cancelled`
+flattens. It also decides which refusals above apply.
 
 ### The declared `roadmap:` block (DEC-011)
 
