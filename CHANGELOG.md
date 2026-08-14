@@ -2,6 +2,49 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-13 — ship the reader with the field, and a corrected corpus (v0.6.35)
+
+**New coding convention, in both variants' `AGENTS.md` §11 and in
+`CONTRIBUTING.md`: a field ships with its reader, or it doesn't ship.**
+
+This is the template's most reliably recurring defect — **N=5**, well past the
+N=3 codification bar, and every instance was found by looking rather than by
+anything failing:
+
+1. the stage `orchestration_cost` slot shipped with no reader and stayed empty;
+2. the ship-reflection defect-catch question shipped, was answered nowhere, and
+   its reader was written months later and reached **no instance**;
+3. DEC `status:` was used in this repo's own decisions while `decisions-view`
+   computed status from `superseded_by` instead;
+4. a provenance namespace shipped with zero readers (harvest signal #7);
+5. `value_link` is populated in 239 specs and links to nothing parseable.
+
+The failure is quiet, which is why it repeats: **an unread field is
+indistinguishable from a field whose data hasn't arrived.** Nobody fills in what
+nothing displays, so it stays empty — and being empty, nobody notices it is also
+unread. Unlike most defects this one cannot be fixed retroactively; there is no
+back-filling a year of measurements. `CONTRIBUTING.md` adds the corollary that
+caught three of the five: **assert on the reader in `scripts/test.sh`, not on
+the field's presence.**
+
+**Corpus baseline corrected — it had been inflated for months.**
+`bragfile-report` was registered as a separate full-tier instance. It is a
+**stale checkout of `bragfile000`**: same remote, same first three projects, 195
+commits into the same 296-commit history, verified a strict ancestor with no
+divergence. Every figure that counted it double-counted **41 specs / 40 shipped
+/ 25 DECs**, including the 2026-07-06 harvest and the 2026-08-12 external
+comparison, each inheriting the previous number.
+
+**Actual live corpus: 6 instances (+1 dead) · 318 specs · 306 shipped · 183
+DECs**, mean DEC confidence ~0.80. Figures corrected throughout `ROADMAP.md`;
+registry fixed in `harvests/instances.md`.
+
+Worth separating: **the practice was never at fault.** The clone never diverged,
+so the "a clone forks the memory" hazard still has zero observed instances. The
+registry was at fault — and a stale checkout is indistinguishable from an
+instance by directory shape alone, which is why three analyses in a row counted
+it. Remaining unverified checkouts are now flagged as suspect.
+
 ## 2026-08-13 — close gets a command, and it refuses (v0.6.34)
 
 **`just close-project PROJ-NNN`.** Close was never "thin" — Prompt 1e is

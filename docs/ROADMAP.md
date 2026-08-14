@@ -15,9 +15,26 @@ this list came from an instance we own: the template grading its own corpus. The
 external-comparison harvest folded in below is the first exception — a read
 against *Kalendar Part 1*, an independently-developed spec-driven process. Worth
 naming as its own provenance category, because an outside process is the only
-source that can surface a hole we have no vocabulary for. Corpus at that survey:
-**28 projects · 104 stages · 362 specs (352 shipped) · 208 DECs** across 8 live
-instances — roughly 3× the 121 specs the 2026-07-06 harvest covered.
+source that can surface a hole we have no vocabulary for. Corpus at that survey
+was reported as **362 specs (352 shipped) · 208 DECs across 8 live instances**.
+
+> **⚠ Corrected 2026-08-13 — the baseline was inflated.** `bragfile-report` is
+> **not an instance**: it is a stale checkout of `bragfile000` — same remote,
+> same first three projects, 195 commits into the same 296-commit history,
+> verified a **strict ancestor with no divergence**. Every figure that counted it
+> double-counted **41 specs / 40 shipped / 25 DECs**, including the 2026-07-06
+> harvest and the 2026-08-12 comparison. **Actual live corpus: 6 instances (+1
+> dead `uw`) · 318 specs · 306 shipped · 183 DECs**, mean DEC confidence ~0.80.
+> Registry fixed in [`instances.md`](harvests/instances.md).
+>
+> Two things worth separating. **The practice was never at fault** — the clone is
+> a strict ancestor, so the "a clone forks the memory" hazard argued below still
+> has *zero* observed instances. **The registry was.** And the failure mode is
+> the interesting part: a stale checkout is indistinguishable from an instance
+> by directory shape alone, so it got counted for months by three separate
+> analyses, each inheriting the last one's number. Remaining unverified
+> checkouts — crustyimg ×3, a zany worktree, standup ×3 — should be treated as
+> suspect until someone checks their remotes the same way.
 
 ## Proposed — awaiting a real project to validate
 
@@ -254,7 +271,8 @@ must land in that order.
    Q4 over `design | build | verify | ship | escaped`, and its own header says
    `escaped` is the number that matters. We wrote the reader and never ran it as
    a study. Run `just dash defects` across all instances; record verify's catch
-   rate and the escaped count against the **352-shipped-spec** denominator.
+   rate and the escaped count against the **306-shipped-spec** denominator
+   (corrected from 352 — see the baseline note at the top).
    **Pre-commit the branch before running it:** if verify's catch rate is near
    zero, the honest response is to thin the cycle and reinvest in the
    design-time probe (harvest signal #2, N=17 — the highest-frequency efficiency
@@ -374,7 +392,7 @@ must land in that order.
    didn't anticipate: the index is **opt-in by existence** — `--check` passes
    quietly until a repo generates one, which is what makes shipping the CI gate
    to every instance safe. Original capture: *(Promoted from
-   #14's "watching" list 2026-07-17; re-evidenced 2026-08-12.)* **208 DECs**
+   #14's "watching" list 2026-07-17; re-evidenced 2026-08-12.)* **183 DECs**
    across the corpus, **crustyimg alone at 86** — this list logged crustyimg at
    73, so it grew 18% while the item sat. A generated table, one row per DEC,
    regenerated from front-matter and **never hand-edited**. Ship it in the
@@ -456,7 +474,7 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   - **Tier 2 — seeded-defect injection.** Pick 8–10 shipped specs, inject one
     plausible defect each into the build output, run a cold verify blind, score
     catch rate per defect class. Cheap, because the work order already exists:
-    352 shipped specs with written acceptance criteria and prescribed failing
+    306 shipped specs with written acceptance criteria and prescribed failing
     tests. This is mutation testing pointed at a process.
     > **Corrected 2026-08-13.** This item said to "draw the defects from our own
     > escape taxonomy… weight toward operational/runtime, since

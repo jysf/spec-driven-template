@@ -387,6 +387,26 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 - **Logging:** [REPLACE]
 - **Comments:** Explain *why*, not *what*.
 - **No dead code.** Delete, don't comment out.
+- **Ship the reader with the field.** A field, column, flag, event or
+  namespace lands **in the same change as the thing that reads it** — or it
+  doesn't land. No "we'll wire it up later."
+
+  This is the most reliably recurring defect this template has produced
+  (N=5 across the dogfood: a stage cost slot nothing summed, a defect-stage
+  question nothing counted, a decision `status` nothing rendered, a
+  provenance namespace with zero readers, and a `value_link` that was filled
+  in everywhere but never actually linked to anything).
+
+  The failure is quiet, which is why it keeps happening: **an unread field
+  looks identical to a field whose data hasn't arrived yet.** Nobody fills in
+  a field that nothing displays, so it stays empty; and because it is empty,
+  nobody notices it is also unread. By the time you want the data, the window
+  to have collected it has closed — and unlike most defects, you cannot fix
+  this one retroactively. There is no back-filling a year of measurements.
+
+  The cheap version of the reader counts as a reader: a line in an existing
+  view, one number in a rollup, a `--json` key someone can grep. It does not
+  have to be a dashboard. It has to *surface*.
 - **Diagrams:** author them as Mermaid fenced blocks in markdown
   (`/docs/`, `/decisions/`, specs) so they render on GitHub and you can
   keep them current as part of the work. Update the relevant diagram in

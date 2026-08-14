@@ -24,7 +24,7 @@ paths are intentionally kept out (portability + hygiene; see the standup
 | [`bragfile000`](https://github.com/jysf/bragfile000) | claude-only | full | `feedback/2026-04-20-bragfile-project.md`; [harvest 2026-07-06](2026-07-06-three-project-dogfood-harvest.md) | 2026-07-06 |
 | `crustyimg` | claude-only | full | [harvest 2026-07-06](2026-07-06-three-project-dogfood-harvest.md) (framework-feedback) | 2026-07-06 |
 | [`zany-animal-slots`](https://github.com/jysf/zany-animal-slots) | claude-only | full | `feedback/2026-07-0{3,4}-*`; [harvest 2026-07-06](2026-07-06-three-project-dogfood-harvest.md); lifetime-modes split → v0.6.17 | 2026-07-12 |
-| `bragfile-report` | claude-only | full (aggregator) | [harvest 2026-07-06](2026-07-06-three-project-dogfood-harvest.md) | 2026-07-06 |
+| ~~`bragfile-report`~~ | — | **NOT AN INSTANCE** — a stale checkout of `bragfile000` | — | delisted 2026-08-13 |
 | `rspeed` | claude-only | full | [`PROJECTS.md`](../../PROJECTS.md) note only | **never harvested** |
 | `uw` | **claude-plus-agents** | full | — | **dead — abandoned, nothing to harvest** (was the only plus-agents instance) |
 | [`skillport`](https://github.com/jysf/skillport) | claude-only | full | v0.6.22 spec titles + the v0.6.19 Reflection-Q5 defect → v0.6.24 (see `CHANGELOG.md`) | 2026-07-18 |
@@ -42,8 +42,20 @@ paths are intentionally kept out (portability + hygiene; see the standup
 
 ## To confirm (owner)
 
-- **Canonical vs stale checkouts** — several repos have multiple worktrees/clones
-  on disk; the registry tracks the *repo*, not each checkout.
+- ~~**Canonical vs stale checkouts**~~ — **one was resolved 2026-08-13, and it had
+  been inflating every corpus figure.** `bragfile-report` was listed here as a
+  separate full-tier "aggregator" instance. It is not an instance: it shares
+  `bragfile000`'s remote, carries the same first three projects, and sits 195
+  commits into the same history (296 at `bragfile000` HEAD). Verified as a
+  **strict ancestor — no divergence**, so the "a clone forks the memory" hazard
+  argued in `ROADMAP.md` still has **zero observed instances**; the discipline is
+  holding. What failed was the registry, not the practice.
+  **Consequence:** every count that treated it as an instance double-counted
+  **41 specs / 40 shipped / 25 DECs** — including the 2026-07-06 harvest and the
+  2026-08-12 external comparison ("8 live instances · 208 DECs"). Corrected
+  figures are in `ROADMAP.md`. Remaining checkouts (crustyimg ×3, zany worktree,
+  standup ×3) are still unverified and should be treated as suspect until they
+  are.
 - **Unharvested blind spots:** `rspeed` has never been read for signals — worth a
   light pass if it is active. `uw` was the other, and is now **dead**: marked
   abandoned 2026-08-12 rather than left reading as an outstanding blind spot.

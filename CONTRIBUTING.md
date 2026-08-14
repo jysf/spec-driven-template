@@ -21,6 +21,19 @@ that breaks one of them is almost always the wrong change:
 - **Escape user input.** Anything user-supplied that gets substituted
   into a file goes through `sed_escape_replacement` first. See
   `SECURITY.md`.
+- **Ship the reader with the field.** A new front-matter field, `--json` key
+  or convention lands in the **same change** as something that reads it. This
+  is the template's most reliably recurring defect — N=5 and counting: the
+  stage `orchestration_cost` slot shipped with no reader and stayed empty for
+  months; the defect-catch question shipped, was answered nowhere, and its
+  reader was written later and never reached a single instance; DEC `status:`
+  was used in this repo's own decisions while `decisions-view` computed status
+  from something else; a provenance namespace shipped with zero readers; and
+  `value_link` is populated in 239 specs but links to nothing parseable.
+  A reader can be one line in an existing view — it just has to surface.
+  **Add a `scripts/test.sh` assertion on the reader, not on the field's
+  presence** — asserting the slot exists is exactly what let three of those
+  five pass CI for months.
 - **Both variants stay in parity.** `claude-only` and
   `claude-plus-agents` are kept in sync. A change to one variant's
   `AGENTS.md`, templates, or docs almost always needs the mirror edit
