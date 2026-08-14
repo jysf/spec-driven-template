@@ -254,6 +254,55 @@ must land in that order.
    lesson we have). Trading an unproven gate for a measured one is a real
    outcome; without a pre-committed branch this is a reassurance exercise.
 
+   > ### ✅ RUN 2026-08-13 — and the pre-committed branch does NOT fire
+   >
+   > **364 artifacts across all 7 live instances. Zero parseable Q4 answers.**
+   >
+   > This is not "verify's catch rate is near zero." It is **no catch rate at
+   > all**: the measurement apparatus never worked, so the branch above — which
+   > was conditioned on a *measured* near-zero — must not be taken. Thinning the
+   > cycle on this result would be acting on absence of data as if it were data,
+   > the exact error the pre-commitment existed to prevent.
+   >
+   > Three findings, and the first is much bigger than the study:
+   >
+   > 1. **Template improvements do not propagate to existing instances, and
+   >    nothing ever told us.** `scripts/defects-view.sh` does not exist in a
+   >    single instance — the reader was written here and never reached the
+   >    repos holding the data. Worse, in bragfile000, crustyimg and zany the
+   >    **Q4 question itself is absent from their spec template**: they were
+   >    scaffolded before it existed and there is no update path. Those three
+   >    have 81 / 117 / 134 filled-in ship reflections — people *did* the
+   >    reflection ritual faithfully for years against a template missing the
+   >    field. **Every field shipped today (`verify_verdict`, `golden-path`,
+   >    `orchestration_cost`'s reader, `decisions-index`) reaches new scaffolds
+   >    only.** This is the template's biggest structural gap and it is not on
+   >    this roadmap anywhere.
+   > 2. **Where the question does exist, it is answered in prose.** standup
+   >    (v0.6.12, the newest instance) carries Q4 in 8 specs: 7 are untouched
+   >    template text (`— <one word>`), and the 1 real answer is a paragraph
+   >    describing a caught defect rather than a vocabulary word — so it is
+   >    invisible to the parser. The fixed vocabulary is what makes the field
+   >    greppable, and it is not being used.
+   > 3. **A claim in the tooling has no data behind it.** `defects-view.sh`'s own
+   >    header asserts *"Across the dogfood, EVERY escaped defect was
+   >    operational/runtime rather than spec-logic"* — and the Tier-2 capture
+   >    below cites that assertion as the reason to weight seeded defects toward
+   >    operational. **The corpus contains zero recorded escaped defects.** The
+   >    claim may still be true from memory, but it is not evidence, and it is
+   >    currently laundering into the roadmap as if it were. This is precisely
+   >    the self-grading pattern the study was built to catch — caught, just not
+   >    where anyone was looking.
+   >
+   > **What this changes.** The headline claim is not merely unmeasured, it is
+   > **unmeasurable retrospectively** — no amount of analysis recovers data that
+   > was never captured. Only forward instrumentation can answer it, which is
+   > what `task.verify_verdict` (v0.6.33) now provides. The incoming projects are
+   > scaffolded from v0.6.33 and will carry both Q4 and the verdict field, so
+   > **re-run this study after their first stage ships** — that is the earliest
+   > honest answer. Doing the capture seams before kickoff turned out to be the
+   > difference between a study that can happen and one that cannot.
+
 2. ~~**Teach the auditor to see the template's own decisions.**~~ **✅ Shipped
    v0.6.31.** Pointing it at `docs/decisions/` for the first time reported **13
    structural errors immediately** — the fork below, mechanically confirmed
@@ -399,12 +448,18 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   one-command count; these two need a live bed.
   - **Tier 2 — seeded-defect injection.** Pick 8–10 shipped specs, inject one
     plausible defect each into the build output, run a cold verify blind, score
-    catch rate per defect class. **Draw the defects from our own escape taxonomy
-    rather than inventing them** — weight toward operational/runtime, since
-    `defects-view.sh` records that *every* escaped defect was operational rather
-    than spec-logic. Cheap, because the work order already exists: 352 shipped
-    specs with written acceptance criteria and prescribed failing tests. This is
-    mutation testing pointed at a process.
+    catch rate per defect class. Cheap, because the work order already exists:
+    352 shipped specs with written acceptance criteria and prescribed failing
+    tests. This is mutation testing pointed at a process.
+    > **Corrected 2026-08-13.** This item said to "draw the defects from our own
+    > escape taxonomy… weight toward operational/runtime, since
+    > `defects-view.sh` records that every escaped defect was operational rather
+    > than spec-logic." **There is no such taxonomy.** The Tier-0 run found zero
+    > recorded escaped defects in the entire corpus; that claim lives only in a
+    > header comment in `defects-view.sh` and had been cited here as if it were
+    > data. Until Tier 0 is re-run against instrumented projects, **invent the
+    > defect classes deliberately and say so** — a made-up taxonomy you label as
+    > made-up is honest; a remembered one dressed as evidence is not.
   - **Tier 3 — the independence test.** The claim is not that verify works, it
     is that **independence** is what makes it work. [`PLAYBOOK.md`](PLAYBOOK.md)
     states flatly that "build and verify in one session produces a review that
@@ -640,6 +695,50 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   competing with it. If the real need is *different instructions per agent*, that
   is a `guidance/agents/<name>.md` the handoff links (sibling of the toolchain
   brief), not a repo fork.
+
+## Now-tier, added 2026-08-13 — no update path to existing instances
+
+**Raised by the Tier-0 run, which could not proceed because of it.** An instance
+is scaffolded once and then frozen: `just init` copies a variant to the root and
+deletes `variants/`, and **nothing afterwards ever pulls template improvements
+in**. Evidence, from a disk scan of all 7 live instances:
+
+| Instance | Template version | Has `defects-view.sh`? | Has Q4 in its spec template? |
+|---|---|---|---|
+| bragfile000 | no `VERSION` file at all | no | **no** |
+| crustyimg | no `VERSION` file at all | no | **no** |
+| zany-animal-slots | no `VERSION` file at all | no | **no** |
+| standup | v0.6.12 | no | yes |
+| *(template today)* | v0.6.33 | yes | yes |
+
+Three instances predate the `VERSION` file entirely. The newest is 21 patch
+versions behind. **Every improvement in this file's shipped-log reaches new
+scaffolds only** — which quietly halves the value of template work, because the
+repos with the most accumulated data are the ones that can never use it.
+
+This is not the "instance-to-instance transfer" gap (that is sideways). This is
+the **downward** path failing after the first copy, which is more surprising:
+the template's whole delivery model assumes scaffolding is a one-time event and
+never says what happens next.
+
+Shape of a fix, cheapest first — **do not build past the first one yet**:
+- **Say the version out loud.** `just status` (or `template-version`) warns when
+  the instance's `VERSION` is behind the template it came from. Requires knowing
+  the upstream version, so probably a recorded remote + a manual check. Cheap,
+  honest, and turns an invisible gap into a visible one.
+- **A documented manual update recipe** — which files are safe to re-copy
+  (`scripts/`, `justfile`) versus which are yours forever (`AGENTS.md`,
+  `guidance/`, `projects/`). The split already exists in the `app.just`
+  convention; it has just never been written down for updates.
+- **`just template-update`** — later, and only if the manual recipe proves it
+  earns automation. It has to survive local edits to shipped files, which is the
+  hard part and the reason not to start here.
+
+Open, and a real question: **is freezing actually wrong?** A frozen instance is
+reproducible and never breaks under you. The cost is only visible when the
+template gains a *reader* for data the instance already holds — which is exactly
+what happened here. That may be a narrow enough case to solve with the warning
+alone.
 
 ## Explicitly rejected — recorded so it isn't re-asked
 
