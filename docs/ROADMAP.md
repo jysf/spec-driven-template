@@ -744,7 +744,43 @@ Two threads, deliberately deferred. Recorded so they aren't rediscovered:
   concluded it is a category error (see now-tier item 3); proposing it would
   export a mistake upstream.
 
-## Now-tier, added 2026-08-13 — no update path to existing instances
+## Now-tier, added 2026-08-13 — nobody knows which instance has what
+
+> **⚠ Reframed 2026-08-13 (same day), and the first framing was wrong.** This
+> item was written as *"instances freeze at scaffold time; there is no update
+> path."* **False** — the owner has repeatedly hand-ported scripts between
+> repos with Claude Code (`lifetime-report` went template → crustyimg → zany),
+> and that works fine. Corrected by a script-by-script scan:
+>
+> | Instance | Template scripts present | Notably missing |
+> |---|---|---|
+> | standup | 29 / 45 | `defects-view`, `calibration`, `decisions-index` |
+> | zany-animal-slots | 19 / 45 | `defects-view`, `calibration`, `validate`-era views |
+> | crustyimg | 17 / 45 | `defects-view`, `dash`, `validate` |
+> | rspeed | 13 / 45 | `lifetime-report`, `cost-audit`, `validate` |
+> | bragfile000 | 10 / 45 | **every gate** — `validate`, `cost-audit`, `decisions-audit`, `test` |
+>
+> **The real finding is the selection bias, not the absence of a mechanism.**
+> You port what you need *today*. That is rational every single time, and in
+> aggregate it systematically strands the **cross-cutting analytical tooling** —
+> the readers whose entire value is being present in every repo at once, which
+> is precisely the value that never feels urgent in any one repo. `defects-view`
+> is in **zero** instances for exactly this reason, and that is why the Tier-0
+> study had nothing to read.
+>
+> This is **reserve-then-strand at the distribution layer**: not a field with no
+> reader, but a reader with no distribution. Same pathology, one level up.
+>
+> It also explains bragfile000's zero cost data. It has no `cost-audit`, no
+> `validate`, no `test` — the discipline did not lapse; nothing was ever there
+> to enforce it. Its 72 shipped specs are uncosted structurally, not carelessly.
+>
+> **So the fix is much cheaper than an update mechanism.** Hand-porting already
+> works. What is missing is *knowing what is where*: a capability diff — which
+> instances lack which scripts — turns an invisible gap into a two-line answer.
+> Everything below still stands, but rung one is now clearly the whole job.
+
+## Now-tier, added 2026-08-13 — no update path to existing instances (superseded framing, kept for the record)
 
 **Raised by the Tier-0 run, which could not proceed because of it.** An instance
 is scaffolded once and then frozen: `just init` copies a variant to the root and
