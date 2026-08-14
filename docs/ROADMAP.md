@@ -45,8 +45,15 @@ instances — roughly 3× the 121 specs the 2026-07-06 harvest covered.
     the size→token-band mapping only once there's real data to calibrate against.
     Don't build the calibration view cold.
 
-- **Closing / ending a project (raised 2026-07-18) — ⬆ no longer cold
-  (2026-08-12).** This entry carried a "don't build cold" gate. **28 projects
+- **Closing / ending a project (raised 2026-07-18) — ✅ SHIPPED v0.6.34
+  (2026-08-13).** `just close-project PROJ-NNN` + `closed_reason:`, with the
+  three hard refusals below and `--dry-run`/`--json`. **What was cut, and why:**
+  `close-stage` (the evidence is 28 *project* closes; stage close inherits the
+  shared machinery free once it earns itself), and the "ready to close"
+  informational state (a `status`/`dash` concern — bundling it would have
+  blocked this on agreeing a second surface). The density × supersession line
+  shipped **inside the rollup, not as a dashboard lens**, as argued below.
+  Original capture: this entry carried a "don't build cold" gate. **28 projects
   have now closed**; the gate is spent.
 
   A sharper framing than "close is thin," which this entry carried and which was
@@ -695,6 +702,29 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   competing with it. If the real need is *different instructions per agent*, that
   is a `guidance/agents/<name>.md` the handoff links (sibling of the toolchain
   brief), not a repo fork.
+
+## Parked with a note — ContextCore alignment (2026-08-13)
+
+Two threads, deliberately deferred. Recorded so they aren't rediscovered:
+
+- **[`CONTEXTCORE_ALIGNMENT.md`](../variants/claude-only/docs/CONTEXTCORE_ALIGNMENT.md)
+  is stale.** It documents the namespaces we borrow as of an early read.
+  A fetch on 2026-08-13 found ContextCore's registry now carries **eight** —
+  `task` · `sprint` · `project` · `business` · `agent` · `insight` · `guidance` ·
+  `handoff`. DEC-002's own verification note (2026-06-18) recorded "only
+  agent/project/sprint/task", so **it grew underneath us and nothing checks**.
+  Also: their `insight.type` includes **`blocker`**, which our enum lacks, while
+  `recommendation`/`observation` may be ours rather than theirs — so the two
+  enums have quietly drifted in *both* directions. Re-read and refresh the
+  alignment doc before relying on it again.
+- **`status:` and `deciders:` are the real upstream candidates**, not
+  `architecture`. Neither appears in ContextCore's insight namespace, and
+  `deciders` solves a *general* problem for any agent-observability convention:
+  you cannot otherwise tell a human decision from an agent one. This is
+  [DEC-002](decisions/DEC-002-cost-convention.md)'s sibling and can reuse the
+  drafting prompt in its appendix. **Do not propose `architecture`** — we
+  concluded it is a category error (see now-tier item 3); proposing it would
+  export a mistake upstream.
 
 ## Now-tier, added 2026-08-13 — no update path to existing instances
 

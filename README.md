@@ -93,9 +93,10 @@ Run `just --list` to see everything. The main ones:
 | `just new-release-spec "vX" STAGE-NNN` | Scaffold a release spec with a generic runtime pre-flight checklist (or `new-spec … --release`) |
 | `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field |
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog + stamp `shipped_at` |
+| `just close-project PROJ-NNN` | Close a project: refuses on in-flight specs (when claiming `shipped`), an empty reflection, or undisposed signals; stamps `shipped_at`; prints the cost/value/decision rollup. `--dry-run`, `--json` |
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
-| `just decisions-index` | Regenerate `decisions/INDEX.md` (id · title · confidence · status · project · supersedes); `--check` fails if stale |
+| `just decisions-index` | Regenerate `decisions/INDEX.md` (id · title · confidence · status · project · supersedes); `--check` fails if stale, `--json` for the typed surface |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums (the schema gate; see `docs/schema-reference.md`) |
 | `just template-version` | Print the spec-driven template version (the version your repo was scaffolded from); `--json` for machine-readable |

@@ -139,6 +139,15 @@ archive-spec SPEC_ID:
 new-patch TITLE PROJECT_ID="":
     @./scripts/new-patch.sh "{{TITLE}}" "{{PROJECT_ID}}"
 
+# Close a project — the mechanical half of the Prompt 1e ritual. Refuses on the
+# three things a close exists to produce: specs still in flight (only when you
+# claim `shipped`), an empty Project-Level Reflection, and signals still
+# awaiting a project-close disposition. Stamps shipped_at and prints the final
+# cost / value / decision-density rollup. `--dry-run` changes nothing.
+# Usage: just close-project PROJ-NNN [--dry-run] [--json]
+close-project *ARGS:
+    @./scripts/close-project.sh {{ARGS}}
+
 # Archive a shipped patch: move to patches/done/ (no stage bookkeeping).
 # Usage: just archive-patch PATCH-NNN
 archive-patch PATCH_ID:

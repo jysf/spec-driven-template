@@ -16,6 +16,21 @@ repo:
 created_at: YYYY-MM-DD
 shipped_at: null
 
+# OPTIONAL, stamped at close by `just close-project`. `status` is the coarse
+# machine state; this says WHY the work stopped, which is the more interesting
+# signal and the one `cancelled` flattens:
+#   shipped    delivered the thesis
+#   abandoned  stopped; thesis unproven
+#   superseded the thesis moved into another project
+#   parked     may resume (pair with status: on_hold)
+# Open set (the `activity` precedent) — extend it; validate warns, never fails.
+#
+# It is also load-bearing, not decorative: close-project REFUSES to close a
+# project with specs still in flight when you claim `shipped`, and allows it
+# when you say `abandoned`. In-flight specs contradict "shipped"; they are
+# expected in an abandonment.
+closed_reason: null
+
 # Business value. Testable claim, not marketing copy.
 # "Users will love it" is not a thesis; "reducing month-2 churn by
 # making activation faster" is. Leave null only if genuinely unknown.

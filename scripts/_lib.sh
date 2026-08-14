@@ -755,6 +755,37 @@ get_spec_depends_on() {
     ' "$1"
 }
 
+# The DECs a spec was designed against — `references.decisions`. Handles inline
+# (`decisions: [DEC-001, DEC-004]`) and block-list YAML. One DEC-ID per line.
+#
+# This is the first spec→DEC edge anything walks. `depends_on` (above) is
+# spec→spec and `affected_scope` is DEC→path; the reference from a spec up to
+# the decisions governing it had no reader, so nothing could ask whether a spec
+# was built against a decision that isn't binding yet.
+# Usage: get_spec_referenced_decisions path/to/spec.md
+get_spec_referenced_decisions() {
+    awk '
+        /^---$/ { f = !f; next }
+        !f { next }
+        /^references:/ { inref = 1; next }
+        inref && /^[a-zA-Z_]/ { inref = 0 }
+        inref && /^[[:space:]]+decisions:/ {
+            if ($0 ~ /\[/) {                              # inline: [DEC-001, DEC-004]
+                s = $0; sub(/^[[:space:]]*decisions:[[:space:]]*\[/, "", s); sub(/\].*/, "", s)
+                n = split(s, a, /,/)
+                for (i = 1; i <= n; i++) { gsub(/[[:space:]"'\'']/, "", a[i]); if (a[i] != "" && a[i] != "null") print a[i] }
+                next
+            }
+            blk = 1; next
+        }
+        blk && /^[[:space:]]+[a-z_]+:/ { blk = 0 }        # sibling key ends the list
+        blk && /^[[:space:]]*-[[:space:]]*/ {
+            g = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", g); sub(/[[:space:]]+#.*/, "", g)
+            gsub(/[[:space:]"'\'']/, "", g); if (g != "" && g != "null") print g
+        }
+    ' "$1"
+}
+
 # Who/what currently holds a spec (the fan-out lease). Top-level `claimed_by:`,
 # empty for null/missing/unclaimed. Advisory — the hard lock for parallel work
 # is worktree/branch existence; this is the declarative "who's on it" marker.
@@ -1206,6 +1237,24 @@ get_stage_value_contribution() {
     ' "$file"
 }
 
+# Whole days between two YYYY-MM-DD dates (second minus first). Prints an
+# integer, or nothing if either date is unparseable — callers treat empty as
+# "unknown" rather than 0, because a wrong duration is worse than no duration.
+# BSD (macOS) and GNU date disagree on both parsing and epoch flags.
+days_between() {
+    local a="$1" b="$2" ea eb
+    case "$a" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) : ;; *) return ;; esac
+    case "$b" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) : ;; *) return ;; esac
+    if [ "$(uname)" = "Darwin" ]; then
+        ea=$(date -j -f "%Y-%m-%d" "$a" "+%s" 2>/dev/null) || return
+        eb=$(date -j -f "%Y-%m-%d" "$b" "+%s" 2>/dev/null) || return
+    else
+        ea=$(date -d "$a" "+%s" 2>/dev/null) || return
+        eb=$(date -d "$b" "+%s" 2>/dev/null) || return
+    fi
+    echo $(( (eb - ea) / 86400 ))
+}
+
 # Portable date math: print the date N days ago in YYYY-MM-DD.
 # macOS uses BSD date (-v), Linux uses GNU date (-d).
 days_ago() {
@@ -1535,6 +1584,11 @@ get_dec_affected_scope() {
         s && /^[a-zA-Z_]/ { s=0 }
         s && /^[[:space:]]*-[[:space:]]*/ {
             g=$0; sub(/^[[:space:]]*-[[:space:]]*/,"",g); sub(/[[:space:]]+#.*$/,"",g)
+            # Strip YAML quoting. Globs are routinely written quoted
+            # ("variants/*/**") and the quotes were being emitted as part of the
+            # value, so a --json consumer saw '"scripts/**"' and matched nothing.
+            gsub(/^["'\'']|["'\'']$/, "", g)
+            gsub(/[[:space:]]+$/, "", g)
             if (g!="" && g!="[]") print g
         }
     ' "$1"

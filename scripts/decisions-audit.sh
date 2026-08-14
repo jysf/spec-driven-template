@@ -460,6 +460,36 @@ if [ -n "$unattributed" ]; then
     printf '%s' "$unattributed"
 fi
 
+# --- spec → DEC: is anything being built against a decision that isn't binding?
+# The first traceability edge this repo walks. A spec designed against a
+# `status: proposed` DEC is not necessarily wrong — proposals get built to test
+# them — but it is worth knowing, because the usual failure is that the proposal
+# was never accepted and the spec quietly became its only evidence. Advisory:
+# building against a proposal is a legitimate move, so this can never gate.
+proposed_refs=""
+while IFS= read -r pdir; do
+    [ -n "$pdir" ] || continue
+    while IFS= read -r sf; do
+        [ -n "$sf" ] || continue
+        case "$sf" in */prompts/*|*-timeline.md) continue ;; esac
+        while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            if rf=$(file_for_id "$ref"); then
+                if [ "$(get_top_scalar "$rf" status)" = "proposed" ]; then
+                    proposed_refs="${proposed_refs}    $(basename "$sf" .md) → ${ref} (still proposed)"$'\n'
+                fi
+            fi
+        done < <(get_spec_referenced_decisions "$sf")
+    done < <(find_all_specs "$pdir")
+done < <(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sort)
+
+if [ -n "$proposed_refs" ]; then
+    echo
+    warn "spec(s) built against a decision that is still 'proposed' (advisory):"
+    printf '%s' "$proposed_refs"
+    printf '    %saccept the DEC, or note in it that a spec already depends on it.%s\n' "$DIM" "$RESET"
+fi
+
 echo
 if [ "$errors" -gt 0 ]; then
     die "${errors} structural error(s), ${warnings} scope warning(s) across ${#DEC_FILES[@]} decision(s)."

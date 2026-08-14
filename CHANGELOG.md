@@ -2,6 +2,61 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-13 — close gets a command, and it refuses (v0.6.34)
+
+**`just close-project PROJ-NNN`.** Close was never "thin" — Prompt 1e is
+seven-plus steps and its signal-disposition walk is one of the more rigorous
+rituals here. The gap was an **asymmetry**: close was the only major ritual with
+no command behind it. `archive-spike` refuses to land without a `spike.outcome`,
+while a project close would happily flip a status with specs in flight, an empty
+reflection, and signals silently carried.
+
+Three **hard refusals**, on the spike lane's principle — *refuse when the
+missing thing is the exact failure the ritual exists to prevent; warn otherwise*:
+
+1. **Specs still in flight — but only when you claim `shipped`.** In-flight specs
+   contradict "shipped" and corrupt every rollup computed over them. Under
+   `closed_reason: abandoned` they are *expected*, so the refusal lifts. That
+   makes `closed_reason` load-bearing rather than a label.
+2. **An empty Project-Level Reflection** — the direct analogue of
+   `spike.outcome`. It is the artifact close exists to produce.
+3. **Signals still awaiting a project-close disposition.** The v0.5.18 ritual
+   said this happens at close and nothing enforced it. `defer-with-trigger` is a
+   legal disposition, so the refusal always has an honest escape hatch.
+
+Everything else warns. A null `value.thesis` does **not** refuse — that would
+punish exploratory projects, which the value model explicitly allows.
+
+**New `closed_reason:` on the brief** — `shipped | abandoned | superseded |
+parked`, open set, warn-only. `status` stays the coarse machine state; this
+carries the half that `cancelled` flattens, which is *why* work stopped.
+
+The rollup prints cost, orchestration spend as a share of total, time-to-value
+(`created_at` → close), and **decision density paired with supersession rate** —
+never density alone, because density alone is noise. The pair reads as: high
+density + low supersession = novel domain well recorded; low density + high
+supersession = **under-recording**, the dangerous cell precisely because it looks
+calm.
+
+**Deliberately not built:** `close-stage`. The evidence is 28 *project* closes;
+stage close inherits the shared machinery free once it earns itself. **Also not
+built:** a dashboard lens for density — it changes a decision at exactly one
+moment, and that moment is close.
+
+**Also in this release:**
+
+- **`just decisions-index --json`** — the typed surface, per DEC-001. It carries
+  `affected_scope`, which the human table deliberately omits: width is only a
+  problem in a table, and it is the edge a future traceability walk needs.
+- **`decisions-audit` warns when a spec references a `proposed` DEC.** The first
+  spec→DEC edge anything walks. Building against a proposal is legitimate — the
+  failure is the proposal never being accepted while a spec quietly becomes its
+  only evidence. Advisory, never a gate.
+- **Bug: `affected_scope` leaked its YAML quotes.** Globs are routinely written
+  quoted, and the reader emitted `"scripts/**"` *including* the quotes — so any
+  `--json` consumer matched nothing. Fixed at the reader, which also corrects
+  `just dash decisions --json`.
+
 ## 2026-08-12 — three capture seams that can't be back-filled (v0.6.33)
 
 Three fields, one shared property: **none of them can be added retroactively.**

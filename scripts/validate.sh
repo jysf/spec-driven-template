@@ -49,6 +49,9 @@ SUGGESTED_ACTIVITY=" requirements design build test blocked spike "
 # spell out what the tooling would have inferred.
 SUGGESTED_ROADMAP_KIND=" framed planned pillar goal "
 SUGGESTED_ROADMAP_HORIZON=" now next later "
+# Why a project ended. `status` stays the coarse machine state; this carries the
+# interesting half, which `cancelled` flattens. Open set, warn-only.
+SUGGESTED_CLOSED_REASON=" shipped abandoned superseded parked "
 
 offenders=0
 checked=0
@@ -58,6 +61,7 @@ depends_notes=""
 actual_notes=""
 roadmap_notes=""
 verdict_notes=""
+closed_notes=""
 
 while IFS= read -r pdir; do
     [ -n "$pdir" ] || continue
@@ -167,9 +171,21 @@ while IFS= read -r pdir; do
         esac
     fi
 
+    # `closed_reason` (optional, stamped at close). Open set, advisory only.
+    pname=$(basename "$pdir")
+    cr=$(awk '
+        /^---$/ { f = !f; next } !f { next }
+        /^closed_reason:/ { v = $2; if (v != "null" && v != "") print v; exit }
+    ' "${pdir}/brief.md" 2>/dev/null)
+    if [ -n "$cr" ]; then
+        case "$SUGGESTED_CLOSED_REASON" in
+            *" $cr "*) : ;;
+            *) closed_notes="${closed_notes}    ${pname}: closed_reason='${cr}'"$'\n' ;;
+        esac
+    fi
+
     # Declared roadmap block (DEC-011). Optional; advisory-only on both
     # vocabularies, never counted as an offender.
-    pname=$(basename "$pdir")
     while IFS='|' read -r r_item r_kind r_hz r_resume r_target; do
         [ -n "$r_item" ] || continue
         if [ "$r_kind" != "-" ]; then
@@ -282,6 +298,12 @@ fi
 if [ -n "$roadmap_notes" ]; then
     warn "validate: unrecognized roadmap kind/horizon (advisory — suggested sets, not enforced):"
     printf '%s' "$roadmap_notes"
+fi
+
+# Advisory: an unrecognized `closed_reason` (open set). Never changes the exit code.
+if [ -n "$closed_notes" ]; then
+    warn "validate: unrecognized closed_reason (advisory — open set, expected one of${SUGGESTED_CLOSED_REASON}):"
+    printf '%s' "$closed_notes"
 fi
 
 # Advisory: an unrecognized `task.verify_verdict`. Never changes the exit code.

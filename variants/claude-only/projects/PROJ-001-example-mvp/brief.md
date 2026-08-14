@@ -10,6 +10,7 @@ repo:
 
 created_at: 2026-04-19
 shipped_at: null
+closed_reason: null                 # shipped | abandoned | superseded | parked (open set)
 ---
 
 # PROJ-001: MVP (example)

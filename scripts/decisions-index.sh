@@ -37,11 +37,13 @@ source "${SCRIPT_DIR}/_lib.sh"
 require_decisions_context
 
 CHECK=0
+JSON_OUT=$(has_json_flag "$@")
 for a in "$@"; do
     case "$a" in
         --check) CHECK=1 ;;
+        --json)  : ;;
         '')      : ;;
-        *)       usage_error "just decisions-index [--check]" ;;
+        *)       usage_error "just decisions-index [--check] [--json]" ;;
     esac
 done
 
@@ -124,6 +126,41 @@ render_index() {
         printf '%s\n' "${superseded_rows%$'\n'}"
     fi
 }
+
+# --- JSON output (DEC-001 §2) ------------------------------------------------
+# The same rows the markdown carries, plus `affected_scope`. The scope list is
+# deliberately absent from the human table (unreadable at 86 rows) but belongs
+# here: width costs nothing in a machine surface, and it is the edge a future
+# traceability walk needs. Read-only — --json never writes INDEX.md.
+if [ "$JSON_OUT" = 1 ]; then
+    items=()
+    for f in "${decs[@]}"; do
+        sb=$(get_dec_superseded_by "$f")
+        sup=$(get_top_scalar_local "$f" supersedes)
+        proj=$(get_dec_project_id_local "$f")
+        conf=$(get_dec_confidence "$f")
+        scope_parts=()
+        while IFS= read -r g; do [ -n "$g" ] && scope_parts+=("$(json_qs "$g")"); done < <(get_dec_affected_scope "$f")
+        [ "${#scope_parts[@]}" -gt 0 ] && scope_arr=$(json_arr "${scope_parts[@]}") || scope_arr="[]"
+        case "$conf" in ''|null) confj=null ;; *) confj=$conf ;; esac
+        items+=("$(json_obj \
+            "insight.id" "$(json_qs "$(get_dec_id "$f")")" \
+            title "$(json_qs "$(get_dec_title "$f")")" \
+            status "$(json_qs "$(get_dec_effective_status "$f")")" \
+            "insight.confidence" "$confj" \
+            "project.id" "$([ -n "$proj" ] && json_qs "$proj" || printf null)" \
+            supersedes "$([ -n "$sup" ] && json_qs "$sup" || printf null)" \
+            superseded_by "$([ -n "$sb" ] && json_qs "$sb" || printf null)" \
+            affected_scope "$scope_arr" \
+            file "$(json_qs "$(basename "$f")")")")
+    done
+    [ "${#items[@]}" -gt 0 ] && arr=$(json_arr "${items[@]}") || arr="[]"
+    json_emit decisions-index "$(json_obj \
+        count "${#decs[@]}" \
+        index_path "$(json_qs "${INDEX_FILE#"${REPO_ROOT}/"}")" \
+        decisions "$arr")"
+    exit 0
+fi
 
 rendered=$(render_index)
 

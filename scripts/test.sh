@@ -2525,6 +2525,75 @@ fi
 if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  verify_verdict: bogus$/  verify_verdict: rejected/' "$DSPEC"; else sed -i 's/^  verify_verdict: bogus$/  verify_verdict: rejected/' "$DSPEC"; fi
 
 # ============================================================
+# close-project: the mechanical half of the close ritual
+# ============================================================
+# The whole point is that it REFUSES. A close that should fail must actually
+# fail, or this is decoration — so the refusal paths are tested first.
+cp_out=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_out" | grep -q "REFUSED"; then
+    pass "close-project refuses a project that isn't ready"
+else
+    fail "close-project did not refuse: $cp_out"
+fi
+assert_cmd_fails "close-project exits non-zero when it refuses" \
+    just close-project PROJ-001
+# Refusal 1: specs in flight, and it must name them.
+if printf '%s\n' "$cp_out" | grep -qE "spec\(s\) still in flight"; then
+    pass "close-project refuses on in-flight specs"
+else
+    fail "close-project missed in-flight specs"
+fi
+# Refusal 2: the reflection is the artifact close exists to produce.
+if printf '%s\n' "$cp_out" | grep -q "Project-Level Reflection is empty"; then
+    pass "close-project refuses on an empty Project-Level Reflection"
+else
+    fail "close-project did not check the reflection"
+fi
+# Refusal 3: signals owned by this close must be dispositioned.
+if printf '%s\n' "$cp_out" | grep -q "awaiting a project-close disposition"; then
+    pass "close-project refuses on undisposed project-close signals"
+else
+    fail "close-project did not force signal disposition"
+fi
+# --dry-run must never write, even while refusing.
+BRIEF_BEFORE=$(shasum < projects/PROJ-001-example-mvp/brief.md)
+just close-project PROJ-001 --dry-run >/dev/null 2>&1 || true
+if [ "$(shasum < projects/PROJ-001-example-mvp/brief.md)" = "$BRIEF_BEFORE" ]; then
+    pass "close-project --dry-run writes nothing"
+else
+    fail "close-project --dry-run modified the brief"
+fi
+json_ok "close-project --json"  bash -c 'just close-project PROJ-001 --json 2>/dev/null || true'
+if [ "$HAVE_PY3" = 1 ]; then
+    # Capture first: close-project exits 1 while refusing, and under `pipefail`
+    # that sinks the whole pipeline regardless of what python decides.
+    cp_json=$(just close-project PROJ-001 --json 2>/dev/null || true)
+    printf '%s' "$cp_json" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["ok"] is False and len(d["refusals"])>=3, d' \
+        && pass "close-project --json reports every refusal" || fail "close-project --json missing refusals: $cp_json"
+fi
+
+# closed_reason is LOAD-BEARING: 'abandoned' lifts the in-flight refusal,
+# because in-flight specs contradict "shipped" but are expected in an
+# abandonment. This is the interaction that makes the field more than a label.
+CB=projects/PROJ-001-example-mvp/brief.md
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^closed_reason: null.*$/closed_reason: abandoned/' "$CB"; else sed -i 's/^closed_reason: null.*$/closed_reason: abandoned/' "$CB"; fi
+cp_ab=$(just close-project PROJ-001 2>&1 || true)
+if printf '%s\n' "$cp_ab" | grep -qE "spec\(s\) still in flight"; then
+    fail "closed_reason: abandoned did not lift the in-flight refusal"
+else
+    pass "closed_reason: abandoned lifts the in-flight refusal"
+fi
+# An unrecognized closed_reason is advisory — open set, never a gate.
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^closed_reason: abandoned$/closed_reason: vaporized/' "$CB"; else sed -i 's/^closed_reason: abandoned$/closed_reason: vaporized/' "$CB"; fi
+cr_out=$(just validate 2>&1) || fail "validate failed on an unrecognized closed_reason (must be advisory)"
+if printf '%s\n' "$cr_out" | grep -q "unrecognized closed_reason"; then
+    pass "validate warns (advisory) on an unrecognized closed_reason"
+else
+    fail "validate did not surface the closed_reason advisory: $cr_out"
+fi
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^closed_reason: vaporized$/closed_reason: null/' "$CB"; else sed -i 's/^closed_reason: vaporized$/closed_reason: null/' "$CB"; fi
+
+# ============================================================
 # Stage carries an orchestration_cost slot (the spend with no spec to attach to)
 # ============================================================
 # A stage scaffolded FROM the template (the shipped example stage is
