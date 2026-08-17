@@ -70,6 +70,9 @@ list tight, but don't omit anything necessary.
 - **Project brief:** `./projects/PROJ-XXX-<slug>/brief.md`
 - **Stage:** `./projects/PROJ-XXX-<slug>/stages/STAGE-XXX-<slug>.md`
 - **Spec:** `./projects/PROJ-XXX-<slug>/specs/SPEC-XXX-<slug>.md`
+- **Reviewer brief (OPTIONAL, verify handoffs):** `./guidance/agents/<lens>.md` —
+  pick a lens if this review should look at one thing hard. Omit for a
+  general review; see `./guidance/agents/README.md`.
 - **Toolchain brief:** `./guidance/toolchain-brief.md` — this repo's test
   framework, lint quirks, runtime globals and gotchas. Read it; it exists so a
   cold agent doesn't rediscover them (DEC-004 rule 5).

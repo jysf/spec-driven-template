@@ -2260,6 +2260,34 @@ assert_contains "AGENTS.md" "Reconcile over self-report" \
 assert_contains "AGENTS.md" "verify any claim you are about to act on" \
     "AGENTS.md generalizes rule 1 past build output"
 
+# --- guidance/agents/: OPTIONAL reviewer briefs --------------------------------
+# Ship-the-reader applied to documentation: a brief nothing points at is a brief
+# nobody opens. Assert REACHABILITY, not just presence.
+assert_file "guidance/agents/README.md"
+assert_file "guidance/agents/reviewer-correctness.md"
+assert_file "guidance/agents/reviewer-design.md"
+assert_file "guidance/agents/qa-close.md"
+assert_contains "AGENTS.md" "guidance/agents/" \
+    "AGENTS.md points at the reviewer briefs (they are discoverable)"
+# The rule that makes a brief worth anything — a persona inside the session that
+# did the work is a costume, not a reviewer.
+assert_contains "guidance/agents/README.md" "did not do the work" \
+    "the briefs state the session-boundary rule"
+# Each brief must narrow the review AND license a rejection. A reviewer that
+# cannot say no is a formatter.
+for brief in reviewer-correctness reviewer-design; do
+    assert_contains "guidance/agents/${brief}.md" "[Dd]eliberately ignore" \
+        "${brief} says what it ignores"
+    assert_contains "guidance/agents/${brief}.md" "[Rr]eject only for" \
+        "${brief} narrows its licence to reject"
+done
+assert_contains "guidance/agents/qa-close.md" "not-ready" \
+    "qa-close carries its own verdict vocabulary"
+# validate must not care about any of this — it is guidance, not schema.
+just validate >/dev/null 2>&1 \
+    && pass "validate unaffected by guidance/agents/" \
+    || fail "validate broke after adding guidance/agents/"
+
 # ============================================================
 # DEC-004 Phase 2: dev-dep sanction (rule 4) + toolchain-brief slot (rule 5)
 # ============================================================

@@ -2,6 +2,53 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-08-14 — optional reviewer briefs (v0.6.39)
+
+**New `guidance/agents/`** — a small set of optional review lenses you can point
+a session at. Nothing loads them automatically; an empty directory is a fine
+steady state.
+
+- `reviewer-correctness.md` — does it do what the spec says
+- `reviewer-design.md` — is this the right shape for *this* codebase
+- `qa-close.md` — the judgment pass before a stage or project close
+- `README.md` — how to wire one, and the rule that makes them work
+
+**The rule, stated up front in the README: a brief is only worth anything in a
+session that did not do the work.** Handed to the session that wrote the code it
+produces a costume, not a reviewer — the context is already contaminated by
+every choice under review, so it agrees with itself in a different voice.
+Independence is bought with the **session boundary**; the brief only decides
+what the reviewer looks at.
+
+This is why `docs/ROADMAP.md` rejects *role-based personas* while shipping
+these: the rejection is aimed at personas as costume inside one context, not at
+lenses applied across a boundary. The rejection is amended rather than
+contradicted.
+
+**Correctness and design are split on purpose.** "Does it work" and "is it
+right" are different questions, and one reviewer asked both will answer the easy
+one. Each brief states what it **ignores** as explicitly as what it looks for,
+and carries a **narrow licence to reject** — a reviewer that cannot say no is a
+formatter.
+
+`qa-close.md` fills the one place the template has a gate with no judgment
+behind it: `close-project` refuses on mechanical grounds — reflection filled,
+signals dispositioned, thesis scored — but cannot tell whether any of those
+answers are *true*. Its bar is deliberately narrow: a project is allowed to end
+badly, it is not allowed to end dishonestly.
+
+**Deliberately absent: a stakeholder brief.** Simulating the person you built it
+for is the failure mode, not the fix — a proxy stakeholder is still you, and
+`value_realized.thesis_held` scored by a simulation of your own customer is
+worth less than an honest `too-early`.
+
+Cost note: each extra lens is another full pass. Treat these as a **stakes
+tier**, not a default.
+
+Tests assert **reachability**, not presence — the briefs are pointed at from
+`AGENTS.md` and the handoff template, because a brief nothing links is a brief
+nobody opens.
+
 ## 2026-08-13 — know which instance is missing what (v0.6.38)
 
 **New `scripts/instances-diff.sh`** — point it at instance checkouts and it

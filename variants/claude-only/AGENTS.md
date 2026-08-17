@@ -171,6 +171,7 @@ template/workflow commands (`status`, `new-spec`, …) see `justfile`.
 │   ├── constraints.yaml
 │   ├── questions.yaml
 │   ├── toolchain-brief.md             # Per-repo toolchain facts for cold build agents (DEC-004)
+│   ├── agents/                        # OPTIONAL reviewer briefs (correctness, design, QA-at-close)
 │   └── signals.yaml                   # Typed feedback ledger (see docs/signals.md)
 ├── decisions/                         # Repo-level DEC-* (across all projects)
 ├── feedback/                          # Raw inbound feedback captures (triaged into signals.yaml)
@@ -670,6 +671,8 @@ Most decisions should land between 0.7 and 0.95. 1.0 only for truly locked choic
 - Constraints: `/guidance/constraints.yaml`
 - Open questions: `/guidance/questions.yaml`
 - Toolchain brief (per-repo facts for cold build agents): `/guidance/toolchain-brief.md` (DEC-004 rule 5)
+- Reviewer briefs (OPTIONAL review lenses — correctness, design fit, QA at close):
+  `/guidance/agents/` — see its README. Only meaningful in a session that did NOT do the work.
 - Signals (typed feedback ledger): `/guidance/signals.yaml` (browse `just dash signals`; ritual + bar in `docs/signals.md`)
 - Decisions: `/decisions/` (audit with `just decisions-audit`)
 - Recommended (optional) tools: `/guidance/recommended-tools.md`
