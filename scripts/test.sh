@@ -174,7 +174,11 @@ FH_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'fresh-history-test')
         && git -c user.email=t@t -c user.name=t commit -qam "template commit 2"
     printf '9.9.9\n' > VERSION
     git remote add origin https://example.com/some-template.git
-    # -y skips the confirm; identity resolves from the repo/global config.
+    # The script refuses without a git identity (it reads `git config`), so give
+    # this throwaway repo its own rather than relying on the machine's global
+    # config — CI runners have none.
+    git config user.email t@t && git config user.name t
+    # -y skips the confirm.
     bash "$TEMPLATE_ROOT/scripts/fresh-history.sh" -y >/dev/null 2>&1
 ) || true
 # History collapsed to exactly one commit.

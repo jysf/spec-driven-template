@@ -16,9 +16,11 @@ inherited a job that runs the template's suite, which needs `variants/` and
 fails in an instance. `scaffold-clean` now deletes it alongside the other
 template-only files; the variant's own `ci.yml` is untouched.
 
-Also: the suite's scratch-repo baseline commit now sets a git identity, like
-its other commits. On a machine without one the commit failed silently and
-broke later tests in ways that pointed elsewhere.
+Also: the suite no longer depends on the machine's global git identity. Its
+scratch-repo baseline commit now passes one, like its other commits, and the
+`fresh-history` test gives its throwaway repo a local one (the script rightly
+refuses without). CI runners have no global identity, so both failed there on
+the first run; the suite now passes locally with `GIT_CONFIG_GLOBAL=/dev/null`.
 
 ## 2026-11-05 — gates that could not fail now can (v0.6.41)
 
