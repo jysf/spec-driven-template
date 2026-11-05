@@ -2,6 +2,44 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-04 — front-matter scalars and the handback ledger stop corrupting data (v0.6.40)
+
+First batch from the 2026-11 irradiance/crustyimg harvest
+(`docs/harvests/2026-11-03-irradiance-crustyimg-deep-analysis.md`). Every item
+here wrote wrong data while every gate stayed green.
+
+**One YAML-aware scalar reader.** `get_handoff_field`, `get_handback_field` and
+`get_spike_field` were three copies of a line-stripper that cut every value at
+the first `#`. On a quoted value that left an unterminated quote; on a
+multi-line value it returned only the first physical line. They are now thin
+wrappers over `_get_fm_block_scalar`, which follows YAML: ` #` is a comment only
+outside quotes, `a#b` is kept, double/single-quoted scalars are unescaped and may
+span lines, and `|`/`>` block scalars are read. Quoted values are now returned
+without their quotes.
+
+**`handback-sync` writes `notes` safely.** It copied the handback's note raw into
+`cost.sessions`, so a multi-line or `#`-bearing note left the spec's front matter
+unparseable (irradiance SPEC-010 shipped that way and survived three later
+specs). The note is now always written as a double-quoted, escaped YAML scalar.
+
+**`handback-sync` appends one entry per cycle.** The `synced_at` stamp was the
+only guard, so a cycle the delegated agent had already written into
+`cost.sessions` was appended again. Before appending it now checks the ledger
+itself: an entry naming the same handoff (new `handoff:` field on transcribed
+sessions) or one with the same cycle and the same `tokens_total` counts as
+recorded. It is not appended again, the handoff is re-stamped, and the run
+reports it (`already_recorded` in `--json`).
+
+**One owner for delegated cost (claude-plus-agents).** `AGENTS.md` told build
+and verify agents to append to `cost.sessions` while `handback-sync` did the
+same. Agents now fill the handback only; the orchestrator runs `handback-sync`
+before adding the ship session. claude-only is unchanged — it has no handoffs,
+so its agent remains the only writer. The handoff template now says to
+double-quote `notes`.
+
+Also: `handback-sync` no longer dies under `pipefail` on a handoff file name
+without a `HANDOFF-NNN` id.
+
 ## 2026-08-14 — optional reviewer briefs (v0.6.39)
 
 **New `guidance/agents/`** — a small set of optional review lenses you can point

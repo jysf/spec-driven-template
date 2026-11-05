@@ -620,7 +620,10 @@ Before writing code:
 When done:
 1. Fill in the handoff's `## Completion` section (including reflection).
 2. Update `handoff.status` → `completed`; update spec's `task.cycle` → `verify`.
-3. Append a build cost session entry to the spec's `cost.sessions`.
+3. Fill the handoff's `handback:` block, including a real `tokens_total`.
+   **Do not write the spec's `cost.sessions` yourself** — the orchestrator's
+   `just handback-sync` transcribes it. One owner per field: when both the
+   agent and the script wrote it, cycles landed twice.
 4. Create `DEC-*` files for non-trivial implementer decisions. When a
    decision is tied to specific code, fill in its `affected_scope`
    with the path globs it governs (e.g. `src/lib/log.ts`,
@@ -656,7 +659,9 @@ confirm the work stayed consistent with them. `just decisions-audit`
 for optional, heavier verify tooling (e.g. LineSpec for protocol-level
 integration tests).
 
-Append a verify cost session entry before returning the verdict.
+Fill the verify handoff's `handback:` block (with a real `tokens_total`)
+before returning the verdict — not `cost.sessions`; `just handback-sync`
+transcribes it.
 
 Output: ✅ APPROVED (with SHA) / ⚠ PUNCH LIST / ❌ REJECTED.
 
@@ -669,7 +674,9 @@ Append a `## Reflection` block to the spec with three answers:
 
 Then:
 - Update the spec's `task.cycle` → `ship`.
-- Append a ship cost session entry, then compute `cost.totals`.
+- Run `just handback-sync SPEC-NNN` so the delegated build/verify cost is on
+  the ledger, then append the ship cost session entry and compute
+  `cost.totals`.
 - Stamp `task.complexity_actual` — what it actually took, on the same
   `XS|S|M|L|XL|XXL` scale as the expected `task.complexity`. Ship is the only
   moment that number is knowable.

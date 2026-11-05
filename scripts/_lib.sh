@@ -279,56 +279,126 @@ find_all_spikes() {
     find "${REPO_ROOT}/spikes" -type f -name "SPIKE-*.md" 2>/dev/null
 }
 
-# A handoff's `handoff.<key>` front-matter scalar (cycle / to_agent / status …).
-get_handoff_field() {
-    local file="$1" key="$2"
-    awk -v k="$key" '
-        /^---$/ { f = !f; next }
+# Read `<block>.<key>` from a file's front matter as a YAML scalar.
+#
+# Line-oriented, but it honours the YAML scalar rules the line-strippers it
+# replaced got wrong (2026-11 irradiance harvest: handback notes were truncated
+# and a spec's front matter was left unparseable):
+#   - plain:          `key: a # c`   → `a`      (` #` starts a comment)
+#                     `key: a#b`     → `a#b`    (no space before #: not a comment)
+#   - double-quoted:  `key: "a # b"` → `a # b`  (unescaped; may span lines)
+#   - single-quoted:  `key: 'it''s'` → `it's`   (may span lines)
+#   - block:          `key: |` / `key: >` → the indented lines below it
+# A quoted scalar that continues onto further lines is folded with single
+# spaces, as YAML does. Output may contain newlines (block `|`, or `\n`).
+_get_fm_block_scalar() {
+    local file="$1" block="$2" key="$3"
+    awk -v b="$block" -v k="$key" '
+        function rtrim(s) { sub(/[[:space:]]+$/, "", s); return s }
+        function ltrim(s) { sub(/^[[:space:]]+/, "", s); return s }
+        function indent_of(s) { match(s, /^ */); return RLENGTH }
+        # Index of the closing quote in s, or 0 if the scalar continues.
+        function dq_close(s,   i, c) {
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (c == "\\") { i++; continue }
+                if (c == "\"") return i
+            }
+            return 0
+        }
+        function sq_close(s,   i) {
+            for (i = 1; i <= length(s); i++) {
+                if (substr(s, i, 1) == "\047") {
+                    if (substr(s, i + 1, 1) == "\047") { i++; continue }
+                    return i
+                }
+            }
+            return 0
+        }
+        function dq_unescape(s,   out, i, c, n) {
+            out = ""
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (c == "\\" && i < length(s)) {
+                    i++; n = substr(s, i, 1)
+                    if (n == "n") out = out "\n"
+                    else if (n == "t") out = out "\t"
+                    else out = out n
+                } else out = out c
+            }
+            return out
+        }
+        function sq_unescape(s) { gsub(/\047\047/, "\047", s); return s }
+        function emit(s) { printf "%s\n", s; done = 1; exit }
+        # Flush whatever a multi-line scalar has collected when it ends early.
+        function flush() {
+            if (mode == "dq") emit(dq_unescape(acc))
+            if (mode == "sq") emit(sq_unescape(acc))
+            if (mode == "blk") { sub(/\n+$/, "", acc); emit(acc) }
+        }
+        /^---$/ { if (mode != "") flush(); f = !f; next }
         !f { exit }
-        /^handoff:/ { ins = 1; next }
+        mode == "dq" || mode == "sq" {
+            if ($0 ~ /^[^[:space:]]/) flush()
+            line = ltrim($0)
+            c = (mode == "dq") ? dq_close(line) : sq_close(line)
+            if (c) {
+                acc = acc " " substr(line, 1, c - 1)
+                flush()
+            }
+            acc = acc " " rtrim(line)
+            next
+        }
+        mode == "blk" {
+            if ($0 ~ /^[[:space:]]*$/) { acc = acc "\n"; next }
+            n = indent_of($0)
+            if (n <= kind) flush()
+            if (bind < 0) bind = n
+            if (n < bind) flush()
+            part = substr($0, bind + 1)
+            if (acc == "") acc = part
+            else if (style == "|") acc = acc "\n" part
+            else acc = acc " " part
+            next
+        }
+        $0 ~ ("^" b ":") { ins = 1; next }
         ins && /^[^[:space:]]/ { ins = 0 }
         ins && $0 ~ ("^[[:space:]]+" k ":") {
-            sub("^[[:space:]]+" k ":[[:space:]]*", "")
-            sub("[[:space:]]*#.*$", "")
-            print; exit
+            kind = indent_of($0)
+            v = $0
+            sub("^[[:space:]]+" k ":[[:space:]]*", "", v)
+            if (substr(v, 1, 1) == "\"") {
+                body = substr(v, 2); c = dq_close(body)
+                if (c) emit(dq_unescape(substr(body, 1, c - 1)))
+                mode = "dq"; acc = rtrim(body); next
+            }
+            if (substr(v, 1, 1) == "\047") {
+                body = substr(v, 2); c = sq_close(body)
+                if (c) emit(sq_unescape(substr(body, 1, c - 1)))
+                mode = "sq"; acc = rtrim(body); next
+            }
+            if (v ~ /^[|>][-+0-9]*([[:space:]]+#.*)?[[:space:]]*$/) {
+                mode = "blk"; style = substr(v, 1, 1); acc = ""; bind = -1; next
+            }
+            if (v ~ /^#/) v = ""
+            sub(/[[:space:]]+#.*$/, "", v)
+            emit(rtrim(v))
         }
+        END { if (!done && mode != "") flush() }
     ' "$file"
 }
+
+# A handoff's `handoff.<key>` front-matter scalar (cycle / to_agent / status …).
+get_handoff_field() { _get_fm_block_scalar "$1" handoff "$2"; }
 
 # A handoff's `handback.<key>` — the agent's self-reported return values
 # (status / tokens_total / estimated_usd / synced_at …). This is how cost gets
 # into a spec when build+verify run on agents the orchestrator can't meter.
-get_handback_field() {
-    local file="$1" key="$2"
-    awk -v k="$key" '
-        /^---$/ { f = !f; next }
-        !f { exit }
-        /^handback:/ { ins = 1; next }
-        ins && /^[^[:space:]]/ { ins = 0 }
-        ins && $0 ~ ("^[[:space:]]+" k ":") {
-            sub("^[[:space:]]+" k ":[[:space:]]*", "")
-            sub("[[:space:]]*#.*$", "")
-            print; exit
-        }
-    ' "$file"
-}
+get_handback_field() { _get_fm_block_scalar "$1" handback "$2"; }
 
 # A spike's `spike.<key>` front-matter scalar (question / mode / timebox /
-# outcome / landed_at). Empty if absent. Tolerates a trailing "# ..." comment.
-get_spike_field() {
-    local file="$1" key="$2"
-    awk -v k="$key" '
-        /^---$/ { f = !f; next }
-        !f { exit }
-        /^spike:/ { ins = 1; next }
-        ins && /^[^[:space:]]/ { ins = 0 }
-        ins && $0 ~ ("^[[:space:]]+" k ":") {
-            sub("^[[:space:]]+" k ":[[:space:]]*", "")
-            sub("[[:space:]]*#.*$", "")
-            print; exit
-        }
-    ' "$file"
-}
+# outcome / landed_at). Empty if absent.
+get_spike_field() { _get_fm_block_scalar "$1" spike "$2"; }
 
 # Find the timeline file paired with a spec. Returns empty if none.
 # Usage: find_spec_timeline SPEC-001
