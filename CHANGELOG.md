@@ -2,6 +2,46 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-05 — gates that could not fail now can (v0.6.41)
+
+Second batch from the 2026-11 harvest. Each item is a check that reported green
+while checking nothing.
+
+**`validate` parses front matter.** Its key check is line-oriented and never
+parsed, so a spec no YAML parser could read passed every gate (irradiance
+SPEC-010 shipped that way and survived three later specs). `validate` now
+parses the front matter of every `*.md` under `projects/` and the decisions
+directory, handoffs included, and names each file that fails with the parser's
+own message. Ported from irradiance SPEC-016, with three changes:
+
+- **Ruby is optional** (DEC-014). With `ruby` on PATH it does a real parse
+  (`YAML.parse`, which behaves the same on Ruby 2.6 and 3.x). Without it,
+  `validate` falls back to a bash check for the two ways front matter has
+  actually broken — an unclosed quoted value and tab indentation — and says it
+  did. `FM_PARSER=ruby|bash` forces one. Across 953 front-matter blocks in six
+  instances the bash check raised no false alarms.
+- Files are read as UTF-8 regardless of locale.
+- `--json` adds `parsed`, `parser`, and a `message` on parse violations.
+
+It refuses to report green when the parser did not run: a crash, or an exit 0
+without having examined every file, fails the gate.
+
+**CI runs `validate`.** Both variants' `ci.yml` ran only `cost-audit` and
+`decisions-index --check`, which is how an unparseable handoff reached
+irradiance's main branch.
+
+**`decisions-audit --changed` on a clean tree.** A bare `--changed` audits
+uncommitted changes. Verify runs on a clean checkout, where there are none, so
+it printed "No changed files" and exited 0 — the drift check never checked
+anything (crustyimg 67cd4f6). It now falls back to the default branch's
+`BASE...HEAD` and says so. AGENTS.md in both variants now says to pass the base
+ref (`--changed main`). Unlike crustyimg's version, the default-branch probe
+cannot end the script under `set -e` in a repo without `origin/HEAD`.
+
+**`decisions-audit` no longer dies on a DEC with no H1.** The title grep
+matched nothing and `pipefail` ended the audit mid-loop with no message
+(irradiance SPEC-023's one reachable finding in the template).
+
 ## 2026-11-04 — front-matter scalars and the handback ledger stop corrupting data (v0.6.40)
 
 First batch from the 2026-11 irradiance/crustyimg harvest

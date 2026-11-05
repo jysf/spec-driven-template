@@ -1087,6 +1087,129 @@ else
     fail "decisions-audit --changed missed DEC-001: $changed_out"
 fi
 
+# --- --changed on a CLEAN tree (v0.6.41) ------------------------------------
+# A verify cycle runs on a clean checkout, so a bare `--changed` used to find no
+# uncommitted changes, print "No changed files" and exit 0 — a check that could
+# not fail (crustyimg 67cd4f6). It must fall back to the default branch.
+DA_BASE=$(git symbolic-ref --short HEAD)
+git checkout -q -b da-feature
+git add -A >/dev/null 2>&1
+git -c user.email=t@t -c user.name=t commit -qm "touch log.ts" >/dev/null 2>&1
+if [ -n "$(git status --porcelain)" ]; then
+    fail "scratch tree not clean before the --changed fallback test"
+fi
+changed_out=$(just decisions-audit --changed 2>&1)
+case "$changed_out" in
+    *DEC-001*"src/lib/log.ts"*) pass "decisions-audit --changed on a clean tree audits ${DA_BASE}...HEAD" ;;
+    *) fail "decisions-audit --changed on a clean tree audited nothing: $changed_out" ;;
+esac
+case "$changed_out" in
+    *"Falling back to ${DA_BASE}...HEAD"*) pass "decisions-audit --changed says it fell back to the default branch" ;;
+    *) fail "decisions-audit --changed fell back silently: $changed_out" ;;
+esac
+changed_out=$(just decisions-audit --changed "$DA_BASE" 2>&1)
+case "$changed_out" in
+    *DEC-001*) pass "decisions-audit --changed <base> audits base...HEAD" ;;
+    *) fail "decisions-audit --changed ${DA_BASE} missed DEC-001: $changed_out" ;;
+esac
+
+# A DEC with no `# DEC-` heading: grep matched nothing and, under pipefail, the
+# whole audit died mid-loop with no message (irradiance SPEC-023).
+cat > decisions/DEC-703-no-heading.md <<'NOH1'
+---
+insight:
+  id: DEC-703
+  type: decision
+  confidence: 0.5
+created_at: 2026-11-05
+supersedes: null
+superseded_by: null
+affected_scope:
+  - "src/lib/**"
+---
+
+No H1 heading on purpose.
+NOH1
+rc=0; changed_out=$(just decisions-audit --changed "$DA_BASE" 2>&1) || rc=$?
+if [ "$rc" = 0 ] && printf '%s\n' "$changed_out" | grep -q "DEC-703"; then
+    pass "decisions-audit --changed survives a DEC with no H1 heading"
+else
+    fail "decisions-audit --changed died on a DEC with no H1 (rc=${rc}): $changed_out"
+fi
+rm -f decisions/DEC-703-no-heading.md
+git checkout -q "$DA_BASE"
+
+# ============================================================
+# validate: the front-matter PARSE check (v0.6.41)
+# ============================================================
+# The key check never parsed, so front matter no YAML parser could read passed
+# every gate (irradiance SPEC-010 shipped that way). Exercise BOTH parsers: ruby
+# where present, and the bash fallback forced with FM_PARSER=bash.
+if just validate >/dev/null 2>&1 && FM_PARSER=bash just validate >/dev/null 2>&1; then
+    pass "validate passes a clean scaffold with either parser"
+else
+    fail "validate fails a clean scaffold: $(FM_PARSER=bash just validate 2>&1 | tail -n 3)"
+fi
+# The irradiance shape: every required key present, front matter unparseable
+# (a cost note cut off after its first line, quote left open).
+PARSE_SPEC=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*.md' ! -name '*-timeline.md' | head -n1)
+PARSE_NAME=$(basename "$PARSE_SPEC" .md)
+cp "$PARSE_SPEC" "${SCRATCH}/parse-spec.keep"
+awk '{ print } /^task:/ && !d { print "  note: \"cut off after the first line"; d = 1 }' \
+    "${SCRATCH}/parse-spec.keep" > "$PARSE_SPEC"
+grep -q '^  note: "cut off' "$PARSE_SPEC" || fail "parse fixture was not written into ${PARSE_NAME}"
+parsers="bash"; command -v ruby >/dev/null 2>&1 && parsers="ruby bash"
+for P in $parsers; do
+    rc=0; vout=$(FM_PARSER=$P just validate 2>&1) || rc=$?
+    if [ "$rc" != 0 ] && printf '%s\n' "$vout" | grep -q "${PARSE_NAME} .*front matter did not parse"; then
+        pass "validate (${P}) fails and names a spec whose front matter does not parse"
+    else
+        fail "validate (${P}) passed or did not name unparseable ${PARSE_NAME} (rc=${rc}): $vout"
+    fi
+    if printf '%s\n' "$vout" | grep -q "${PARSE_NAME} .*invalid/missing"; then
+        fail "validate (${P}) blamed missing keys — the keys are all present; only the parse should fail"
+    else
+        pass "validate (${P}) attributes the failure to the parse, not the key check"
+    fi
+done
+if command -v python3 >/dev/null 2>&1; then   # HAVE_PY3 is set later in the suite
+    vj=$(just validate --json 2>/dev/null || true)
+    if printf '%s' "$vj" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+v = [x for x in d["violations"] if x["kind"] == "parse"]
+sys.exit(0 if d["parser"] in ("ruby", "bash") and v and v[0].get("message") else 1)'; then
+        pass "validate --json reports the parser used and the parse message"
+    else
+        fail "validate --json lacks parser/message for a parse failure: $vj"
+    fi
+fi
+cp "${SCRATCH}/parse-spec.keep" "$PARSE_SPEC"
+if just validate >/dev/null 2>&1; then
+    pass "validate is green again once the fixture is removed (the red came from it)"
+else
+    fail "validate stayed red after restoring the spec"
+fi
+
+# A parser that does not run must not report green. Fake a ruby that crashes
+# (exit 3, no output) and one that exits 0 having checked nothing.
+mkdir -p "${SCRATCH}/fakebin"
+printf '#!/bin/sh\nexit 3\n' > "${SCRATCH}/fakebin/ruby"; chmod +x "${SCRATCH}/fakebin/ruby"
+rc=0; vout=$(PATH="${SCRATCH}/fakebin:$PATH" FM_PARSER=ruby just validate 2>&1) || rc=$?
+if [ "$rc" != 0 ] && printf '%s\n' "$vout" | grep -q "did not finish\|failed for some other reason"; then
+    pass "validate refuses green when the parser crashes"
+else
+    fail "validate reported green with a crashing parser (rc=${rc}): $vout"
+fi
+printf '#!/bin/sh\nexit 0\n' > "${SCRATCH}/fakebin/ruby"
+rc=0; vout=$(PATH="${SCRATCH}/fakebin:$PATH" FM_PARSER=ruby just validate 2>&1) || rc=$?
+if [ "$rc" != 0 ] && printf '%s\n' "$vout" | grep -q "did not finish"; then
+    pass "validate refuses green when the parser exits 0 having checked nothing"
+else
+    fail "validate reported green from a parser that checked nothing (rc=${rc}): $vout"
+fi
+rm -rf "${SCRATCH}/fakebin"
+
 # --- DEC `status:` (harvested from the template's own log) ------------------
 # Declared status wins over the derived active/superseded, so a `proposed`
 # decision no longer renders as though it were in force.
