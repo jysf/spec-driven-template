@@ -2857,6 +2857,84 @@ if just cost-audit >/dev/null 2>&1; then
 else
     fail "cost-audit still fails after handback-sync — the delegated-cost path is broken"
 fi
+
+# --- handback-sync: free-text notes and one-entry-per-cycle (v0.6.40) ---------
+# irradiance harvest 2026-11: a quoted note holding `#` was cut at the `#`
+# (leaving an unterminated quote), a multi-line note was copied one physical
+# line at a time (spec front matter unparseable, every gate still green), and a
+# cycle the agent had already written into cost.sessions was appended again.
+just new-spec "Notes Widget" "$PA_STAGE_ID" >/dev/null 2>&1
+PN_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-notes-widget.md | grep -v timeline | head -n1)
+PN_SPEC_ID=$(basename "$PN_SPEC" | grep -oE 'SPEC-[0-9]+')
+just new-handoff "$PN_SPEC_ID" build >/dev/null 2>&1
+PNB=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md | head -n1)
+sed_pa 's/^  status: null.*/  status: completed/' "$PNB"
+sed_pa 's/^  tokens_total: null.*/  tokens_total: 777001/' "$PNB"
+# A legal multi-line double-quoted scalar carrying `#`, `:` and escaped quotes.
+awk '/^  notes: null/ {
+        print "  notes: \"12/14 ACs green; AC8 #[ignore]d: \\\"oracle\\\" broken"
+        print "    continued here\"   # trailing comment"
+        next } { print }' "$PNB" > "$PNB.tmp" && mv "$PNB.tmp" "$PNB"
+just handback-sync "$PN_SPEC_ID" >/dev/null 2>&1 || fail "handback-sync failed on a multi-line quoted note"
+want='      notes: "12/14 ACs green; AC8 #[ignore]d: \"oracle\" broken continued here"'
+if grep -qxF "$want" "$PN_SPEC"; then
+    pass "handback-sync keeps a quoted note intact past '#' and across lines"
+else
+    fail "handback-sync mangled the note; got: $(grep -n 'notes:' "$PN_SPEC" | tail -n1)"
+fi
+assert_contains "$PN_SPEC" "^      handoff: HANDOFF-[0-9]+$" "transcribed session names the handoff it came from"
+if command -v ruby >/dev/null 2>&1; then
+    # YAML.load, not safe_load: the front matter holds dates, and Ruby 2.6's
+    # safe_load has no keyword for permitting them. Read as UTF-8 regardless of locale.
+    if ruby -ryaml -e 'YAML.load(File.read(ARGV[0], :encoding => "UTF-8").split(/^---$/)[1])' "$PN_SPEC" >/dev/null 2>&1; then
+        pass "spec front matter still parses as YAML after the sync"
+    else
+        fail "spec front matter is unparseable after handback-sync"
+    fi
+fi
+
+# Lost synced_at stamp (a reverted handoff, a hand edit): the ledger itself
+# still says the cycle is recorded, so a re-sync must not append it again.
+sed_pa 's/^  synced_at: 2.*/  synced_at: null/' "$PNB"
+just handback-sync "$PN_SPEC_ID" >/dev/null 2>&1 || true
+n=$(grep -c "^      tokens_total: 777001$" "$PN_SPEC" || true)   # session entries only, not totals
+if [ "$n" = "1" ]; then
+    pass "handback-sync does not re-append a cycle whose handoff id is already on the ledger"
+else
+    fail "handback-sync re-appended a recorded handoff (777001 ×${n})"
+fi
+assert_contains "$PNB" "synced_at: 2" "an already-recorded handoff is re-stamped synced_at"
+
+# Two owners: the verify agent wrote its own cost.sessions entry AND filled the
+# handback. One cycle, one entry.
+just new-handoff "$PN_SPEC_ID" verify >/dev/null 2>&1
+PNV=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md | head -n1)
+sed_pa 's/^  status: null.*/  status: completed/' "$PNV"
+sed_pa 's/^  tokens_total: null.*/  tokens_total: 555002/' "$PNV"
+awk '/^  totals:/ && !d {
+        print "    - cycle: verify"; print "      agent: claude-opus-4-7"
+        print "      tokens_total: 555002"; print "      notes: written by the agent"; d = 1 }
+     { print }' "$PN_SPEC" > "$PN_SPEC.tmp" && mv "$PN_SPEC.tmp" "$PN_SPEC"
+hs=$(just handback-sync "$PN_SPEC_ID" 2>&1 || true)
+n=$(grep -c "^      tokens_total: 555002$" "$PN_SPEC" || true)   # session entries only, not totals
+if [ "$n" = "1" ]; then
+    pass "handback-sync does not double-append a cycle the agent already recorded"
+else
+    fail "one verify cycle landed ${n}× in cost.sessions"
+fi
+if printf '%s\n' "$hs" | grep -q "already on cost.sessions"; then
+    pass "handback-sync says it found the cycle already recorded"
+else
+    fail "handback-sync was silent about the already-recorded cycle: $hs"
+fi
+if [ "$HAVE_PY3" = 1 ]; then
+    hj=$(just handback-sync "$PN_SPEC_ID" --json 2>/dev/null || true)
+    if printf '%s' "$hj" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; sys.exit(0 if "already_recorded" in d else 1)'; then
+        pass "handback-sync --json reports already_recorded"
+    else
+        fail "handback-sync --json lacks already_recorded: $hj"
+    fi
+fi
 cd "$SCRATCH/repo"
 rm -rf "$PA_SCRATCH"
 
