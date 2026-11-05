@@ -2,6 +2,24 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-05 — the template's own suite runs in CI (v0.6.42)
+
+**`.github/workflows/selftest.yml`** runs `just template-selftest` on every pull
+request and push to `main`, on Ubuntu and macOS. Until now the suite ran only
+when the maintainer remembered to, and only on macOS, although the scripts
+promise both BSD and GNU `sed`/`date`/`stat`. Pull requests here had no checks
+at all.
+
+**`init` removes that workflow from a new scaffold.** `init` merges the
+variant's `.github/` over the root one, so every instance would otherwise have
+inherited a job that runs the template's suite, which needs `variants/` and
+fails in an instance. `scaffold-clean` now deletes it alongside the other
+template-only files; the variant's own `ci.yml` is untouched.
+
+Also: the suite's scratch-repo baseline commit now sets a git identity, like
+its other commits. On a machine without one the commit failed silently and
+broke later tests in ways that pointed elsewhere.
+
 ## 2026-11-05 — gates that could not fail now can (v0.6.41)
 
 Second batch from the 2026-11 harvest. Each item is a check that reported green

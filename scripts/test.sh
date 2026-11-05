@@ -118,6 +118,14 @@ for tf in PROJECTS.md CONTRIBUTING.md KNOWN_LIMITATIONS.md MIGRATION_TO_REPORTS_
     fi
 done
 pass "init removes the template's own root docs"
+# The maintainer's CI must not ride along: in an instance it would run a suite
+# that needs variants/ and fail on every push. The variant's own CI stays.
+if [ -f ".github/workflows/selftest.yml" ]; then
+    fail "init left the template's maintainer selftest workflow in the scaffolded repo"
+else
+    pass "init removes the template's selftest workflow"
+fi
+assert_file ".github/workflows/ci.yml"
 assert_file "VERSION"
 pass "init keeps VERSION (template provenance survives, per CONTRIBUTING)"
 assert_file "LICENSE"
@@ -1077,7 +1085,8 @@ rm -f decisions/DEC-666-broken.md
 # Needs a git repo (scratch had its .git removed at setup), so init one.
 git init -q >/dev/null 2>&1
 git add -A >/dev/null 2>&1
-git commit -qm "scratch baseline" >/dev/null 2>&1
+git -c user.email=t@t -c user.name=t commit -qm "scratch baseline" >/dev/null 2>&1 \
+    || fail "could not commit the scratch baseline (git identity?)"
 mkdir -p src/lib
 echo "// touched" >> src/lib/log.ts
 changed_out=$(just decisions-audit --changed 2>&1)

@@ -25,8 +25,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_lib.sh
 source "${SCRIPT_DIR}/_lib.sh"
 
-# Template-only root docs. Each describes the TEMPLATE, not the scaffolded app.
-TEMPLATE_DOCS="PROJECTS.md CONTRIBUTING.md KNOWN_LIMITATIONS.md MIGRATION_TO_REPORTS_AND_COSTS.md"
+# Template-only files. Each describes or tests the TEMPLATE, not the scaffolded
+# app. The selftest workflow is the maintainer's CI: `init` merges the variant's
+# .github/ over the root one, so without this every instance would inherit a job
+# that runs `just template-selftest` — which needs variants/ and fails there.
+TEMPLATE_DOCS="PROJECTS.md CONTRIBUTING.md KNOWN_LIMITATIONS.md MIGRATION_TO_REPORTS_AND_COSTS.md .github/workflows/selftest.yml"
 
 removed=""
 for f in $TEMPLATE_DOCS; do
