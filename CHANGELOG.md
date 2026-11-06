@@ -16,6 +16,11 @@ Also: the suite's post-`handback-sync` YAML check uses `YAML.parse`, like
 `validate` does. `YAML.load` refuses dates on Ruby 3.x, so the check failed on
 the macOS runner, whose Ruby is newer than the system 2.6.
 
+And: the suite takes a pipeline's first line with `sed -n 1p`, not `head -n1`.
+`head` exits after one line, so a producer still writing gets SIGPIPE, and under
+`pipefail` the suite died with exit 141 and no message. It lost that race on
+Ubuntu, reading the version headers of a now 138 KB CHANGELOG.
+
 ## 2026-11-05 — the template's own suite runs in CI (v0.6.42)
 
 **`.github/workflows/selftest.yml`** runs `just template-selftest` on every pull

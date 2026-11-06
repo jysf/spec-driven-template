@@ -355,7 +355,7 @@ fi
 
 # --- lifetime-save: writes a timestamped data report, never overwriting ---
 just lifetime-save >/dev/null 2>&1 || fail "lifetime-save exited non-zero"
-saved=$(find reports/lifetime -name '*.md' 2>/dev/null | head -1)
+saved=$(find reports/lifetime -name '*.md' 2>/dev/null | sed -n 1p)
 if [ -n "$saved" ] && grep -q "Lifetime Data Report" "$saved"; then
     pass "lifetime-save: wrote a timestamped data report under reports/lifetime/"
 else
@@ -396,7 +396,7 @@ assert_contains "$SPEC_V52" "^    session_count: 0" "cost.totals.session_count i
 # The template's project-brief and stage markdowns should carry the
 # v5.2 blocks — confirm by scaffolding a new stage and inspecting.
 just new-stage "V52 Test Stage" >/dev/null
-STAGE_V52_PATH=$(ls projects/PROJ-001-example-mvp/stages/STAGE-00*-v52-test-stage.md 2>/dev/null | head -n1 || true)
+STAGE_V52_PATH=$(ls projects/PROJ-001-example-mvp/stages/STAGE-00*-v52-test-stage.md 2>/dev/null | sed -n 1p || true)
 if [ -n "$STAGE_V52_PATH" ]; then
     assert_file "$STAGE_V52_PATH"
     assert_contains "$STAGE_V52_PATH" "^value_contribution:\$" "new stage has value_contribution: block"
@@ -623,7 +623,7 @@ fi
 
 # Declare two items: a pure pillar (no stage behind it) and a reference to the
 # framed STAGE-001, which must reconcile rather than double-list.
-ACTIVE_BRIEF=$(ls projects/PROJ-*/brief.md | head -1)
+ACTIVE_BRIEF=$(ls projects/PROJ-*/brief.md | sed -n 1p)
 cp "$ACTIVE_BRIEF" "$SCRATCH/brief.orig"
 # Insert the block right after the opening front-matter fence.
 awk 'NR==1 && /^---$/ {
@@ -701,7 +701,7 @@ if [ -e "$INJECT_MARKER" ]; then
 else
     pass "no command injection from a hostile title"
 fi
-NASTY_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*pwn* 2>/dev/null | head -n1 || true)
+NASTY_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*pwn* 2>/dev/null | sed -n 1p || true)
 if [ -n "$NASTY_STAGE" ] && grep -qF 'Pwn|e touch' "$NASTY_STAGE"; then
     pass "hostile title is rendered verbatim in the generated file"
 else
@@ -744,11 +744,11 @@ assert_contains "projects/_templates/spec.md" "answer \| none" \
     "spec template gives Reflection Q5 an answer slot"
 
 just new-spec "Export to CSV" STAGE-002 >/dev/null 2>&1
-RN_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-export-to-csv.md' | head -1)
+RN_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-export-to-csv.md' | sed -n 1p)
 sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$RN_A"
 sed_inplace_portable "s/^   — <answer | none>/   — Users can export a report to CSV; before they retyped it by hand./" "$RN_A"
 just new-spec "Internal refactor" STAGE-002 >/dev/null 2>&1
-RN_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-internal-refactor.md' | head -1)
+RN_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-internal-refactor.md' | sed -n 1p)
 sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$RN_B"
 sed_inplace_portable "s/^   — <answer | none>/   — none/" "$RN_B"
 
@@ -796,8 +796,8 @@ rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-export-to-csv-timeline.md \
 # ============================================================
 just new-spec "Alpha base" STAGE-002 >/dev/null 2>&1
 just new-spec "Beta needs alpha" STAGE-002 >/dev/null 2>&1
-DEP_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-alpha-base.md' | head -1)
-DEP_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-beta-needs-alpha.md' | head -1)
+DEP_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-alpha-base.md' | sed -n 1p)
+DEP_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-beta-needs-alpha.md' | sed -n 1p)
 DEP_A_ID=$(basename "$DEP_A" | sed -E 's/^(SPEC-[0-9]+).*/\1/')
 sed_inplace_portable "s/^depends_on: \[\]/depends_on: [${DEP_A_ID}]/" "$DEP_B"
 
@@ -859,7 +859,7 @@ rm -f projects/PROJ-001-example-mvp/specs/SPEC-*-alpha-base-timeline.md \
 # frame-stage / new-spec --outline (v0.6.25) — planned stage → dispatchable batch
 # ============================================================
 just new-stage "Frame Batch" >/dev/null 2>&1
-FS_STAGE=$(find projects/PROJ-001-example-mvp/stages -maxdepth 1 -name 'STAGE-*-frame-batch.md' | head -1)
+FS_STAGE=$(find projects/PROJ-001-example-mvp/stages -maxdepth 1 -name 'STAGE-*-frame-batch.md' | sed -n 1p)
 FS_STAGE_ID=$(basename "$FS_STAGE" | sed -E 's/^(STAGE-[0-9]+).*/\1/')
 assert_file "$FS_STAGE"
 # Give the stage a backlog: two un-promoted lines, one carrying a size tag, plus
@@ -881,8 +881,8 @@ else
 fi
 
 just frame-stage "$FS_STAGE_ID" >/dev/null 2>&1
-FS_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-loader.md' | head -1)
-FS_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-cache-with-eviction.md' | head -1)
+FS_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-loader.md' | sed -n 1p)
+FS_B=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-widget-cache-with-eviction.md' | sed -n 1p)
 if [ -n "$FS_A" ] && [ -n "$FS_B" ]; then
     pass "frame-stage promotes every (not yet written) line into a spec"
 else
@@ -939,7 +939,7 @@ rm -f "$FS_STAGE"
 # expected-vs-actual estimation loop (v0.6.26)
 # ============================================================
 just new-spec "Estimated work" STAGE-002 >/dev/null 2>&1
-CAL_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-estimated-work.md' | head -1)
+CAL_A=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-estimated-work.md' | sed -n 1p)
 assert_contains "$CAL_A" "complexity_actual: null" "spec template carries an actual-size slot"
 assert_contains "$CAL_A" "tokens_estimate: null" "spec template carries a token-estimate slot"
 assert_contains "projects/_templates/spec.md" "XS \| S \| M \| L \| XL \| XXL" \
@@ -1172,7 +1172,7 @@ else
 fi
 # The irradiance shape: every required key present, front matter unparseable
 # (a cost note cut off after its first line, quote left open).
-PARSE_SPEC=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*.md' ! -name '*-timeline.md' | head -n1)
+PARSE_SPEC=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*.md' ! -name '*-timeline.md' | sed -n 1p)
 PARSE_NAME=$(basename "$PARSE_SPEC" .md)
 cp "$PARSE_SPEC" "${SCRATCH}/parse-spec.keep"
 awk '{ print } /^task:/ && !d { print "  note: \"cut off after the first line"; d = 1 }' \
@@ -1622,14 +1622,14 @@ fi
 # (the old top would still "appear" and pass the weaker check above). And every
 # versioned header must be unique — no accidental duplicate release sections.
 newest_hdr_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' "$TEMPLATE_ROOT/CHANGELOG.md" \
-    | head -n1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//')
+    | sed -n 1p | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^v//')
 if [ "$newest_hdr_ver" = "$ver" ]; then
     pass "newest CHANGELOG header is the current VERSION (v${ver} on top)"
 else
     fail "newest CHANGELOG header is v${newest_hdr_ver:-∅}, not VERSION ${ver}"
 fi
 dup_ver=$(grep -oE '^## .*\(v[0-9]+\.[0-9]+\.[0-9]+\)' "$TEMPLATE_ROOT/CHANGELOG.md" \
-    | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort | uniq -d | head -n1)
+    | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | sort | uniq -d | sed -n 1p)
 if [ -z "$dup_ver" ]; then
     pass "no duplicate versioned CHANGELOG headers"
 else
@@ -1681,7 +1681,7 @@ assert_contains "projects/_templates/release-spec.md" "just next-version" \
 # ref is a real git-describe when a repo is reachable and "unknown" otherwise —
 # assert structure, not the value, so the check is environment-agnostic.
 bi=$(just build-info 2>&1)
-if [ -n "$(printf '%s\n' "$bi" | head -1)" ] \
+if [ -n "$(printf '%s\n' "$bi" | sed -n 1p)" ] \
    && printf '%s\n' "$bi" | grep -q "built_at:" \
    && printf '%s\n' "$bi" | grep -q "commit:"; then
     pass "build-info emits a stamp (ref line + commit + built_at)"
@@ -1840,10 +1840,10 @@ assert_contains "FIRST_SESSION_PROMPTS.md" "tokens_total: <REAL combined count" 
 # find_spec must exclude specs/prompts/: advance-cycle should hit the real spec,
 # never a same-prefixed cycle-prompt file with no front-matter (zany #7).
 just new-stage "P1 Stage" >/dev/null 2>&1
-P1_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p1-stage.md 2>/dev/null | head -n1)
+P1_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p1-stage.md 2>/dev/null | sed -n 1p)
 P1_STAGE_ID=$(basename "$P1_STAGE" 2>/dev/null | grep -oE 'STAGE-[0-9]+')
 just new-spec "P1 Spec" "$P1_STAGE_ID" >/dev/null 2>&1
-P1_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p1-spec.md 2>/dev/null | head -n1)
+P1_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p1-spec.md 2>/dev/null | sed -n 1p)
 P1_SPEC_ID=$(basename "$P1_SPEC" 2>/dev/null | grep -oE 'SPEC-[0-9]+')
 # Plant a look-alike prompt file with NO front-matter (the exact trap).
 mkdir -p "$(dirname "$P1_SPEC")/prompts"
@@ -1896,7 +1896,7 @@ before=$(find projects -name 'STAGE-*.md' -not -path '*/done/*' 2>/dev/null \
          | sed -E 's|.*/STAGE-0*([0-9]+).*|\1|' | sort -n | tail -n1)
 mkdir -p projects/PROJ-002-num-test
 just new-stage "Cross Proj" PROJ-002-num-test >/dev/null 2>&1
-newstage=$(ls projects/PROJ-002-num-test/stages/STAGE-*-cross-proj.md 2>/dev/null | head -n1)
+newstage=$(ls projects/PROJ-002-num-test/stages/STAGE-*-cross-proj.md 2>/dev/null | sed -n 1p)
 newnum=$(basename "$newstage" 2>/dev/null | sed -E 's|STAGE-0*([0-9]+).*|\1|')
 if [ -n "$newnum" ] && [ "$newnum" = "$((before + 1))" ]; then
     pass "new-stage continues numbering repo-wide across projects (not restart at 001)"
@@ -1912,7 +1912,7 @@ assert_file "projects/_templates/patch.md"
 
 # new-patch scaffolds a first-class patch: task.type: patch, own PATCH-* seq, no stage.
 just new-patch "Out Dir Auto Create" >/dev/null 2>&1
-PATCH_FILE=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-out-dir-auto-create.md 2>/dev/null | head -n1)
+PATCH_FILE=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-out-dir-auto-create.md 2>/dev/null | sed -n 1p)
 PATCH_ID=$(basename "$PATCH_FILE" 2>/dev/null | grep -oE 'PATCH-[0-9]+')
 if [ -n "$PATCH_FILE" ] && [ "$PATCH_ID" = "PATCH-001" ]; then
     pass "new-patch scaffolds PATCH-001 (its own repo-wide sequence)"
@@ -1985,10 +1985,10 @@ if [ "$HAVE_PY3" = 1 ]; then
 fi
 # report-daily / report-weekly grow a Patches section when patches exist.
 just report-daily >/dev/null 2>&1
-daily_file=$(ls -t reports/daily/*.md 2>/dev/null | head -n1)
+daily_file=$(ls -t reports/daily/*.md 2>/dev/null | sed -n 1p)
 assert_contains "$daily_file" "## Patches" "report-daily includes a Patches section"
 just report-weekly >/dev/null 2>&1
-weekly_file=$(ls -t reports/weekly/*.md 2>/dev/null | head -n1)
+weekly_file=$(ls -t reports/weekly/*.md 2>/dev/null | sed -n 1p)
 assert_contains "$weekly_file" "## Patches" "report-weekly includes a Patches section"
 
 # Remove the test patch so the shipped-without-cost file can't affect later runs.
@@ -2005,7 +2005,7 @@ fi
 # A broken artifact must appear as a STRUCTURED finding, not just an exit code.
 BADJ="projects/PROJ-001-example-mvp/specs/SPEC-997-badjson.md"
 cp projects/PROJ-001-example-mvp/specs/SPEC-002-test-spec.md "$BADJ" 2>/dev/null || \
-  cp "$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | head -n1)" "$BADJ"
+  cp "$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | sed -n 1p)" "$BADJ"
 if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  cycle: .*/  cycle: bogus/' "$BADJ"; else sed -i 's/^  cycle: .*/  cycle: bogus/' "$BADJ"; fi
 assert_cmd_fails "validate --json still exits 1 on violations" just validate --json
 # Capture BEFORE piping: the gate exits 1 on violations, and under `pipefail` a
@@ -2033,7 +2033,7 @@ assert_file "projects/_templates/spike.md"
 # new-spike scaffolds at the REPO root (not under a project — a spike may
 # precede any project), with its own SPIKE-* sequence.
 just new-spike "Can Bubbletea Do Split Panes" "2h" >/dev/null 2>&1
-SPIKE_FILE=$(ls spikes/SPIKE-*-can-bubbletea-do-split-panes.md 2>/dev/null | head -n1)
+SPIKE_FILE=$(ls spikes/SPIKE-*-can-bubbletea-do-split-panes.md 2>/dev/null | sed -n 1p)
 SPIKE_ID=$(basename "$SPIKE_FILE" 2>/dev/null | grep -oE 'SPIKE-[0-9]+')
 if [ -n "$SPIKE_FILE" ] && [ "$SPIKE_ID" = "SPIKE-001" ]; then
     pass "new-spike scaffolds SPIKE-001 at the repo root (own sequence)"
@@ -2063,13 +2063,13 @@ fi
 # A timebox containing the sed delimiter must survive substitution intact —
 # the exact input that broke the original prose-placeholder implementation.
 just new-spike "Pipe Timebox" "2h | then stop" >/dev/null 2>&1
-PIPE_SPIKE=$(ls spikes/SPIKE-*-pipe-timebox.md 2>/dev/null | head -n1)
+PIPE_SPIKE=$(ls spikes/SPIKE-*-pipe-timebox.md 2>/dev/null | sed -n 1p)
 assert_contains "$PIPE_SPIKE" "2h | then stop" "new-spike survives a timebox containing '|'"
 rm -f "$PIPE_SPIKE"
 
 # --mode build is the vibe-coding session; an invalid mode is rejected.
 just new-spike "Vibe Session" "1 session" "build" >/dev/null 2>&1
-BUILD_SPIKE=$(ls spikes/SPIKE-*-vibe-session.md 2>/dev/null | head -n1)
+BUILD_SPIKE=$(ls spikes/SPIKE-*-vibe-session.md 2>/dev/null | sed -n 1p)
 assert_contains "$BUILD_SPIKE" "mode: build" "new-spike MODE=build sets the vibe-coding mode"
 rm -f "$BUILD_SPIKE"
 assert_cmd_fails "new-spike rejects an invalid mode" just new-spike "Bad Mode" "1d" "sideways"
@@ -2129,7 +2129,7 @@ assert_cmd_fails "double archive-spike fails" just archive-spike "$SPIKE_ID"
 
 # An unrecognized outcome is rejected rather than silently archived.
 just new-spike "Bogus Outcome Spike" >/dev/null 2>&1
-BOGUS=$(ls spikes/SPIKE-*-bogus-outcome-spike.md 2>/dev/null | head -n1)
+BOGUS=$(ls spikes/SPIKE-*-bogus-outcome-spike.md 2>/dev/null | sed -n 1p)
 BOGUS_ID=$(basename "$BOGUS" | grep -oE 'SPIKE-[0-9]+')
 sed_test 's/^  outcome: null.*/  outcome: mostly-fine/' "$BOGUS"
 assert_cmd_fails "archive-spike rejects an unrecognized outcome" just archive-spike "$BOGUS_ID"
@@ -2138,7 +2138,7 @@ rm -f "$BOGUS"
 
 # status surfaces open spikes; `spike` is an accepted project.activity value.
 just new-spike "Open Spike" "1d" >/dev/null 2>&1
-OPEN_SPIKE=$(ls spikes/SPIKE-*-open-spike.md 2>/dev/null | head -n1)
+OPEN_SPIKE=$(ls spikes/SPIKE-*-open-spike.md 2>/dev/null | sed -n 1p)
 status_out=$(just status 2>&1)
 if printf '%s\n' "$status_out" | grep -q "Spikes"; then
     pass "status lists open spikes"
@@ -2340,7 +2340,7 @@ assert_file "docs/porting.md"
 
 # A shipped patch with no cost normally FAILS cost-audit (metering enforced)...
 just new-patch "Metering Test" >/dev/null 2>&1
-MPID=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-metering-test.md 2>/dev/null | head -n1 | xargs -I{} basename {} | grep -oE 'PATCH-[0-9]+')
+MPID=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-metering-test.md 2>/dev/null | sed -n 1p | xargs -I{} basename {} | grep -oE 'PATCH-[0-9]+')
 just advance-cycle "$MPID" ship >/dev/null 2>&1
 assert_cmd_fails "cost-audit enforces cost by default (metering_source subagent_tokens)" just cost-audit
 # ...but with metering_source: none the gate is DISABLED (no token source).
@@ -2361,9 +2361,9 @@ rm -rf projects/PROJ-001-example-mvp/patches
 # fallback), and fixing the 'architect==implementer looks like contamination'
 # misread.
 just new-stage "P2 Stage" >/dev/null 2>&1
-P2S=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p2-stage.md 2>/dev/null | head -n1 | xargs -I{} basename {} | grep -oE 'STAGE-[0-9]+')
+P2S=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-p2-stage.md 2>/dev/null | sed -n 1p | xargs -I{} basename {} | grep -oE 'STAGE-[0-9]+')
 just new-spec "P2 Spec" "$P2S" >/dev/null 2>&1
-P2SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p2-spec.md 2>/dev/null | head -n1)
+P2SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-p2-spec.md 2>/dev/null | sed -n 1p)
 arch=$(awk '/^  architect:/{print $2; exit}' "$P2SPEC")
 impl=$(awk '/^  implementer:/{print $2; exit}' "$P2SPEC")
 if [ "$arch" = "claude-opus-4-7" ] && [ "$impl" = "claude-sonnet-4-6" ] && [ "$arch" != "$impl" ]; then
@@ -2377,7 +2377,7 @@ else
     pass "no model placeholders remain in the scaffolded spec"
 fi
 just new-patch "P2 Patch" >/dev/null 2>&1
-P2P=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-p2-patch.md 2>/dev/null | head -n1)
+P2P=$(ls projects/PROJ-001-example-mvp/patches/PATCH-*-p2-patch.md 2>/dev/null | sed -n 1p)
 pimpl=$(awk '/^  implementer:/{print $2; exit}' "$P2P")
 [ "$pimpl" = "claude-sonnet-4-6" ] \
     && pass "new-patch stamps agents from tier_map.build" \
@@ -2480,7 +2480,7 @@ done
 
 # `just new-release-spec` scaffolds a task.type: release spec into a stage.
 just new-release-spec "Test Release" STAGE-002 >/dev/null 2>&1
-REL_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-test-release.md 2>/dev/null | head -n1)
+REL_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-test-release.md 2>/dev/null | sed -n 1p)
 if [ -n "$REL_FILE" ]; then
     pass "new-release-spec scaffolds a release spec"
 else
@@ -2490,7 +2490,7 @@ assert_contains "$REL_FILE" "type: release" "scaffolded release spec is task.typ
 assert_contains "$REL_FILE" "stage: STAGE-002" "release spec attaches to its stage"
 # The --release flag on new-spec.sh is the primitive (wrapper just forwards it).
 just new-spec "Flag Release" STAGE-002 --release >/dev/null 2>&1
-FLAG_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-flag-release.md 2>/dev/null | head -n1)
+FLAG_FILE=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-flag-release.md 2>/dev/null | sed -n 1p)
 assert_contains "$FLAG_FILE" "type: release" "--release flag on new-spec scaffolds a release spec"
 
 # validate treats a release spec as first-class (it uses the standard spec path).
@@ -2619,7 +2619,7 @@ if [ "$HAVE_PY3" = 1 ]; then
         && pass "dash defects ignores the unanswered template vocabulary" || fail "dash defects counted template prose as an answer"
 fi
 # Now answer Q4 on a real spec and confirm it lands in the right bucket.
-DSPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | grep -v timeline | head -n1)
+DSPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*.md | grep -v timeline | sed -n 1p)
 cat >> "$DSPEC" <<'DEFEOF'
 
 ## Reflection (Ship)
@@ -2819,7 +2819,7 @@ git checkout -- "$CB" 2>/dev/null || true
 # A stage scaffolded FROM the template (the shipped example stage is
 # hand-authored and is asserted separately below).
 just new-stage "Orchestration Cost Probe" >/dev/null 2>&1
-SFILE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-orchestration-cost-probe.md | head -n1)
+SFILE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-orchestration-cost-probe.md | sed -n 1p)
 assert_contains "$SFILE" "orchestration_cost:" "stage template carries orchestration_cost"
 assert_contains "$SFILE" "THE ORCHESTRATOR FILLS THIS" "orchestration_cost says who fills it"
 
@@ -2912,15 +2912,15 @@ else
 fi
 
 just new-stage "Delegated Infra" >/dev/null 2>&1
-PA_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-delegated-infra.md | head -n1)
+PA_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-delegated-infra.md | sed -n 1p)
 PA_STAGE_ID=$(basename "$PA_STAGE" | grep -oE 'STAGE-[0-9]+')
 just new-spec "Delegated Widget" "$PA_STAGE_ID" >/dev/null 2>&1
-PA_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-delegated-widget.md | grep -v timeline | head -n1)
+PA_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-delegated-widget.md | grep -v timeline | sed -n 1p)
 PA_SPEC_ID=$(basename "$PA_SPEC" | grep -oE 'SPEC-[0-9]+')
 
 # ONE handoff per delegated CYCLE — a build/verify split gets one each.
 just new-handoff "$PA_SPEC_ID" build >/dev/null 2>&1
-HB=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md 2>/dev/null | head -n1)
+HB=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md 2>/dev/null | sed -n 1p)
 if [ -n "$HB" ]; then
     pass "new-handoff build scaffolds a build handoff"
 else
@@ -2942,7 +2942,7 @@ else
 fi
 
 just new-handoff "$PA_SPEC_ID" verify >/dev/null 2>&1
-HV=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md 2>/dev/null | head -n1)
+HV=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md 2>/dev/null | sed -n 1p)
 assert_contains "$HV" "cycle: verify"     "verify handoff records cycle: verify"
 assert_contains "$HV" "to_role: verifier" "verify handoff sets to_role: verifier"
 if grep -q "to_agent: claude-opus-4-7" "$HV"; then
@@ -3007,10 +3007,10 @@ fi
 # line at a time (spec front matter unparseable, every gate still green), and a
 # cycle the agent had already written into cost.sessions was appended again.
 just new-spec "Notes Widget" "$PA_STAGE_ID" >/dev/null 2>&1
-PN_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-notes-widget.md | grep -v timeline | head -n1)
+PN_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-notes-widget.md | grep -v timeline | sed -n 1p)
 PN_SPEC_ID=$(basename "$PN_SPEC" | grep -oE 'SPEC-[0-9]+')
 just new-handoff "$PN_SPEC_ID" build >/dev/null 2>&1
-PNB=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md | head -n1)
+PNB=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-*.md | sed -n 1p)
 sed_pa 's/^  status: null.*/  status: completed/' "$PNB"
 sed_pa 's/^  tokens_total: null.*/  tokens_total: 777001/' "$PNB"
 # A legal multi-line double-quoted scalar carrying `#`, `:` and escaped quotes.
@@ -3051,7 +3051,7 @@ assert_contains "$PNB" "synced_at: 2" "an already-recorded handoff is re-stamped
 # Two owners: the verify agent wrote its own cost.sessions entry AND filled the
 # handback. One cycle, one entry.
 just new-handoff "$PN_SPEC_ID" verify >/dev/null 2>&1
-PNV=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md | head -n1)
+PNV=$(grep -l "spec_id: ${PN_SPEC_ID}" projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-*.md | sed -n 1p)
 sed_pa 's/^  status: null.*/  status: completed/' "$PNV"
 sed_pa 's/^  tokens_total: null.*/  tokens_total: 555002/' "$PNV"
 awk '/^  totals:/ && !d {
