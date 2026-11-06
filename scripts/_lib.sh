@@ -279,6 +279,144 @@ find_all_spikes() {
     find "${REPO_ROOT}/spikes" -type f -name "SPIKE-*.md" 2>/dev/null
 }
 
+# ── Front-matter PARSE check (v0.6.41) ──────────────────────────────────────
+# `validate`'s key checks are line-oriented: they confirm required keys exist
+# but never PARSE, so front matter no YAML parser can read was reported valid
+# (irradiance SPEC-010 shipped that way). These two helpers answer "does this
+# front matter parse?" for a list of files, with one output protocol so the
+# caller doesn't care which one ran (tab-separated, one event per line):
+#     FAIL<TAB><file><TAB><message>   — each file that did not parse
+#     PARSED<TAB><n>                   — files that had front matter to check
+#     SCANNED<TAB><n>                  — files examined (completion sentinel)
+# A file whose first line is not `---`, or with no closing `---`, has no front
+# matter and is skipped. Exit 0 if all parsed, 1 if any failed.
+#
+# Order of preference (DEC-014): `sdt` once it exists → ruby → bash heuristic.
+# FM_PARSER=ruby|bash forces one (tests use it to exercise the fallback).
+fm_parser() {
+    case "${FM_PARSER:-}" in
+        ruby|bash) printf '%s' "$FM_PARSER"; return ;;
+    esac
+    if command -v ruby >/dev/null 2>&1; then printf 'ruby'; else printf 'bash'; fi
+}
+
+# Real parse with Ruby's bundled YAML (Psych). Uses YAML.parse, never
+# load/safe_load: parse builds no objects, so a date scalar is not an error on
+# any Ruby version, and it avoids safe_load's keyword API, which differs between
+# Ruby 2.6 and 3.x and fails on EVERY file when wrong — looking like findings
+# while the check never ran (irradiance SPEC-016). Files are read as UTF-8
+# regardless of locale. The rescue wraps the whole per-file body, so an
+# unreadable file is a named FAIL, not a crash.
+front_matter_parse_report_ruby() {
+    ruby -ryaml -e '
+had_error = false
+parsed = 0
+scanned = 0
+ARGV.each do |path|
+  scanned += 1
+  begin
+    lines = File.read(path, :encoding => "UTF-8").lines
+    next unless lines[0] && lines[0].rstrip == "---"
+    body = []
+    closed = false
+    lines[1..-1].each do |l|
+      if l.rstrip == "---"
+        closed = true
+        break
+      end
+      body << l
+    end
+    next unless closed
+    parsed += 1
+    YAML.parse(body.join)
+  rescue => e
+    had_error = true
+    puts "FAIL\t#{path}\t#{e.message.gsub(/[\t\n]+/, " ")}"
+  end
+end
+puts "PARSED\t#{parsed}"
+puts "SCANNED\t#{scanned}"
+exit(had_error ? 1 : 0)
+' "$@"
+}
+
+# Fallback when no parser is installed. NOT a parser: it catches the ways
+# front matter has actually broken in instances — a quoted scalar left open
+# (handback-sync's multi-line truncation) and tab indentation — and nothing
+# else. `validate` says so when it runs this one.
+front_matter_parse_report_bash() {
+    awk '
+        function finish() {
+            if (cur == "") return
+            scanned++
+            if (closed) {
+                parsed++
+                if (open != "" && err == "") err = "unterminated " open " scalar opened at line " oline
+                if (err != "") { printf "FAIL\t%s\t%s\n", cur, err; bad = 1 }
+            }
+        }
+        function indent_of(s) { match(s, /^ */); return RLENGTH }
+        # Index of the closing quote of the given kind in s, or 0.
+        function qclose(s, q,   i, c) {
+            for (i = 1; i <= length(s); i++) {
+                c = substr(s, i, 1)
+                if (q == "\"" && c == "\\") { i++; continue }
+                if (c == q) {
+                    if (q == "\047" && substr(s, i + 1, 1) == "\047") { i++; continue }
+                    return i
+                }
+            }
+            return 0
+        }
+        FNR == 1 {
+            finish()
+            cur = FILENAME; infm = 0; closed = 0; open = ""; err = ""; blk = -1
+            if ($0 ~ /^---[[:space:]]*$/) { infm = 1 }
+            next
+        }
+        !infm { next }
+        /^---[[:space:]]*$/ { infm = 0; closed = 1; next }
+        err != "" { next }
+        {
+            # Inside a `|` / `>` block scalar: its lines are text, not YAML.
+            if (blk >= 0) {
+                if ($0 ~ /^[[:space:]]*$/ || indent_of($0) > blk) next
+                blk = -1
+            }
+            if (open != "") {
+                if ($0 !~ /^[[:space:]]*$/ && indent_of($0) <= oind) {
+                    err = "unterminated " open " scalar opened at line " oline; next
+                }
+                if (qclose($0, oq)) open = ""
+                next
+            }
+            if ($0 ~ /^ *\t/) { err = "tab used for indentation at line " FNR; next }
+            if ($0 ~ /: +[|>][-+0-9]*( +#.*)? *$/ || $0 ~ /^ *- +[|>][-+0-9]*( +#.*)? *$/) {
+                blk = indent_of($0); next
+            }
+            # A value that opens with a quote: `key: "..."`, `- "..."`, `- key: "..."`.
+            if (match($0, /^ *(- +)?([^:#"\047 ][^:]*: +)?["\047]/)) {
+                if (substr($0, RSTART, RLENGTH) !~ /(: +|- +|^ *)["\047]$/) next
+                q = substr($0, RSTART + RLENGTH - 1, 1)
+                rest = substr($0, RSTART + RLENGTH)
+                if (!qclose(rest, q)) {
+                    open = (q == "\"") ? "double-quoted" : "single-quoted"
+                    oq = q; oline = FNR; oind = indent_of($0)
+                }
+            }
+        }
+        END { finish(); printf "PARSED\t%d\nSCANNED\t%d\n", parsed, scanned; exit bad }
+    ' "$@"
+}
+
+front_matter_parse_report() {
+    if [ "$(fm_parser)" = ruby ]; then
+        front_matter_parse_report_ruby "$@"
+    else
+        front_matter_parse_report_bash "$@"
+    fi
+}
+
 # Read `<block>.<key>` from a file's front matter as a YAML scalar.
 #
 # Line-oriented, but it honours the YAML scalar rules the line-strippers it
@@ -688,9 +826,11 @@ build_dirty() {
 # Find all specs under a project (active AND archived under done/).
 # find_spec excludes done/ on purpose; reports need both.
 # Usage: find_all_specs projects/PROJ-001-foo
+# Sorted: find returns raw directory order, which is alphabetical on APFS but
+# arbitrary on ext4, so unsorted reports listed specs differently on Linux.
 find_all_specs() {
     local project_dir="$1"
-    find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null
+    find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null | sort
 }
 
 # All PATCH-*.md under a project's patches/ (the patch lane — DEC-003).
@@ -698,7 +838,7 @@ find_all_specs() {
 # work on them unchanged.
 find_all_patches() {
     local project_dir="$1"
-    find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null
+    find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null | sort
 }
 
 # Read a scalar from the `task:` block of a spec/patch front-matter.

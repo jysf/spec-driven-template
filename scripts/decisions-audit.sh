@@ -198,6 +198,33 @@ if [ "${1:-}" = "--changed" ]; then
             git ls-files --others --exclude-standard
         } 2>/dev/null | sort -u )
         scope_desc="your uncommitted changes"
+
+        # A clean tree has no uncommitted changes, so a bare `--changed` used to
+        # report "nothing in scope" and exit 0 — a green that could not go red.
+        # A verify cycle runs in exactly that state (a fresh checkout of the
+        # branch under review) and AGENTS.md tells it to run this command, so
+        # every such audit checked nothing (crustyimg 67cd4f6). Fall back to the
+        # default branch, and say so. `|| true` on each probe: under `set -e` a
+        # failed `x=$(git …)` would end the script silently.
+        if [ "${#CHANGED[@]}" -eq 0 ]; then
+            fallback=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+            if [ -z "$fallback" ]; then
+                for cand in main master; do
+                    if git rev-parse --verify -q "$cand" >/dev/null 2>&1; then
+                        fallback="$cand"; break
+                    fi
+                done
+            fi
+            if [ -n "$fallback" ] && ! git diff --quiet "${fallback}...HEAD" 2>/dev/null; then
+                while IFS= read -r p; do
+                    [ -n "$p" ] && CHANGED+=("$p")
+                done < <(git diff --name-only "${fallback}...HEAD" 2>/dev/null | sort -u)
+                warn "Working tree is clean, so there are no uncommitted changes to audit."
+                warn "Falling back to ${fallback}...HEAD. Pass a base ref to be explicit:"
+                warn "  just decisions-audit --changed ${fallback}"
+                scope_desc="changes in ${fallback}...HEAD (fell back: working tree is clean)"
+            fi
+        fi
     fi
 
     if [ "${#CHANGED[@]}" -eq 0 ]; then
@@ -214,7 +241,9 @@ if [ "${1:-}" = "--changed" ]; then
         id=$(get_insight_id "$file")
         # The markdown H1 title; anchored to `# DEC-` so it can't pick
         # up a `#`-prefixed YAML comment inside the front-matter.
-        title=$(grep -m1 '^# DEC-' "$file" | sed -E 's/^# //')
+        # `|| true`: a DEC with no H1 makes grep match nothing, and under
+        # pipefail that ended the whole audit silently (irradiance SPEC-023).
+        title=$(grep -m1 '^# DEC-' "$file" | sed -E 's/^# //' || true)
         globs=()
         while IFS= read -r g; do
             [ -n "$g" ] && globs+=("$g")

@@ -652,9 +652,11 @@ Check:
    just the shape validated (§12 behavioral pre-flight)? This is the class that
    escapes.
 
-For check 3, run `just decisions-audit --changed` — it flags which
-`DEC-*` records govern the files the implementer touched, so you can
-confirm the work stayed consistent with them. `just decisions-audit`
+For check 3, run `just decisions-audit --changed main` (your default
+branch) — it flags which `DEC-*` records govern the files the implementer
+touched, so you can confirm the work stayed consistent with them. Pass the
+base ref: verify usually runs on a clean checkout, where a bare `--changed`
+has no uncommitted changes to look at and falls back with a warning. `just decisions-audit`
 (no flag) lints the records themselves. See `/guidance/recommended-tools.md`
 for optional, heavier verify tooling (e.g. LineSpec for protocol-level
 integration tests).

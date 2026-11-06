@@ -2,6 +2,85 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-05 — spec lists are sorted on Linux too (v0.6.43)
+
+**`find_all_specs` and `find_all_patches` now sort their output.** `find`
+returns raw directory order: alphabetical on macOS (APFS), arbitrary on Linux
+(ext4). So every report built on them, `calibration` included, listed specs in
+a different order on Linux. The new CI's Ubuntu job caught it, with a test that
+had assumed the first spec in `calibration --json` was its fixture. That test
+now looks the spec up by id, and a new check asserts the helper's output is
+sorted.
+
+Also: the suite's post-`handback-sync` YAML check uses `YAML.parse`, like
+`validate` does. `YAML.load` refuses dates on Ruby 3.x, so the check failed on
+the macOS runner, whose Ruby is newer than the system 2.6.
+
+And: the suite takes a pipeline's first line with `sed -n 1p`, not `head -n1`.
+`head` exits after one line, so a producer still writing gets SIGPIPE, and under
+`pipefail` the suite died with exit 141 and no message. It lost that race on
+Ubuntu, reading the version headers of a now 138 KB CHANGELOG.
+
+## 2026-11-05 — the template's own suite runs in CI (v0.6.42)
+
+**`.github/workflows/selftest.yml`** runs `just template-selftest` on every pull
+request and push to `main`, on Ubuntu and macOS. Until now the suite ran only
+when the maintainer remembered to, and only on macOS, although the scripts
+promise both BSD and GNU `sed`/`date`/`stat`. Pull requests here had no checks
+at all.
+
+**`init` removes that workflow from a new scaffold.** `init` merges the
+variant's `.github/` over the root one, so every instance would otherwise have
+inherited a job that runs the template's suite, which needs `variants/` and
+fails in an instance. `scaffold-clean` now deletes it alongside the other
+template-only files; the variant's own `ci.yml` is untouched.
+
+Also: the suite no longer depends on the machine's global git identity. Its
+scratch-repo baseline commit now passes one, like its other commits, and the
+`fresh-history` test gives its throwaway repo a local one (the script rightly
+refuses without). CI runners have no global identity, so both failed there on
+the first run; the suite now passes locally with `GIT_CONFIG_GLOBAL=/dev/null`.
+
+## 2026-11-05 — gates that could not fail now can (v0.6.41)
+
+Second batch from the 2026-11 harvest. Each item is a check that reported green
+while checking nothing.
+
+**`validate` parses front matter.** Its key check is line-oriented and never
+parsed, so a spec no YAML parser could read passed every gate (irradiance
+SPEC-010 shipped that way and survived three later specs). `validate` now
+parses the front matter of every `*.md` under `projects/` and the decisions
+directory, handoffs included, and names each file that fails with the parser's
+own message. Ported from irradiance SPEC-016, with three changes:
+
+- **Ruby is optional** (DEC-014). With `ruby` on PATH it does a real parse
+  (`YAML.parse`, which behaves the same on Ruby 2.6 and 3.x). Without it,
+  `validate` falls back to a bash check for the two ways front matter has
+  actually broken — an unclosed quoted value and tab indentation — and says it
+  did. `FM_PARSER=ruby|bash` forces one. Across 953 front-matter blocks in six
+  instances the bash check raised no false alarms.
+- Files are read as UTF-8 regardless of locale.
+- `--json` adds `parsed`, `parser`, and a `message` on parse violations.
+
+It refuses to report green when the parser did not run: a crash, or an exit 0
+without having examined every file, fails the gate.
+
+**CI runs `validate`.** Both variants' `ci.yml` ran only `cost-audit` and
+`decisions-index --check`, which is how an unparseable handoff reached
+irradiance's main branch.
+
+**`decisions-audit --changed` on a clean tree.** A bare `--changed` audits
+uncommitted changes. Verify runs on a clean checkout, where there are none, so
+it printed "No changed files" and exited 0 — the drift check never checked
+anything (crustyimg 67cd4f6). It now falls back to the default branch's
+`BASE...HEAD` and says so. AGENTS.md in both variants now says to pass the base
+ref (`--changed main`). Unlike crustyimg's version, the default-branch probe
+cannot end the script under `set -e` in a repo without `origin/HEAD`.
+
+**`decisions-audit` no longer dies on a DEC with no H1.** The title grep
+matched nothing and `pipefail` ended the audit mid-loop with no message
+(irradiance SPEC-023's one reachable finding in the template).
+
 ## 2026-11-04 — front-matter scalars and the handback ledger stop corrupting data (v0.6.40)
 
 First batch from the 2026-11 irradiance/crustyimg harvest

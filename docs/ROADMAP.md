@@ -824,6 +824,30 @@ template gains a *reader* for data the instance already holds — which is exact
 what happened here. That may be a narrow enough case to solve with the warning
 alone.
 
+## Now-tier, added 2026-11-05 — a Go `sdt` binary, built incrementally
+
+**Decided in [DEC-014](decisions/DEC-014-go-sdt-binary.md).** The 2026-11 harvest
+found bash cannot reliably read the front-matter format (irradiance added Ruby
+and python3 to do it), and instances never receive template fixes. One optional
+Go binary answers both: real YAML handling, and `brew upgrade` as the update
+channel. It is **not** a rewrite of `scripts/`; commands move over only when bash
+is shown failing at them.
+
+Order:
+1. **Batch 2 (bash, now):** optional Ruby parse in `validate` with a bash
+   fallback; `validate` in the template's CI. This sets up the fallback chain
+   `sdt` → `ruby` → bash that the binary will plug into.
+2. **First `sdt` spec:** `sdt validate`, `sdt fm get|set` (comment-preserving),
+   `sdt template-update`. Settle DEC-014's open questions first (source
+   location, version coupling, YAML library).
+3. **`sdt mcp serve`**, reusing brag's MCP patterns, once the CLI commands are
+   stable. Update `CONTEXTCORE_ALIGNMENT.md` in the same change.
+4. Everything else stays in bash until a harvest says otherwise.
+
+This supersedes the "documented manual update recipe → `just template-update`"
+sequence in the 2026-08-13 update-path entry above: the update channel becomes
+an `sdt` command.
+
 ## Explicitly rejected — recorded so it isn't re-asked
 
 From the 2026-08-12 external comparison. *(This section is itself the evidence

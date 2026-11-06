@@ -19,6 +19,12 @@ jobs:
       - name: cost-audit (shipped specs have build/verify cost; AGENTS §4)
         run: ./scripts/cost-audit.sh
 
+      # Required keys on specs/patches/spikes, plus a real YAML parse of every
+      # front matter under projects/ and decisions/ (ruby is on the runner).
+      # Without this, a file no parser can read passes every other gate.
+      - name: validate (front matter has required keys and parses)
+        run: ./scripts/validate.sh
+
       # Opt-in by existence: passes quietly until you run `just decisions-index`
       # once and commit the result. After that it fails if the index falls
       # behind the decisions — the difference between a derived artifact and a

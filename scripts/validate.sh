@@ -6,9 +6,16 @@
 # `--json`, and any downstream consumer (MCP, exporter, UI). Exits non-zero on
 # any violation — the CI gate contract (DEC-001 §2, exit 1).
 #
-# Scope (v1): specs. Cost recording on SHIPPED specs is a separate gate
-# (`just cost-audit`); decision records are linted by `just decisions-audit`.
-# This validator is the place to grow stage/brief checks over time.
+# Two scopes, on purpose:
+#   * Required-KEYS check — specs, patches, spikes. Schema-specific, so it stays
+#     scoped to the lanes whose schema it knows.
+#   * Front-matter PARSE check (v0.6.41) — every *.md under projects/ and the
+#     decisions dir, handoffs included. It only asks whether the front matter
+#     parses at all. The key check never parsed, so a file no parser could read
+#     was reported valid (irradiance SPEC-010). Uses ruby when present, else a
+#     weaker bash check, and says which (see front_matter_parse_report).
+# Cost recording on SHIPPED specs is a separate gate (`just cost-audit`);
+# decision records are linted by `just decisions-audit`.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_lib.sh
@@ -55,7 +62,8 @@ SUGGESTED_CLOSED_REASON=" shipped abandoned superseded parked "
 
 offenders=0
 checked=0
-off_names=(); off_problems=(); off_kinds=()
+parsed=0
+off_names=(); off_problems=(); off_kinds=(); off_messages=()
 activity_notes=""
 depends_notes=""
 actual_notes=""
@@ -123,7 +131,7 @@ while IFS= read -r pdir; do
 
         checked=$((checked + 1))
         if [ -n "$problems" ]; then
-            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spec")
+            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spec"); off_messages+=("")
             [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
             offenders=$((offenders + 1))
         fi
@@ -154,7 +162,7 @@ while IFS= read -r pdir; do
 
         checked=$((checked + 1))
         if [ -n "$problems" ]; then
-            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("patch")
+            off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("patch"); off_messages+=("")
             [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
             offenders=$((offenders + 1))
         fi
@@ -255,11 +263,53 @@ while IFS= read -r f; do
 
     checked=$((checked + 1))
     if [ -n "$problems" ]; then
-        off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spike")
+        off_names+=("$name"); off_problems+=("$problems"); off_kinds+=("spike"); off_messages+=("")
         [ "$JSON_OUT" = 1 ] || printf "  %-52s invalid/missing:%s\n" "$name" "$problems"
         offenders=$((offenders + 1))
     fi
 done < <(find_all_spikes)
+
+# ── Front-matter PARSE check ────────────────────────────────────────────────
+# Runs the parser to a temp file with its exit code captured — NOT in a
+# `done < <(…)` loop, which hides a crash from `set -e` and would report green.
+# Two more guards against a check that silently didn't run: the parser must
+# report having examined every file it was given (SCANNED), and a non-zero
+# exit with no FAIL line is a crash, not a verdict.
+PARSER=$(fm_parser)
+parse_targets=()
+while IFS= read -r f; do
+    [ -n "$f" ] && parse_targets+=("$f")
+done < <(find "${REPO_ROOT}/projects" "$(decisions_dir)" -type f -name '*.md' 2>/dev/null | sort)
+if [ "${#parse_targets[@]}" -gt 0 ]; then
+    parse_report="$(mktemp)"
+    set +e
+    front_matter_parse_report "${parse_targets[@]}" > "$parse_report" 2>&1; parse_rc=$?
+    set -e
+    scanned=0
+    parse_fails=0
+    while IFS=$'\t' read -r tag a b; do
+        case "$tag" in
+            SCANNED) scanned="$a" ;;
+            PARSED)  parsed="$a" ;;
+            FAIL)
+                pname=$(basename "$a" .md)
+                off_names+=("$pname"); off_problems+=(" front-matter-did-not-parse")
+                off_kinds+=("parse"); off_messages+=("$b")
+                [ "$JSON_OUT" = 1 ] || printf "  %-52s front matter did not parse: %s\n" "$pname" "$b"
+                offenders=$((offenders + 1))
+                parse_fails=$((parse_fails + 1))
+                ;;
+        esac
+    done < "$parse_report"
+    parse_tail=$(tail -n 3 "$parse_report" | tr '\n' ' ')
+    rm -f "$parse_report"
+    if [ "$scanned" -ne "${#parse_targets[@]}" ]; then
+        die "validate: the ${PARSER} front-matter check examined ${scanned} of ${#parse_targets[@]} file(s) before stopping, so it did not finish. Refusing to report green. Last output: ${parse_tail}"
+    fi
+    if [ "$parse_rc" -ne 0 ] && [ "$parse_fails" -eq 0 ]; then
+        die "validate: the ${PARSER} front-matter check exited ${parse_rc} without naming an unparseable file, so it failed for some other reason. Refusing to report green. Last output: ${parse_tail}"
+    fi
+fi
 
 # --- Machine-readable output (DEC-001 §2): the gate's findings, not just its
 # exit code. An agent that hits a red gate can act on WHICH artifact failed
@@ -272,15 +322,24 @@ if [ "$JSON_OUT" = 1 ]; then
         probs="${off_problems[$i]# }"
         parts=(); for tok in $probs; do parts+=("$(json_qs "$tok")"); done
         [ "${#parts[@]}" -gt 0 ] && parr=$(json_arr "${parts[@]}") || parr="[]"
-        items+=("$(json_obj \
-            artifact "$(json_qs "${off_names[$i]}")" \
-            kind "$(json_qs "${off_kinds[$i]}")" \
-            problems "$parr")")
+        # Parse failures carry the parser's own message; other offenders have none.
+        if [ -n "${off_messages[$i]}" ]; then
+            items+=("$(json_obj \
+                artifact "$(json_qs "${off_names[$i]}")" \
+                kind "$(json_qs "${off_kinds[$i]}")" \
+                problems "$parr" \
+                message "$(json_qs "${off_messages[$i]}")")")
+        else
+            items+=("$(json_obj \
+                artifact "$(json_qs "${off_names[$i]}")" \
+                kind "$(json_qs "${off_kinds[$i]}")" \
+                problems "$parr")")
+        fi
         i=$((i + 1))
     done
     [ "${#items[@]}" -gt 0 ] && arr=$(json_arr "${items[@]}") || arr="[]"
     json_emit validate "$(json_obj \
-        checked "$checked" offenders "$offenders" ok "$([ "$offenders" -eq 0 ] && echo true || echo false)" \
+        checked "$checked" parsed "$parsed" parser "$(json_qs "$PARSER")" offenders "$offenders" ok "$([ "$offenders" -eq 0 ] && echo true || echo false)" \
         violations "$arr")"
     [ "$offenders" -gt 0 ] && exit 1
     exit 0
@@ -325,8 +384,13 @@ if [ -n "$depends_notes" ]; then
     printf '%s' "$depends_notes"
 fi
 
+# Advisory: no YAML parser, so the parse check was the weaker bash heuristic.
+if [ "$PARSER" = bash ]; then
+    warn "validate: front matter was checked with the bash heuristic (no ruby on PATH, or FM_PARSER=bash), which catches unclosed quotes and tab indentation only. Install ruby for a real parse."
+fi
+
 if [ "$offenders" -gt 0 ]; then
     echo ""
-    die "validate: ${offenders} artifact(s) with invalid/missing required front-matter (checked ${checked}). See DEC-001 §1 / docs/schema-reference.md."
+    die "validate: ${offenders} artifact(s) failed front-matter validation: ${checked} checked for required keys (specs + patches + spikes), ${parsed} parsed (${PARSER}) under projects/ + decisions/. See DEC-001 §1 / docs/schema-reference.md."
 fi
-success "validate: ${checked} artifact(s) (specs + patches + spikes) have valid required front-matter."
+success "validate: ${checked} artifact(s) (specs + patches + spikes) have valid required front-matter; ${parsed} artifact(s) under projects/ + decisions/ parse (${PARSER})."

@@ -1,0 +1,46 @@
+name: template-selftest
+
+# The template's own suite (`just template-selftest`). It scaffolds a throwaway
+# repo, runs init → a full cycle → reports → audits, and must stay green.
+#
+# Two OSes on purpose: the scripts promise BSD *and* GNU sed/date/stat, and
+# until this workflow the suite had only ever run on macOS. ruby and python3
+# are preinstalled on both runners, so the real YAML parse and the JSON
+# assertions run; the bash fallback is exercised by the suite itself.
+#
+# This is the maintainer's CI. It is not the `ci.yml` shipped in variants/,
+# which runs in the repos a user scaffolds.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: selftest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  selftest:
+    name: selftest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Tool versions
+        run: |
+          bash --version | head -n1
+          just --version
+          ruby --version || echo "no ruby (parse check uses the bash fallback)"
+          python3 --version || echo "no python3 (JSON assertions skipped)"
+
+      - name: just template-selftest
+        run: just template-selftest
