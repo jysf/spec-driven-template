@@ -984,6 +984,11 @@ sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: null/" "$C
 assert_eq "$(bash -c "source scripts/_lib.sh; get_spec_complexity_actual '$CAL_A'")" "" \
     "an unset actual size reads as empty, not 'null'"
 
+# Report order must not depend on the filesystem (ext4 returns directory order).
+fas_raw=$(bash -c "source scripts/_lib.sh; find_all_specs projects/PROJ-001-example-mvp")
+fas_sorted=$(printf '%s\n' "$fas_raw" | sort)
+assert_eq "$fas_raw" "$fas_sorted" "find_all_specs returns specs in sorted order"
+
 # calibration: a shipped spec that took MORE than expected reads as under-estimated.
 sed_inplace_portable "s/^  complexity_actual: .*/  complexity_actual: L/" "$CAL_A"
 sed_inplace_portable "s/^  cycle: .*/  cycle: ship/" "$CAL_A"
@@ -1011,7 +1016,9 @@ if command -v python3 >/dev/null 2>&1; then
     else
         fail "calibration --json is not valid JSON"
     fi
-    cal_verdict=$(printf '%s' "$cal_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["specs"][0]["size_verdict"])' 2>/dev/null)
+    # Select by id, not position: other example specs share the list.
+    cal_id=$(basename "$CAL_A" | sed -E 's/^(SPEC-[0-9]+)-.*/\1/')
+    cal_verdict=$(printf '%s' "$cal_json" | python3 -c 'import json,sys; print([s["size_verdict"] for s in json.load(sys.stdin)["data"]["specs"] if s["id"] == sys.argv[1]][0])' "$cal_id" 2>/dev/null)
     assert_eq "$cal_verdict" "under" "calibration --json exposes the per-spec size verdict"
 fi
 # An unrecorded actual is surfaced, never treated as an error.
@@ -3020,9 +3027,9 @@ else
 fi
 assert_contains "$PN_SPEC" "^      handoff: HANDOFF-[0-9]+$" "transcribed session names the handoff it came from"
 if command -v ruby >/dev/null 2>&1; then
-    # YAML.load, not safe_load: the front matter holds dates, and Ruby 2.6's
-    # safe_load has no keyword for permitting them. Read as UTF-8 regardless of locale.
-    if ruby -ryaml -e 'YAML.load(File.read(ARGV[0], :encoding => "UTF-8").split(/^---$/)[1])' "$PN_SPEC" >/dev/null 2>&1; then
+    # YAML.parse (syntax only), like validate: YAML.load rejects dates on
+    # Ruby 3.x and safe_load's API differs on 2.6. Read as UTF-8 regardless of locale.
+    if ruby -ryaml -e 'YAML.parse(File.read(ARGV[0], :encoding => "UTF-8").split(/^---$/)[1])' "$PN_SPEC" >/dev/null 2>&1; then
         pass "spec front matter still parses as YAML after the sync"
     else
         fail "spec front matter is unparseable after handback-sync"

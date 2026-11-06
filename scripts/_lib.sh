@@ -826,9 +826,11 @@ build_dirty() {
 # Find all specs under a project (active AND archived under done/).
 # find_spec excludes done/ on purpose; reports need both.
 # Usage: find_all_specs projects/PROJ-001-foo
+# Sorted: find returns raw directory order, which is alphabetical on APFS but
+# arbitrary on ext4, so unsorted reports listed specs differently on Linux.
 find_all_specs() {
     local project_dir="$1"
-    find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null
+    find "${project_dir}/specs" -type f -name "SPEC-*.md" 2>/dev/null | sort
 }
 
 # All PATCH-*.md under a project's patches/ (the patch lane — DEC-003).
@@ -836,7 +838,7 @@ find_all_specs() {
 # work on them unchanged.
 find_all_patches() {
     local project_dir="$1"
-    find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null
+    find "${project_dir}/patches" -type f -name "PATCH-*.md" 2>/dev/null | sort
 }
 
 # Read a scalar from the `task:` block of a spec/patch front-matter.

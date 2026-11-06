@@ -2,6 +2,20 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-05 — spec lists are sorted on Linux too (v0.6.43)
+
+**`find_all_specs` and `find_all_patches` now sort their output.** `find`
+returns raw directory order: alphabetical on macOS (APFS), arbitrary on Linux
+(ext4). So every report built on them, `calibration` included, listed specs in
+a different order on Linux. The new CI's Ubuntu job caught it, with a test that
+had assumed the first spec in `calibration --json` was its fixture. That test
+now looks the spec up by id, and a new check asserts the helper's output is
+sorted.
+
+Also: the suite's post-`handback-sync` YAML check uses `YAML.parse`, like
+`validate` does. `YAML.load` refuses dates on Ruby 3.x, so the check failed on
+the macOS runner, whose Ruby is newer than the system 2.6.
+
 ## 2026-11-05 — the template's own suite runs in CI (v0.6.42)
 
 **`.github/workflows/selftest.yml`** runs `just template-selftest` on every pull
