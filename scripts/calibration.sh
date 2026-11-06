@@ -40,7 +40,7 @@ PROJECTS=()
 if [ "$SCOPE" = "active" ]; then
     PROJECTS+=("$(get_active_project)")
 elif [ "$SCOPE" = "one" ]; then
-    dir=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "${TARGET}*" 2>/dev/null | sort | head -n1)
+    dir=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "${TARGET}*" 2>/dev/null | sort | sed -n 1p)
     [ -n "$dir" ] || die "No project matching '${TARGET}' under projects/."
     PROJECTS+=("$(basename "$dir")")
 else
@@ -117,7 +117,7 @@ band_for() {
     [ -n "$vals" ] || return 1
     n=$(printf '%s\n' "$vals" | wc -l | tr -d ' ')
     printf '%s|%s|%s|%s' \
-        "$(printf '%s\n' "$vals" | head -n1)" \
+        "$(printf '%s\n' "$vals" | sed -n 1p)" \
         "$(printf '%s\n' "$vals" | awk -v n="$n" 'NR == int((n+1)/2) { print; exit }')" \
         "$(printf '%s\n' "$vals" | tail -n1)" \
         "$n"

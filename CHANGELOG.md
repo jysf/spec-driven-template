@@ -2,6 +2,20 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-05 — no script can die on SIGPIPE (v0.6.44)
+
+**Every `… | head` in `scripts/` is now `… | sed -n 1p`** (or `sed -n 1,Np`),
+25 places in 11 scripts. `head` exits once it has its lines; if the command
+feeding it is still writing, that command is killed by SIGPIPE, and under
+`set -euo pipefail` the whole script stops with exit 141 and no message. It is
+a timing race that grows with the data: `report_weekly` and `weekly-review`
+piped sorted lists over a whole repo, and `lifetime-report` had already been
+patched once with `|| true` after `git log | head -1` aborted it. `sed` reads all
+its input, so the race cannot happen. `lifetime-report` now gets the last commit
+date with `git log -1`, without reading the whole log.
+
+A new check in the suite fails if any script pipes into `head` again.
+
 ## 2026-11-05 — spec lists are sorted on Linux too (v0.6.43)
 
 **`find_all_specs` and `find_all_patches` now sort their output.** `find`

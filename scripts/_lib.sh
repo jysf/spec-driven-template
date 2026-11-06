@@ -149,11 +149,11 @@ get_active_project() {
 ${dirs}
 EOF
     # No project marked active → fall back to the lowest-numbered non-example.
-    [ -n "$first" ] || first=$(printf '%s\n' "$dirs" | head -n1)
+    [ -n "$first" ] || first=$(printf '%s\n' "$dirs" | sed -n 1p)
     # Still nothing → fall back to the example project.
     if [ -z "$first" ]; then
         first=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "PROJ-*" 2>/dev/null \
-                | sort | head -n1)
+                | sort | sed -n 1p)
     fi
     if [ -z "$first" ]; then
         die "No projects found in ./projects/. Create one by copying projects/_templates/project-brief.md into projects/PROJ-NNN-<slug>/brief.md (see GETTING_STARTED.md)."
@@ -268,7 +268,7 @@ find_spec() {
     find $roots -type f -name "${spec_id}-*.md" \
         -not -name '*-timeline.md' \
         -not -path '*/done/*' \
-        -not -path '*/prompts/*' 2>/dev/null | head -n1
+        -not -path '*/prompts/*' 2>/dev/null | sed -n 1p
 }
 
 # All spikes in the repo (the bounded-exploration lane, DEC-012). Repo-level,
@@ -543,13 +543,13 @@ get_spike_field() { _get_fm_block_scalar "$1" spike "$2"; }
 find_spec_timeline() {
     local spec_id="$1"
     find "${REPO_ROOT}/projects" -type f -name "${spec_id}-*-timeline.md" \
-        -not -path '*/done/*' 2>/dev/null | head -n1
+        -not -path '*/done/*' 2>/dev/null | sed -n 1p
 }
 
 # Find a stage file by ID.
 find_stage() {
     local stage_id="$1"
-    find "${REPO_ROOT}/projects" -type f -name "${stage_id}-*.md" 2>/dev/null | head -n1
+    find "${REPO_ROOT}/projects" -type f -name "${stage_id}-*.md" 2>/dev/null | sed -n 1p
 }
 
 # Extract un-promoted "(not yet written)" bullets from a stage's ## Spec Backlog
@@ -1009,7 +1009,7 @@ get_spec_claimed_by() {
 # Usage: spec_is_shipped SPEC-002 projects/PROJ-001-foo
 spec_is_shipped() {
     local id="$1" pdir="$2" sf
-    sf=$(find "${pdir}/specs" -maxdepth 2 -type f -name "${id}-*.md" ! -name '*-timeline.md' 2>/dev/null | sort | head -n1)
+    sf=$(find "${pdir}/specs" -maxdepth 2 -type f -name "${id}-*.md" ! -name '*-timeline.md' 2>/dev/null | sort | sed -n 1p)
     [ -n "$sf" ] || return 1
     case "$sf" in */done/*) return 0 ;; esac
     [ "$(get_spec_cycle "$sf")" = "ship" ] && return 0

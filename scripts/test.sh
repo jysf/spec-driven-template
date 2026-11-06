@@ -1635,6 +1635,15 @@ if [ -z "$dup_ver" ]; then
 else
     fail "duplicate CHANGELOG header for version ${dup_ver}"
 fi
+# No script may pipe into `head`: it exits early, the producer gets SIGPIPE, and
+# under `set -euo pipefail` the command dies with exit 141 and no message. Use
+# `sed -n 1p` (or `sed -n 1,Np`), which reads all its input.
+head_pipes=$(grep -nE '\|[[:space:]]*head([[:space:]]|$)' "$TEMPLATE_ROOT"/scripts/*.sh || true)
+if [ -z "$head_pipes" ]; then
+    pass "no script pipes into head (SIGPIPE under pipefail)"
+else
+    fail "scripts pipe into head; use sed -n 1p: ${head_pipes}"
+fi
 
 # ============================================================
 # DEC-007 (v0.6.1): app versioning scheme (calver default) + next-version
