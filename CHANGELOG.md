@@ -2,6 +2,39 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-06 — ids are minted across branches and worktrees; `just id-audit` (v0.6.45)
+
+**`next_id` now looks everywhere a number could already be taken:** this
+checkout, every other worktree of the repo (uncommitted files included), and
+every local branch and remote-tracking ref. It used to read only the working
+tree, so two branches or two parallel sessions each took the next number.
+Irradiance did this at least 7 times, and DEC-028 reached history on two
+branches as two different decisions. When the highest id is elsewhere,
+`new-spec` and friends say where on stderr, so the jump in numbering is
+explained. Refs are read as they are: nothing is fetched.
+
+It also ignores what is not an artifact: `tests/` fixtures (irradiance's
+SPEC-900 oracle fixture made it mint SPEC-901; on irradiance today the old code
+still says SPEC-901, the new says SPEC-047), `prompts/` and `*-timeline.md`,
+which share their spec's id. The ref scan is one `git log` over commits HEAD
+lacks, so it costs about 0.1 s on a 200-ref repo; the whole call is 0.3–1 s.
+
+**`just id-audit`** (new, `--json`) finds ids already used twice: one number on
+two different artifacts across the same places. Exit 1 when it finds one. A
+collision someone already fixed by renumbering (the slug now lives under another
+number here, while a stale branch keeps the old one) is listed separately and
+passes. Run on the instances: irradiance reports DEC-028 (still open) and five
+specs/stages already renumbered on a stale branch; crustyimg passes, with one
+renumbering (DEC-092 → DEC-093) that was never recorded anywhere.
+
+Both scans follow `decisions_dir()`, so an instance that carries the template's
+own DECs in `docs/decisions/` does not see each number as used twice. Both
+AGENTS.md files now say what "repo-wide" covers and when to run the audit.
+
+Not done: an append-only claim ledger, which would also cover clones and
+unfetched branches. It is listed under DEC-014's `sdt`; build it if `id-audit`
+starts finding collisions this scan could not have prevented.
+
 ## 2026-11-05 — no script can die on SIGPIPE (v0.6.44)
 
 **Every `… | head` in `scripts/` is now `… | sed -n 1p`** (or `sed -n 1,Np`),

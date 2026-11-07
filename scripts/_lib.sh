@@ -192,24 +192,104 @@ Pass the full directory name (e.g. ${pid}-<slug>) to disambiguate."
     printf '%s\n' "$matches"
 }
 
-# Return the next ID for a given prefix (SPEC, STAGE, PROJ, DEC, HANDOFF)
-# across the entire repo (or within a project, for SPEC/STAGE/HANDOFF).
-# Usage: next_id SPEC ./projects/PROJ-001-foo
+# --- Artifact ids across branches and worktrees ------------------------------
+# A new id must be free everywhere it could later be merged from, not just in
+# this checkout. Minting from the working tree alone collided across branches at
+# least 7 times in irradiance; one (DEC-028) reached history on two branches.
+#
+# Directories, relative to a checkout's root, that hold id-bearing artifacts.
+# DECs follow decisions_dir(): an instance carrying the template's own DECs in
+# docs/decisions/ would otherwise report each number as used twice.
+_id_artifact_dirs() {
+    local d
+    d=$(decisions_dir)
+    printf 'projects %s\n' "${d#"$REPO_ROOT"/}"
+}
+
+# This checkout's root as git spells it, so it compares equal to the paths
+# `git worktree list` prints (on macOS /var is a symlink to /private/var).
+_checkout_root() {
+    git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null || printf '%s\n' "$REPO_ROOT"
+}
+
+# Keep only primary artifacts carrying an id for <prefix>. Dropped: tests/
+# (oracle fixtures like SPEC-900 made next_id mint SPEC-901 in irradiance),
+# prompts/ and *-timeline.md (companions that share their spec's id), and
+# _templates/. Input and output lines are "<source>\t<path>".
+_id_artifact_filter() {
+    awk -F'\t' -v p="$1" '
+        { n = split($2, seg, "/"); base = seg[n] }
+        base !~ ("^" p "-[0-9]+") { next }
+        base ~ /-timeline\.md$/ { next }
+        $2 ~ /(^|\/)(tests|prompts|_templates)\// { next }
+        { print }'
+}
+
+# Every artifact with a <prefix> id that a new id could clash with, one per
+# line as "<source>\t<path relative to its checkout root>". <source> is:
+#   worktree:<abs path>  files on disk in this or any other worktree of the
+#                        repo, uncommitted ones included
+#   ref:<name>           files added on a local branch or remote-tracking ref
+#                        and not in HEAD. Refs are read as they are; nothing is
+#                        fetched, so a teammate's unpushed work stays invisible.
+# Outside git, only this checkout is scanned.
+id_artifact_paths() {
+    local prefix="$1" worktrees w d dirs
+    dirs=$(_id_artifact_dirs)
+    worktrees=$(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p' || true)
+    [ -n "$worktrees" ] || worktrees=$(_checkout_root)
+    {
+        printf '%s\n' "$worktrees" | while IFS= read -r w; do
+            for d in $dirs; do
+                [ -d "$w/$d" ] || continue
+                find "$w/$d" -type f -name "${prefix}-[0-9]*.md" 2>/dev/null \
+                    | awk -v w="$w" '{ print "worktree:" w "\t" substr($0, length(w) + 2) }'
+            done
+        done
+        # One git process for every ref: files added on commits HEAD lacks.
+        # --no-renames so a renamed artifact shows up under its new name.
+        if git -C "$REPO_ROOT" rev-parse --verify -q HEAD >/dev/null 2>&1; then
+            # shellcheck disable=SC2086  # the dir list is meant to split
+            git -C "$REPO_ROOT" log --source --branches --remotes --not HEAD \
+                --no-renames --diff-filter=A --name-only --format='@%S' \
+                -- $dirs 2>/dev/null \
+                | awk '/^@/ { src = substr($0, 2); next } NF { print "ref:" src "\t" $0 }' \
+                || true
+        fi
+    } | _id_artifact_filter "$prefix"
+}
+
+# The numeric part of an artifact id in a path: .../SPEC-012-foo.md -> 12.
+# Reads "<source>\t<path>" lines; prints "<number>\t<source>\t<path>".
+_id_number_column() {
+    awk -F'\t' -v p="$1" '{
+        b = $2; sub(/.*\//, "", b); sub("^" p "-", "", b)
+        match(b, /^[0-9]+/); print (substr(b, 1, RLENGTH) + 0) "\t" $0 }'
+}
+
+# Return the next free id for a prefix (SPEC, STAGE, PATCH, SPIKE, HANDOFF):
+# one past the highest id in this checkout, any other worktree, or any local
+# ref. When the highest one is somewhere else, say so on stderr, so the jump
+# in numbering is explained rather than silent.
+# Usage: next_id SPEC [./projects/PROJ-001-foo]   (dir limits the scan)
 next_id() {
-    local prefix="$1"
-    local search_dir="${2:-$REPO_ROOT}"
-    local max
-    max=$(find "$search_dir" -type f -name "${prefix}-*.md" 2>/dev/null \
-          | sed -E "s|.*/${prefix}-([0-9]+).*|\\1|" \
-          | sort -n \
-          | tail -n1 || true)
-    if [ -z "$max" ]; then
-        printf "%s-%03d" "$prefix" 1
-    else
-        # Strip leading zeros for arithmetic, then reformat.
-        max=$((10#$max))
-        printf "%s-%03d" "$prefix" $((max + 1))
+    local prefix="$1" search_dir="${2:-$REPO_ROOT}" under="" here result max mine src
+    [ "$search_dir" = "$REPO_ROOT" ] || under="${search_dir#"$REPO_ROOT"/}/"
+    here="worktree:$(_checkout_root)"
+    result=$(id_artifact_paths "$prefix" | _id_number_column "$prefix" | awk -F'\t' \
+        -v under="$under" -v here="$here" '
+        under != "" && index($3, under) != 1 { next }
+        $1 > max { max = $1; src = $2 }
+        $2 == here && $1 > mine { mine = $1 }
+        END { printf "%d\t%d\t%s\n", max, mine, src }')
+    max=$(printf '%s' "$result" | cut -f1)
+    mine=$(printf '%s' "$result" | cut -f2)
+    src=$(printf '%s' "$result" | cut -f3)
+    if [ "$max" -gt "$mine" ]; then
+        printf '%s note: %s-%03d already exists outside this checkout (%s); using %s-%03d.\n' \
+            "${YELLOW}⚠${RESET}" "$prefix" "$max" "$src" "$prefix" $((max + 1)) >&2
     fi
+    printf "%s-%03d" "$prefix" $((max + 1))
 }
 
 # Slugify a string. "Foo Bar Baz" -> "foo-bar-baz"

@@ -97,6 +97,7 @@ Run `just --list` to see everything. The main ones:
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |
 | `just decisions-index` | Regenerate `decisions/INDEX.md` (id · title · confidence · status · project · supersedes); `--check` fails if stale, `--json` for the typed surface |
+| `just id-audit` | Fail if one artifact id (SPEC/STAGE/PATCH/SPIKE/HANDOFF/DEC) is used by two different artifacts across this checkout, other worktrees and local branches; collisions already renumbered are listed but pass; `--json` |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums, or if any front matter under `projects/` or `decisions/` does not parse as YAML (ruby when installed, else a weaker bash check; the schema gate, see `docs/schema-reference.md`) |
 | `just template-version` | Print the spec-driven template version (the version your repo was scaffolded from); `--json` for machine-readable |

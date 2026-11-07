@@ -55,6 +55,10 @@ the next project's brief.
 001 per project. If PROJ-001 ends at `STAGE-006` / `SPEC-037`, PROJ-002 begins
 at `STAGE-007` / `SPEC-038`. `just new-stage` / `just new-spec` assign the next
 number repo-wide, so an ID unambiguously identifies one artifact anywhere.
+"Repo-wide" includes every local branch and worktree, so parallel sessions do not
+take the same number. Work they cannot see (another clone, an unfetched branch)
+can still collide: run `just id-audit` before merging parallel work, and after
+`git fetch`.
 
 ---
 
