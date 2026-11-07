@@ -87,25 +87,9 @@ get_top_scalar() {
     ' "$file"
 }
 
-# affected_scope — a YAML list of globs at the top level. One glob per
-# line on stdout. Empty if the key is absent or `[]`.
-get_affected_scope() {
-    awk '
-        /^---$/ { f = !f; next }
-        !f { exit }
-        /^affected_scope:/ { s = 1; next }
-        s && /^[a-zA-Z_]/ { s = 0 }
-        s && /^[[:space:]]*-[[:space:]]/ {
-            v = $0
-            sub(/^[[:space:]]*-[[:space:]]*/, "", v)
-            sub(/[[:space:]]*#.*$/, "", v)       # strip trailing comment
-            sub(/^"/, "", v); sub(/"$/, "", v)   # strip double quotes
-            sub(/^'\''/, "", v); sub(/'\''$/, "", v)  # strip single quotes
-            sub(/[[:space:]]+$/, "", v)
-            if (v != "" && v != "null") print v
-        }
-    ' "$1"
-}
+# affected_scope globs, one per line: the shared reader in _lib.sh, which also
+# reads the inline `[a, b]` form this private copy silently dropped.
+get_affected_scope() { get_dec_affected_scope "$1"; }
 
 # ---------------------------------------------------------------------
 # Glob helpers.

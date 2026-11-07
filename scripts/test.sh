@@ -2954,7 +2954,7 @@ import json, sys
 d = json.load(sys.stdin)["data"]
 c = d["collisions"]
 srcs = [s for a in c[0]["artifacts"] for s in a["sources"]]
-print(d["collision_count"], c[0]["id"], len(c[0]["artifacts"]), "ref:id-other" in srcs)' 2>&1)
+print(d["collision_count"], c[0]["id"], len(c[0]["artifacts"]), "ref:id-other" in srcs)' 2>&1 || true)
     assert_eq "$ida_check" "1 ${br_id} 2 True" "id-audit --json carries the collision, its files and sources"
 fi
 
@@ -2974,7 +2974,7 @@ if command -v python3 >/dev/null 2>&1; then
 import json, sys
 d = json.load(sys.stdin)["data"]
 r = d["renumbered"]
-print(d["collision_count"], r[0]["id"], r[0]["now"])' 2>&1)
+print(d["collision_count"], r[0]["id"], r[0]["now"])' 2>&1 || true)
     assert_eq "$ida_check" "0 ${br_id} ${re_id}" "id-audit --json lists the renumbering separately"
 fi
 rm -f "$ID_DIR/${re_id}-other-branch.md" "$ID_DIR/${br_id}-mainline.md"
@@ -2983,6 +2983,190 @@ assert_cmd_fails "id-audit rejects an unknown flag" just id-audit --bogus
 if just id-audit --bogus >/dev/null 2>&1; then ida_rc=0; else ida_rc=$?; fi
 assert_eq "$ida_rc" "2" "id-audit usage error exits 2 (DEC-001)"
 git branch -q -D id-other >/dev/null 2>&1 || true
+
+# ============================================================
+# Silent-zero tooling (v0.6.46): backlog counter, active stages, find_stage,
+# proposed projects, archive-spec, new-spec, inline affected_scope
+#
+# Each of these reported zero or nothing while work existed (crustyimg: 35
+# open bullets read as 0; a spec mid-build in a second active stage hidden;
+# 54 items in proposed projects invisible).
+# ============================================================
+SZ_AP="projects/$(bash -c 'source scripts/_lib.sh; get_active_project')"
+SZ_STAGE="$SZ_AP/stages/STAGE-950-fixture-backlog.md"
+SZ_STAGE2="$SZ_AP/stages/STAGE-951-fixture-second.md"
+mkdir -p "$SZ_AP/stages" "$SZ_AP/specs/prompts"
+# Every bullet form the instances use. Unwritten: marked, reworded, plain, and
+# an id reserved but never written. Not: promoted (bold or plain), closed,
+# deferred, prose, and bullets outside the section.
+cat > "$SZ_STAGE" <<'STG'
+---
+stage:
+  id: STAGE-950
+  status: active
+---
+# STAGE-950: fixture backlog
+
+## Spec Backlog
+
+Prose naming (not yet written) is not a bullet.
+
+- [ ] (not yet written) — marked item [S]
+- [ ] (not yet framed, from SPEC-070 verify) — reworded item
+- [ ] plain open item
+- [ ] SPEC-027 (not yet written) — id reserved, never written
+- [ ] **SPEC-118** (framed) — promoted bold
+- [ ] SPEC-106 (frame) — promoted plain
+- [x] (not yet written) — closed
+- [~] deferred
+
+## Notes
+
+- [ ] outside the backlog section
+STG
+cat > "$SZ_STAGE2" <<'STG'
+---
+stage:
+  id: STAGE-951
+  status: active
+---
+# STAGE-951: second active stage
+
+## Spec Backlog
+
+- [ ] SPEC-950 (build) — in flight
+STG
+cat > "$SZ_AP/specs/SPEC-950-fixture-inflight.md" <<'SPC'
+---
+task:
+  id: SPEC-950
+  cycle: build
+  complexity: M
+project:
+  stage: STAGE-951
+---
+# SPEC-950: fixture in flight
+SPC
+
+assert_eq "$(bash -c "source scripts/_lib.sh; count_unpromoted_bullets '$SZ_STAGE'")" "4" \
+    "backlog counter: open bullets not led by a spec id, plus reserved-but-unwritten ids"
+sbs_out=$(just specs-by-stage 2>&1 || true)
+case "$sbs_out" in
+    *"STAGE-950"*"4 not yet written"*) pass "specs-by-stage counts reworded bullets and skips closed ones" ;;
+    *) fail "specs-by-stage miscounted STAGE-950's backlog: $(printf '%s' "$sbs_out" | grep -A3 STAGE-950)" ;;
+esac
+
+# Both active stages, and the spec in flight in the second one.
+bl_out=$(just backlog 2>&1 || true)
+case "$bl_out" in
+    *"Active stages:"*"STAGE-950"*"STAGE-951"*) pass "backlog names every active stage" ;;
+    *) fail "backlog did not list both active stages: $(printf '%s' "$bl_out" | sed -n 1,3p)" ;;
+esac
+case "$bl_out" in
+    *"SPEC-950-fixture-inflight"*) pass "backlog shows a spec in flight in the second active stage" ;;
+    *) fail "backlog hid the in-flight spec in STAGE-951: $bl_out" ;;
+esac
+case "$bl_out" in
+    *"reworded item"*"plain open item"*) pass "backlog lists bullets whatever their wording" ;;
+    *) fail "backlog missed reworded/plain bullets: $bl_out" ;;
+esac
+case "$bl_out" in
+    *"promoted bold"*|*"outside the backlog section"*) fail "backlog listed a promoted or out-of-section bullet" ;;
+    *) pass "backlog leaves promoted and out-of-section bullets out" ;;
+esac
+if command -v python3 >/dev/null 2>&1; then
+    bl_json=$(just backlog --json 2>/dev/null || true)
+    bl_check=$(printf '%s' "$bl_json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+u = [b for b in d["unpromoted"] if b["project.stage"] == "STAGE-950"]
+print("STAGE-950" in d["active_stages"], "STAGE-951" in d["active_stages"], len(u), u[0]["summary"], u[0]["complexity"])' 2>&1 || true)
+    assert_eq "$bl_check" "True True 4 marked item S" \
+        "backlog --json: active_stages, all four bullets, marker stripped, size lifted"
+fi
+
+# frame-stage still promotes only marked lines, but names the ones it skips.
+fs_out=$(just frame-stage STAGE-950 --dry-run 2>&1 || true)
+case "$fs_out" in
+    *"without the '(not yet written)' marker"*"(not yet framed"*"plain open item"*)
+        pass "frame-stage names open bullets it will not frame" ;;
+    *) fail "frame-stage skipped unmarked bullets silently: $fs_out" ;;
+esac
+
+# find_stage ignores a cycle prompt that shares the stage's id.
+touch "$SZ_AP/specs/prompts/STAGE-950-ship.md"
+assert_eq "$(bash -c "source scripts/_lib.sh; find_stage STAGE-950")" "$PWD/$SZ_STAGE" \
+    "find_stage returns the stage, not specs/prompts/STAGE-NNN-*.md"
+
+# A proposed project's backlog is counted (ACTIVE_PROJECT pins the active one:
+# with no project marked active, the lowest non-example would win).
+SZ_PROP="projects/PROJ-090-next-wave"
+mkdir -p "$SZ_PROP/stages"
+printf -- '---\nproject:\n  id: PROJ-090\n  status: proposed\n---\n# PROJ-090\n' > "$SZ_PROP/brief.md"
+printf -- '---\nstage:\n  id: STAGE-960\n  status: proposed\n---\n## Spec Backlog\n\n- [ ] (not yet written) — first\n- [ ] second\n' \
+    > "$SZ_PROP/stages/STAGE-960-next.md"
+bl_out=$(ACTIVE_PROJECT="$(basename "$SZ_AP")" just backlog 2>&1 || true)
+case "$bl_out" in
+    *"Proposed projects"*"PROJ-090-next-wave"*"1 stage · 2 backlog items"*) pass "backlog counts a proposed project's backlog" ;;
+    *) fail "backlog ignored the proposed project: $bl_out" ;;
+esac
+if command -v python3 >/dev/null 2>&1; then
+    bl_check=$(ACTIVE_PROJECT="$(basename "$SZ_AP")" just backlog --json 2>/dev/null | python3 -c '
+import json, sys
+p = [x for x in json.load(sys.stdin)["data"]["proposed_projects"] if x["project"] == "PROJ-090-next-wave"]
+print(p[0]["stages"], p[0]["backlog_count"])' 2>&1 || true)
+    assert_eq "$bl_check" "1 2" "backlog --json carries proposed_projects"
+fi
+
+# new-spec into a project with no stages/ dir names the cause (it exited
+# silently: find on a missing dir failed the pipeline under pipefail).
+SZ_BARE="projects/PROJ-091-bare"
+mkdir -p "$SZ_BARE"
+printf -- '---\nproject:\n  id: PROJ-091\n  status: proposed\n---\n' > "$SZ_BARE/brief.md"
+ns_out=$(just new-spec "x" STAGE-999 PROJ-091 2>&1 || true)
+case "$ns_out" in
+    *"Stage not found in PROJ-091: STAGE-999"*) pass "new-spec names a missing stage even with no stages/ dir" ;;
+    *) fail "new-spec failed without naming the cause: '$ns_out'" ;;
+esac
+rm -rf "$SZ_BARE" "$SZ_PROP"
+
+# archive-spec says what the stage's backlog still holds.
+cat > "$SZ_AP/specs/SPEC-952-fixture-ship.md" <<'SPC'
+---
+task:
+  id: SPEC-952
+  cycle: ship
+project:
+  stage: STAGE-950
+---
+# SPEC-952: fixture ship
+SPC
+as_out=$(just archive-spec SPEC-952 2>&1 || true)
+case "$as_out" in
+    *"No active specs remain for STAGE-950"*"still has 4 unwritten item(s)"*)
+        pass "archive-spec reports the stage's unwritten backlog" ;;
+    *) fail "archive-spec did not report the remaining backlog: $as_out" ;;
+esac
+find "$SZ_AP/specs" -name 'SPEC-952-*' -exec rm -f {} + 2>/dev/null || true
+rm -f "$SZ_STAGE" "$SZ_STAGE2" "$SZ_AP/specs/SPEC-950-fixture-inflight.md" "$SZ_AP/specs/prompts/STAGE-950-ship.md"
+
+# An inline-array affected_scope is read (it was dropped, so --changed never
+# saw the DEC). The trailing comment's brackets are not data.
+awk '
+    /^affected_scope:/ { print "affected_scope: [\"justfile\", \"nothing/**/*.{ts,tsx}\"]   # e.g. [\"not-data\"]"; skip = 1; next }
+    skip && /^[[:space:]]+-/ { next }
+    { skip = 0; gsub(/DEC-001/, "DEC-704"); print }
+' decisions/DEC-001-example-structured-logging.md > decisions/DEC-704-inline-scope.md
+assert_eq "$(bash -c 'source scripts/_lib.sh; get_dec_affected_scope decisions/DEC-704-inline-scope.md' | tr '\n' ' ')" \
+    "justfile nothing/**/*.{ts,tsx} " "inline affected_scope is read, braces kept whole, comment ignored"
+echo "# touched by the inline-scope test" >> justfile
+da_out=$(just decisions-audit --changed 2>&1 || true)
+case "$da_out" in
+    *DEC-704*) pass "decisions-audit --changed sees a DEC whose scope is an inline list" ;;
+    *) fail "decisions-audit --changed missed the inline-scope DEC: $da_out" ;;
+esac
+git checkout -- justfile
+rm -f decisions/DEC-704-inline-scope.md
 
 # ============================================================
 # claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)

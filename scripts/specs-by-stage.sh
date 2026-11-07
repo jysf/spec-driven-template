@@ -28,16 +28,7 @@ require_initialized
 # Spec front-matter readers (kept local to this script).
 # ---------------------------------------------------------------------
 
-# project.stage — the STAGE-NNN this spec belongs to.
-get_spec_stage() {
-    awk '
-        /^---$/ { f = !f; next }
-        !f { exit }
-        /^project:/ { p = 1; next }
-        p && /^[a-zA-Z_]/ { p = 0 }
-        p && /^[[:space:]]+stage:/ { print $2; exit }
-    ' "$1"
-}
+# get_spec_stage (project.stage) lives in _lib.sh.
 
 # task.complexity — S | M | L.
 get_spec_complexity() {
@@ -117,7 +108,7 @@ if [ "$JSON_OUT" = 1 ]; then
             g_stages=$((g_stages + 1))
             stage_id=$(basename "$stage_file" .md | sed -E 's/^(STAGE-[0-9]+).*/\1/')
             sshipped=$(get_stage_shipped_at "$stage_file")
-            nw=$(grep -cE '^- \[[ x~?]\] \(not yet written\)' "$stage_file" 2>/dev/null || true)
+            nw=$(count_unpromoted_bullets "$stage_file")
             g_notwritten=$((g_notwritten + ${nw:-0}))
             while IFS= read -r sf; do
                 [ -f "$sf" ] || continue
@@ -219,8 +210,9 @@ print_stage() {
         printf "    ${DIM}stage cost: \$%s · %s${RESET}\n" "$STAGE_USD" "$(fmt_tok "$STAGE_TOK")"
     fi
 
-    # Un-promoted "(not yet written)" backlog bullets in this stage.
-    notwritten=$(grep -cE '^- \[[ x~?]\] \(not yet written\)' "$stage_file" 2>/dev/null || true)
+    # Un-written backlog bullets in this stage. Shared counter: open bullets only
+    # (this used to count [x] rows too), whatever their wording.
+    notwritten=$(count_unpromoted_bullets "$stage_file")
     notwritten=${notwritten:-0}
     if [ "$notwritten" -gt 0 ]; then
         printf "    ${DIM}+ %s not yet written${RESET}\n" "$notwritten"

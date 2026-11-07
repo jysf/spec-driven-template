@@ -133,8 +133,10 @@ get_active_project() {
     fi
     # Non-example PROJ-* dirs, lowest number first.
     local dirs
+    # `|| true`: with only the example project, grep -v matches nothing and
+    # exits 1, which killed any caller that ran this outside a $(…) subshell.
     dirs=$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name "PROJ-*" 2>/dev/null \
-           | grep -v "example" | sort)
+           | grep -v "example" | sort || true)
     # Prefer a project explicitly marked `status: active`. Without this, a
     # SHIPPED earlier wave silently captures every default-scoped command once a
     # second project exists — `just status`/`cost-audit`/`backlog` would target
@@ -626,28 +628,93 @@ find_spec_timeline() {
         -not -path '*/done/*' 2>/dev/null | sed -n 1p
 }
 
-# Find a stage file by ID.
+# A stage file by id: STAGE-NNN-<slug>.md under some project's stages/. Pass a
+# project dir to search only that project. Cycle prompts can share the id
+# (specs/prompts/STAGE-050-ship.md in crustyimg), so prompts/ and _templates/
+# are excluded, as find_spec already does for specs. `|| true`: find exits 1 on
+# a missing directory, and under pipefail that killed callers with no message.
+# Usage: find_stage STAGE-007 [projects/PROJ-002-foo]
 find_stage() {
-    local stage_id="$1"
-    find "${REPO_ROOT}/projects" -type f -name "${stage_id}-*.md" 2>/dev/null | sed -n 1p
+    local stage_id="$1" root="${2:-${REPO_ROOT}/projects}"
+    find "$root" -type f -name "${stage_id}-*.md" -path '*/stages/*' \
+        -not -path '*/prompts/*' -not -path '*/_templates/*' 2>/dev/null \
+        | sort | sed -n 1p || true
 }
 
-# Extract un-promoted "(not yet written)" bullets from a stage's ## Spec Backlog
-# section. One bullet per line, in backlog order.
-# Convention: `- [ ] (not yet written) — <summary>` with an optional
-# `[S]/[M]/[L]` complexity tag anywhere on the line.
-# Read by `just backlog` (view) and `just frame-stage` (promotion) so the set
-# you see is exactly the set that gets promoted.
+# project.stage of a spec: the STAGE-NNN it belongs to. Empty if absent.
+get_spec_stage() {
+    awk '
+        /^---$/ { f = !f; next }
+        !f { exit }
+        /^project:/ { p = 1; next }
+        p && /^[a-zA-Z_]/ { p = 0 }
+        p && /^[[:space:]]+stage:/ { print $2; exit }
+    ' "$1"
+}
+
+# Un-written backlog in a stage's `## Spec Backlog` section: one raw bullet per
+# line, in order. A bullet counts when it is OPEN (`- [ ]`) and either does not
+# lead with a spec id, or still says "(not yet written".
+#
+# Keyed on structure, not on one phrase. The old reader matched the literal
+# `(not yet written)`, and stage files drift: crustyimg wrote `(not yet framed,
+# from SPEC-070 verify)`, `(chore)` and plain bullets, so 35 open items read as
+# zero in `backlog`, `roadmap` and `specs-by-stage`. A lead spec id, bold or not
+# (`**SPEC-118**`, `SPEC-106 (frame)`), means it has been promoted; but rspeed
+# pre-assigns ids (`SPEC-027 (not yet written)`) to specs never written, so the
+# explicit phrase still wins. Closed bullets (`[x]`, `[~]`) never count.
 # Usage: extract_unpromoted_bullets path/to/STAGE-001-foo.md
 extract_unpromoted_bullets() {
     awk '
         /^## Spec Backlog/ { in_b = 1; next }
         in_b && /^## / { in_b = 0 }
-        # Must be a checkbox BULLET, not merely prose containing the phrase —
-        # the section explains itself, so a doc line naming "(not yet written)"
-        # would otherwise be promoted into a spec. (Caught by the selftest.)
+        in_b && /^-[[:space:]]*\[[[:space:]]\]/ {
+            rest = $0
+            sub(/^-[[:space:]]*\[[[:space:]]\][[:space:]]*/, "", rest)
+            if (rest ~ /^\**SPEC-[0-9]+/ && rest !~ /\(not yet written/) next
+            print
+        }
+    ' "$1"
+}
+
+count_unpromoted_bullets() {
+    extract_unpromoted_bullets "$1" | grep -c . || true
+}
+
+# The bullets `just frame-stage` promotes: those carrying the explicit
+# `(not yet written)` marker, the form the stage template teaches. Narrower than
+# extract_unpromoted_bullets on purpose: promotion writes specs, so it acts only
+# on what was marked for it, and frame-stage names the open bullets it skipped.
+# Must be a checkbox BULLET, not merely prose containing the phrase: the section
+# explains itself, so a doc line naming "(not yet written)" would otherwise be
+# promoted into a spec (caught by the selftest).
+extract_frameable_bullets() {
+    awk '
+        /^## Spec Backlog/ { in_b = 1; next }
+        in_b && /^## / { in_b = 0 }
         in_b && /^-[[:space:]]*\[/ && /\(not yet written\)/ { print }
     ' "$1"
+}
+
+# Every stage file with `status: active`, one per line. Falls back to the
+# lexically-first stage when none is active (as get_active_stage_file does).
+# A project can run several stages at once (crustyimg PROJ-010 had three);
+# with only the first, `backlog` said "(none in active stage)" while SPEC-114
+# was mid-build in the second. Views that summarise work iterate this.
+get_active_stage_files() {
+    local project_dir="$1"
+    local stages_dir="${project_dir}/stages"
+    [ -d "$stages_dir" ] || return 0
+    local s found=0
+    for s in "${stages_dir}"/STAGE-*.md; do
+        [ -f "$s" ] || continue
+        if [ "$(get_stage_status "$s")" = "active" ]; then echo "$s"; found=1; fi
+    done
+    [ "$found" = 1 ] && return 0
+    for s in "${stages_dir}"/STAGE-*.md; do
+        [ -f "$s" ] || continue
+        echo "$s"; return 0
+    done
 }
 
 # Find the "active" stage file for a given project. Heuristic: first
@@ -1866,20 +1933,55 @@ get_dec_title() {
     awk '/^# DEC-/{sub(/^# DEC-[0-9]+:[[:space:]]*/,""); print; exit}' "$1"
 }
 
-# affected_scope globs, one per line. Empty if none / `[]`.
+# affected_scope globs, one per line. Empty if none / `[]` / null.
+# Reads both YAML list forms:
+#   affected_scope:                      affected_scope: ["src/a.ts", 'b/**']
+#     - "src/a.ts"
+#     - b/**
+# The inline form used to be dropped silently, so a DEC written that way never
+# showed up in `decisions-audit --changed` (crustyimg), and the shipped
+# decisions/_template.md taught exactly that form. Inline items split on commas
+# outside quotes and `{}` (so `src/**/*.{ts,tsx}` stays whole), and the list
+# ends at the first `]` outside quotes, so a trailing `# e.g. [...]` comment is
+# not read as data. An inline list may wrap onto following lines.
+# Quotes are stripped: a --json consumer saw '"scripts/**"' and matched nothing.
 get_dec_affected_scope() {
     awk '
-        /^---$/ { f=!f; next } !f { next }
-        /^affected_scope:/ { s=1; next }
-        s && /^[a-zA-Z_]/ { s=0 }
+        function emit(v) {
+            sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v)
+            if (v ~ /^".*"$/ || v ~ /^'\''.*'\''$/) v = substr(v, 2, length(v) - 2)
+            if (v != "" && v != "[]" && v != "null" && v != "~") print v
+        }
+        # Consume flow-sequence text; state (q, depth, cur) carries across lines.
+        function flow(str,   i, c) {
+            for (i = 1; i <= length(str); i++) {
+                c = substr(str, i, 1)
+                if (q != "") { if (c == q) q = ""; cur = cur c; continue }
+                if (c == "\"" || c == "'\''") { q = c; cur = cur c; continue }
+                if (c == "]") { emit(cur); cur = ""; inflow = 0; return }
+                if (c == "{") depth++
+                else if (c == "}") depth--
+                if (c == "," && depth == 0) { emit(cur); cur = ""; continue }
+                cur = cur c
+            }
+            cur = cur " "
+        }
+        /^---$/ { if (f) exit; f = 1; next }
+        !f { exit }
+        inflow { flow($0); next }
+        /^affected_scope:/ {
+            rest = $0; sub(/^affected_scope:[[:space:]]*/, "", rest)
+            if (substr(rest, 1, 1) == "[") {
+                q = ""; depth = 0; cur = ""; inflow = 1
+                flow(substr(rest, 2))
+                next
+            }
+            s = 1; next
+        }
+        s && /^[a-zA-Z_]/ { s = 0 }
         s && /^[[:space:]]*-[[:space:]]*/ {
-            g=$0; sub(/^[[:space:]]*-[[:space:]]*/,"",g); sub(/[[:space:]]+#.*$/,"",g)
-            # Strip YAML quoting. Globs are routinely written quoted
-            # ("variants/*/**") and the quotes were being emitted as part of the
-            # value, so a --json consumer saw '"scripts/**"' and matched nothing.
-            gsub(/^["'\'']|["'\'']$/, "", g)
-            gsub(/[[:space:]]+$/, "", g)
-            if (g!="" && g!="[]") print g
+            g = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", g); sub(/[[:space:]]+#.*$/, "", g)
+            emit(g)
         }
     ' "$1"
 }
