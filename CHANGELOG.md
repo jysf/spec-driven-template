@@ -2,6 +2,64 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-07 — tools that reported zero while work existed (v0.6.46)
+
+Batch 4 of the 2026-11 harvest. Each of these exited 0 and reported nothing,
+or zero, with work in front of it.
+
+**One backlog counter, keyed on structure.** `backlog`, `roadmap` and
+`specs-by-stage` each kept a private counter matching the literal
+`(not yet written)`. Stage files drift: crustyimg wrote `(not yet framed, from
+SPEC-070 verify)`, `(chore)` and plain bullets, and 35 open items read as zero.
+`specs-by-stage` also counted closed `[x]` rows. Now one `_lib.sh` reader: an
+open `- [ ]` bullet that does not lead with a spec id (bold or not), or that
+still says `(not yet written`, since rspeed reserves ids (`SPEC-027 (not yet
+written)`) for specs never written. crustyimg's own fix keyed on a **bold** id
+only, which would count framed `SPEC-106 (frame)` rows as unwritten. Checked on
+six instances; crustyimg goes from 96 to 129, bragfile 5 to 6, zany 0 to 3,
+the rest unchanged.
+
+`frame-stage` still promotes only lines with the explicit marker, since it
+writes specs, but now names the open lines it skipped instead of saying
+"nothing to frame".
+
+**`backlog` shows every active stage.** It took the first `status: active`
+stage only; crustyimg ran three, and a spec mid-build in the second was hidden.
+On crustyimg today the old view misses SPEC-150 (in design) and reports
+STAGE-041 as 0 items (it has 4). `--json` keeps `active_stage` and adds
+`active_stages`.
+
+**`backlog` counts `proposed` projects.** The next waves were invisible: 81
+items in crustyimg's six proposed projects. A new section lists each with
+its stage and backlog counts (`--all`: per stage); `--json` adds
+`proposed_projects`.
+
+**`find_stage` skips cycle prompts.** `specs/prompts/STAGE-050-ship.md` shares
+its stage's id and sorts first; `find_spec` was fixed for this in v0.5.19,
+`find_stage` never was. It also takes a project dir now, and tolerates a missing
+`stages/` dir: `new-spec` into a project with none exited 1 with **no message**
+(bragfile a015a5f), because `find` failed the pipeline under `pipefail` before
+the "Stage not found" line could run.
+
+**`archive-spec` says what the stage still holds.** "No active specs remain"
+used to add that the backlog "can't be reliably read". It now reports the
+unwritten count, and points at the Stage Ship prompt only when it is zero. The
+`find | xargs -I{} awk` that counted remaining specs is a loop.
+
+**Inline `affected_scope` is read.** `affected_scope: ["a", "b"]` was dropped
+by both readers (`_lib.sh` and a private copy in `decisions-audit`), so such a
+DEC never showed up in `--changed`, and the shipped `decisions/_template.md`
+taught that form. One reader now handles both forms, keeps `{ts,tsx}` globs
+whole, and stops at the first unquoted `]` (the template's own
+`# e.g. [...]` comment is not data). On the instances, one DEC each in crustyimg
+and irradiance gains its scope; none loses any. The template comment shows both
+forms.
+
+Also: `get_spec_stage` moved into `_lib.sh` (backlog and specs-by-stage each
+had a copy), and `get_active_project` no longer kills a direct caller when the
+example is the only project (`grep -v` matched nothing; harmless inside
+`$(…)`, where `set -e` does not apply, which is why no command showed it).
+
 ## 2026-11-06 — ids are minted across branches and worktrees; `just id-audit` (v0.6.45)
 
 **`next_id` now looks everywhere a number could already be taken:** this

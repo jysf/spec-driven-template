@@ -41,7 +41,7 @@ PROJECT_ID="${2:-}"
 PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
 PROJECT_ID=$(basename "$PROJECT_DIR" | awk -F- '{print $1"-"$2}')
 
-STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | sed -n 1p)
+STAGE_FILE=$(find_stage "$STAGE_ID" "$PROJECT_DIR")
 [ -n "$STAGE_FILE" ] || die "Stage not found in ${PROJECT_ID}: ${STAGE_ID}"
 
 # Split a backlog bullet into "COMPLEXITY|SUMMARY". Mirrors backlog.sh's
@@ -71,7 +71,16 @@ while IFS= read -r line; do
     [ -n "$sm" ] || die "A '(not yet written)' line in ${STAGE_ID} has no summary — give it one first:
   ${line}"
     SUMMARIES+=("$sm"); COMPLEXITIES+=("$cx"); SLUGS+=("$(slugify "$sm")")
-done < <(extract_unpromoted_bullets "$STAGE_FILE")
+done < <(extract_frameable_bullets "$STAGE_FILE")
+
+# Open backlog bullets without the marker are left alone (promotion acts only on
+# what was marked for it) but named, so a reworded line is not silently skipped.
+SKIPPED=$(extract_unpromoted_bullets "$STAGE_FILE" | grep -v '(not yet written)' || true)
+if [ -n "$SKIPPED" ]; then
+    warn "Open backlog line(s) in ${STAGE_ID} without the '(not yet written)' marker; not framed:"
+    printf '%s\n' "$SKIPPED" | sed 's/^/    /'
+    echo "  ${DIM}Mark one '- [ ] (not yet written) — <summary>' to have it framed.${RESET}"
+fi
 
 COUNT=${#SUMMARIES[@]}
 if [ "$COUNT" = "0" ]; then
