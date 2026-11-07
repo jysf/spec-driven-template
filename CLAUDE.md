@@ -124,3 +124,7 @@ Per `CONTRIBUTING.md`, a change is not done until all four are true:
 - **`test.sh` runs under `set -euo pipefail`.** Piping a command that exits
   non-zero (any gate under test) sinks the whole pipeline regardless of what the
   consumer decides. Capture to a variable first, then inspect.
+- **Never pipe into `head`.** It exits early, the producer gets SIGPIPE, and
+  under `pipefail` the script dies with exit 141 and no message — only when the
+  data is big enough, so it passes locally and fails later. Use `sed -n 1p`. The
+  suite fails on any `| head` in `scripts/`.

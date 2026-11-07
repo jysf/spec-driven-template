@@ -299,6 +299,12 @@ decisions-audit *FLAGS:
 decisions-index *FLAGS:
     @./scripts/decisions-index.sh {{FLAGS}}
 
+# Find artifact ids used twice: one SPEC/STAGE/PATCH/SPIKE/HANDOFF/DEC number
+# given to two different artifacts across this checkout, other worktrees, and
+# local branches. Run after `git fetch` to include pushed work. `--json`.
+id-audit *FLAGS:
+    @./scripts/id-audit.sh {{FLAGS}}
+
 # Fail if any shipped spec is missing real build/verify cost data
 # (AGENTS.md §4 / docs/cost-tracking.md). Same check the CI `cost-data`
 # job runs; also surfaced in `just status` and `just report-weekly`.

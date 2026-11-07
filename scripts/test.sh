@@ -1635,6 +1635,15 @@ if [ -z "$dup_ver" ]; then
 else
     fail "duplicate CHANGELOG header for version ${dup_ver}"
 fi
+# No script may pipe into `head`: it exits early, the producer gets SIGPIPE, and
+# under `set -euo pipefail` the command dies with exit 141 and no message. Use
+# `sed -n 1p` (or `sed -n 1,Np`), which reads all its input.
+head_pipes=$(grep -nE '\|[[:space:]]*head([[:space:]]|$)' "$TEMPLATE_ROOT"/scripts/*.sh || true)
+if [ -z "$head_pipes" ]; then
+    pass "no script pipes into head (SIGPIPE under pipefail)"
+else
+    fail "scripts pipe into head; use sed -n 1p: ${head_pipes}"
+fi
 
 # ============================================================
 # DEC-007 (v0.6.1): app versioning scheme (calver default) + next-version
@@ -2874,6 +2883,106 @@ fi
 EXSTAGE="projects/PROJ-001-example-mvp/stages/STAGE-001-foundational-infra.md"
 assert_contains "$EXSTAGE" "orchestration_cost:" "example stage stays in sync with the template"
 rm -f "$SFILE"
+
+# ============================================================
+# Artifact ids across branches and worktrees (v0.6.45): next_id + id-audit
+#
+# next_id used to look only at this checkout, so two branches or worktrees
+# could each mint the next number (irradiance: N >= 7, DEC-028 reached history
+# twice), and it counted tests/ fixtures (SPEC-900 made it mint SPEC-901).
+# Fixture branches/worktrees are made with `git worktree add`, so this checkout
+# never switches branch.
+# ============================================================
+ID_DIR="projects/PROJ-001-example-mvp/specs"
+mint() { bash -c 'source scripts/_lib.sh; next_id "$1"' _ "$1"; }
+spec_id() { printf 'SPEC-%03d' "$1"; }
+
+if just id-audit >/dev/null 2>&1; then
+    pass "id-audit passes on a repo with no reused ids"
+else
+    fail "id-audit flagged the clean scratch repo: $(just id-audit 2>&1 || true)"
+fi
+id_base=$(mint SPEC 2>/dev/null)
+id_n=$((10#${id_base#SPEC-}))
+
+# Not artifacts: test fixtures, prompts/, timelines.
+mkdir -p projects/PROJ-001-example-mvp/tests "$ID_DIR/prompts"
+touch projects/PROJ-001-example-mvp/tests/SPEC-900-oracle-fixture.md \
+      "$ID_DIR/prompts/SPEC-901-frame.md" "$ID_DIR/SPEC-902-orphan-timeline.md"
+assert_eq "$(mint SPEC 2>/dev/null)" "$id_base" \
+    "next_id ignores tests/ fixtures, prompts/ and *-timeline.md"
+rm -rf projects/PROJ-001-example-mvp/tests "$ID_DIR/prompts" "$ID_DIR/SPEC-902-orphan-timeline.md"
+
+# A spec committed on another branch (its worktree since removed) holds its number.
+br_id=$(spec_id $((id_n + 4)))
+git worktree add -q -b id-other "$SCRATCH/wt-id-other" >/dev/null 2>&1 || fail "git worktree add (id-other)"
+touch "$SCRATCH/wt-id-other/$ID_DIR/${br_id}-other-branch.md"
+git -C "$SCRATCH/wt-id-other" add -A >/dev/null 2>&1
+git -C "$SCRATCH/wt-id-other" -c user.email=t@t -c user.name=t commit -qm "spec on a branch" >/dev/null 2>&1 \
+    || fail "commit on id-other"
+git worktree remove --force "$SCRATCH/wt-id-other" >/dev/null 2>&1 || fail "git worktree remove"
+mint_err=$(mint SPEC 2>&1 >/dev/null)
+assert_eq "$(mint SPEC 2>/dev/null)" "$(spec_id $((id_n + 5)))" \
+    "next_id skips a number taken on another local branch"
+case "$mint_err" in
+    *"${br_id}"*"ref:id-other"*) pass "next_id says the highest id is on another branch" ;;
+    *) fail "next_id did not explain the jump; stderr: $mint_err" ;;
+esac
+
+# An uncommitted spec in another worktree holds its number too.
+wt_id=$(spec_id $((id_n + 7)))
+git worktree add -q -b id-wt "$SCRATCH/wt-id-wt" >/dev/null 2>&1 || fail "git worktree add (id-wt)"
+touch "$SCRATCH/wt-id-wt/$ID_DIR/${wt_id}-in-progress.md"
+assert_eq "$(mint SPEC 2>/dev/null)" "$(spec_id $((id_n + 8)))" \
+    "next_id skips a number taken by an uncommitted file in another worktree"
+git worktree remove --force "$SCRATCH/wt-id-wt" >/dev/null 2>&1 || fail "git worktree remove (id-wt)"
+git branch -q -D id-wt >/dev/null 2>&1 || true
+
+# The same number with a different slug here = a collision.
+touch "$ID_DIR/${br_id}-mainline.md"
+if ida_out=$(just id-audit 2>&1); then ida_rc=0; else ida_rc=$?; fi
+assert_eq "$ida_rc" "1" "id-audit exits 1 when one id names two artifacts"
+case "$ida_out" in
+    *"$br_id"*"${br_id}-mainline.md"*"${br_id}-other-branch.md"*"ref:id-other"*)
+        pass "id-audit names the id, both files and the branch holding one" ;;
+    *) fail "id-audit output missing the collision details: $ida_out" ;;
+esac
+if command -v python3 >/dev/null 2>&1; then
+    ida_json=$(just id-audit --json 2>/dev/null || true)
+    ida_check=$(printf '%s' "$ida_json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+c = d["collisions"]
+srcs = [s for a in c[0]["artifacts"] for s in a["sources"]]
+print(d["collision_count"], c[0]["id"], len(c[0]["artifacts"]), "ref:id-other" in srcs)' 2>&1)
+    assert_eq "$ida_check" "1 ${br_id} 2 True" "id-audit --json carries the collision, its files and sources"
+fi
+
+# Then the branch's spec is renumbered here (same slug, new number), as crustyimg
+# did with DEC-092 -> DEC-093: the stale branch copy is reported, not a failure.
+re_id=$(spec_id $((id_n + 9)))
+touch "$ID_DIR/${re_id}-other-branch.md"
+if ida_out=$(just id-audit 2>&1); then ida_rc=0; else ida_rc=$?; fi
+assert_eq "$ida_rc" "0" "id-audit passes when the collision was already renumbered here"
+case "$ida_out" in
+    *"${br_id} → ${re_id}"*) pass "id-audit lists the renumbered id and its new number" ;;
+    *) fail "id-audit did not report the renumbering: $ida_out" ;;
+esac
+if command -v python3 >/dev/null 2>&1; then
+    ida_json=$(just id-audit --json 2>/dev/null || true)
+    ida_check=$(printf '%s' "$ida_json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+r = d["renumbered"]
+print(d["collision_count"], r[0]["id"], r[0]["now"])' 2>&1)
+    assert_eq "$ida_check" "0 ${br_id} ${re_id}" "id-audit --json lists the renumbering separately"
+fi
+rm -f "$ID_DIR/${re_id}-other-branch.md" "$ID_DIR/${br_id}-mainline.md"
+
+assert_cmd_fails "id-audit rejects an unknown flag" just id-audit --bogus
+if just id-audit --bogus >/dev/null 2>&1; then ida_rc=0; else ida_rc=$?; fi
+assert_eq "$ida_rc" "2" "id-audit usage error exits 2 (DEC-001)"
+git branch -q -D id-other >/dev/null 2>&1 || true
 
 # ============================================================
 # claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)

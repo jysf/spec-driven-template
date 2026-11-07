@@ -57,7 +57,7 @@ PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
 PROJECT_ID=$(basename "$PROJECT_DIR" | awk -F- '{print $1"-"$2}')
 
 # Verify stage exists in this project
-STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | head -n1)
+STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | sed -n 1p)
 if [ -z "$STAGE_FILE" ]; then
     die "Stage not found in ${PROJECT_ID}: ${STAGE_ID}"
 fi

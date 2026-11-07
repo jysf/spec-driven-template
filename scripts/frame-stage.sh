@@ -41,7 +41,7 @@ PROJECT_ID="${2:-}"
 PROJECT_DIR=$(resolve_project_dir "${PROJECT_ID:-}")
 PROJECT_ID=$(basename "$PROJECT_DIR" | awk -F- '{print $1"-"$2}')
 
-STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | head -n1)
+STAGE_FILE=$(find "${PROJECT_DIR}/stages" -type f -name "${STAGE_ID}-*.md" 2>/dev/null | sed -n 1p)
 [ -n "$STAGE_FILE" ] || die "Stage not found in ${PROJECT_ID}: ${STAGE_ID}"
 
 # Split a backlog bullet into "COMPLEXITY|SUMMARY". Mirrors backlog.sh's
@@ -93,7 +93,7 @@ while [ "$i" -lt "$COUNT" ]; do
   ${SUMMARIES[$j]}"
         j=$((j + 1))
     done
-    existing=$(find "${PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*-${SLUGS[$i]}.md" 2>/dev/null | head -n1)
+    existing=$(find "${PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*-${SLUGS[$i]}.md" 2>/dev/null | sed -n 1p)
     [ -z "$existing" ] || die "A spec with this slug already exists: ${existing}
 Rename the backlog line, or drop it if that spec already covers it."
     i=$((i + 1))
@@ -122,7 +122,7 @@ while [ "$i" -lt "$COUNT" ]; do
     args=("${SUMMARIES[$i]}" "$STAGE_ID" "$PROJECT_ID" --outline)
     [ -z "${COMPLEXITIES[$i]}" ] || args+=(--complexity "${COMPLEXITIES[$i]}")
     "${SCRIPT_DIR}/new-spec.sh" "${args[@]}" >/dev/null
-    created=$(find "${PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*-${SLUGS[$i]}.md" 2>/dev/null | head -n1)
+    created=$(find "${PROJECT_DIR}/specs" -maxdepth 1 -name "SPEC-*-${SLUGS[$i]}.md" 2>/dev/null | sed -n 1p)
     [ -n "$created" ] || die "new-spec did not create a spec for: ${SUMMARIES[$i]}"
     IDS+=("$(basename "$created" | sed -E 's/^(SPEC-[0-9]+).*/\1/')")
     success "Framed ${IDS[$i]} — ${SUMMARIES[$i]}"
