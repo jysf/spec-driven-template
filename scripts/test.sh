@@ -95,8 +95,36 @@ echo ""
 # ============================================================
 # 1) init: happy path
 # ============================================================
-printf "1\n" | just init >/dev/null 2>&1 \
-    || fail "just init (claude-only) exited non-zero"
+# init is one-shot, so a wrong answer used to be unrecoverable from inside the
+# tool (irradiance). Declining the confirm, hitting EOF at it, or naming an
+# unknown variant must all leave the template untouched.
+init_untouched() { [ -d variants ] && [ ! -f AGENTS.md ] && [ ! -f .variant ]; }
+init_rc=0
+printf "1\nn\n" | just init >/dev/null 2>&1 || init_rc=$?
+if [ "$init_rc" -ne 0 ] && init_untouched; then
+    pass "init: declining the confirm aborts and changes nothing"
+else
+    fail "init: declined confirm (rc=${init_rc}) still changed the repo"
+fi
+init_rc=0
+printf "1\n" | just init >/dev/null 2>&1 || init_rc=$?
+if [ "$init_rc" -ne 0 ] && init_untouched; then
+    pass "init: EOF at the confirm aborts (no silent yes)"
+else
+    fail "init: EOF at the confirm (rc=${init_rc}) still changed the repo"
+fi
+init_rc=0
+just init claude-onyl >/dev/null 2>&1 || init_rc=$?
+assert_eq "$init_rc" "2" "init: an unknown variant name is a usage error (exit 2)"
+init_untouched && pass "init: an unknown variant name changes nothing" \
+    || fail "init: an unknown variant name changed the repo"
+# The argument form is the confirmation: no prompts, nothing read from stdin.
+init_out=$(just init claude-only </dev/null 2>&1) \
+    || fail "just init claude-only exited non-zero: ${init_out}"
+case "$init_out" in
+    *"[y/N]"*|*"Enter 1 or 2"*) fail "just init claude-only still prompted: ${init_out}" ;;
+    *) pass "init: 'just init claude-only' runs without prompting" ;;
+esac
 assert_file "AGENTS.md"
 assert_file ".variant"
 assert_eq "$(cat .variant)" "claude-only" "variant marker is claude-only"
@@ -143,6 +171,67 @@ if [ "$cl_bytes" -lt 2000 ]; then
 else
     fail "scaffolded CHANGELOG is ${cl_bytes} bytes — template history leaked in?"
 fi
+
+# --- init removes the template's maintainer content and its seeded examples --
+# (irradiance: ~4,800 lines about other repos shipped into every instance; the
+# example project sat on PROJ-001; the example DEC was counted and audited
+# clean while citing a constraint the instance had deleted.)
+for tp in docs/ROADMAP.md docs/blog docs/sessions docs/talks docs/harvests \
+          .github/TEMPLATE_README.md projects/PROJ-001-example-mvp \
+          decisions/DEC-001-example-structured-logging.md; do
+    [ ! -e "$tp" ] || fail "init left template content in the instance: ${tp}"
+done
+pass "init removes the template's maintainer docs and the example project + DEC"
+if find feedback reports -name '20*.md' 2>/dev/null | grep -q .; then
+    fail "init left other instances' feedback or sample reports: $(find feedback reports -name '20*.md' | tr '\n' ' ')"
+else
+    pass "init removes dated feedback and sample reports"
+fi
+assert_file "feedback/_template.md"
+assert_file "docs/decisions/DEC-012-spike-lane.md"
+assert_file "docs/USAGE.md"
+pass "init keeps the template DECs, the usage guides and the feedback template"
+# The constraint that existed only to be cited by the example DEC goes with it;
+# the generic ones stay. Asserted through the reader, not the file.
+init_cons=$(just dash constraints 2>&1 || true)
+case "$init_cons" in
+    *use-project-logger*) fail "init left the example's use-project-logger constraint" ;;
+    *no-secrets-in-code*) pass "init drops use-project-logger and keeps the generic constraints" ;;
+    *) fail "constraints-view after init unexpected: ${init_cons}" ;;
+esac
+if just validate >/dev/null 2>&1 && just decisions-audit >/dev/null 2>&1; then
+    pass "validate and decisions-audit pass on a scaffold with no project and no DEC"
+else
+    fail "validate or decisions-audit failed on an empty scaffold"
+fi
+init_status=$(just status 2>&1) || fail "status failed on a scaffold with no project: ${init_status}"
+case "$init_status" in
+    *example-mvp*) fail "status still shows the example project: ${init_status}" ;;
+    *) pass "status runs on an empty scaffold and shows no example project" ;;
+esac
+# The instance's own CI runs cost-audit on the first push, before any project
+# exists: nothing has shipped, so it must pass rather than die.
+if just cost-audit >/dev/null 2>&1; then
+    pass "cost-audit passes on a scaffold with no project (the instance CI's first push)"
+else
+    fail "cost-audit failed on a scaffold with no project: $(just cost-audit 2>&1 || true)"
+fi
+init_sj=$(just status --json 2>&1 || true)
+case "$init_sj" in
+    *'"active_project":null'*) pass "status --json reports active_project null with no project" ;;
+    *) fail "status --json with no project unexpected: ${init_sj}" ;;
+esac
+case "$(just dash 2>&1 || true)" in
+    *"No projects yet"*) pass "dash on an empty scaffold points at creating the first project" ;;
+    *) fail "dash on an empty scaffold: $(just dash 2>&1 || true)" ;;
+esac
+assert_eq "$(bash -c 'source scripts/_lib.sh; next_id DEC decisions' 2>/dev/null)" "DEC-001" \
+    "next_id: DEC-001 is free for the instance's first decision"
+
+# The rest of this suite uses the example project and DEC as its fixture.
+# Restore them from the template now that init's removal is proven.
+cp -R "$TEMPLATE_ROOT/variants/claude-only/projects/PROJ-001-example-mvp" projects/
+cp "$TEMPLATE_ROOT/variants/claude-only/decisions/DEC-001-example-structured-logging.md" decisions/
 
 assert_file "app.just"
 # The template justfile opts into it via an OPTIONAL import (escaped: ? and .
@@ -3169,6 +3258,82 @@ git checkout -- justfile
 rm -f decisions/DEC-704-inline-scope.md
 
 # ============================================================
+# Scaffold fixes (v0.6.47): frame-stage slugs and marker, root-level
+# affected_scope, PATCH ids on the cost grandfather list
+# ============================================================
+# frame-stage: a ~300-char backlog summary used to exceed the 255-byte file-name
+# limit (ENAMETOOLONG mid-run), and a marker with no dash after it survived into
+# every file name and H1 the run made (irradiance: SPEC-001-not-yet-written-…).
+just new-stage "Scaffold Slugs" >/dev/null 2>&1
+SC_STAGE=$(find projects/PROJ-001-example-mvp/stages -maxdepth 1 -name 'STAGE-*-scaffold-slugs.md' | sed -n 1p)
+SC_STAGE_ID=$(basename "$SC_STAGE" | sed -E 's/^(STAGE-[0-9]+).*/\1/')
+SC_LONG="Crate scaffold: Cargo.toml edition 2021, a measured MSRV, the panic-free clippy lint set, forbid unsafe code, and the Rust CI jobs that run fmt, clippy, test, doc and deny on every push and on a weekly schedule against the latest stable and the declared minimum toolchain"
+sed_inplace_portable "s|^- \[ \] (not yet written) — <summary.*|- [ ] (not yet written) [S] ${SC_LONG}\\
+- [ ] (not yet written) Marker without a dash|" "$SC_STAGE"
+sc_out=$(just frame-stage "$SC_STAGE_ID" 2>&1) || fail "frame-stage failed on a long summary: ${sc_out}"
+SC_LONG_SPEC=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-crate-scaffold-*.md' ! -name '*-timeline.md' | sed -n 1p)
+SC_NODASH=$(find projects/PROJ-001-example-mvp/specs -maxdepth 1 -name 'SPEC-*-marker-without-a-dash.md' | sed -n 1p)
+if [ -n "$SC_LONG_SPEC" ]; then
+    sc_slug=$(basename "$SC_LONG_SPEC" .md | sed -E 's/^SPEC-[0-9]+-//')
+    if [ "${#sc_slug}" -le 60 ] && [ "${sc_slug%-}" = "$sc_slug" ]; then
+        pass "frame-stage caps a long summary's slug at 60 chars (got ${#sc_slug})"
+    else
+        fail "frame-stage slug not capped cleanly: '${sc_slug}' (${#sc_slug} chars)"
+    fi
+    # The cap is on the file name only: the title keeps the whole summary.
+    assert_contains "$SC_LONG_SPEC" "weekly schedule against the latest stable" \
+        "frame-stage keeps the full summary in the spec title"
+else
+    fail "frame-stage made no spec for the long summary: ${sc_out}"
+fi
+if [ -n "$SC_NODASH" ] && ! grep -q "not yet written" "$SC_NODASH"; then
+    pass "frame-stage strips a dashless '(not yet written)' from file name and title"
+else
+    fail "frame-stage kept the marker (file: '${SC_NODASH}')"
+fi
+if find projects/PROJ-001-example-mvp/specs -name '*not-yet-written*' | grep -q .; then
+    fail "frame-stage wrote a file name containing 'not-yet-written'"
+else
+    pass "no file name carries 'not-yet-written'"
+fi
+assert_eq "$(bash -c 'source scripts/_lib.sh; slugify "A -- b ---"')" "a-b" "slugify still trims and collapses separators"
+find projects/PROJ-001-example-mvp/specs -maxdepth 1 \( -name 'SPEC-*-crate-scaffold-*' -o -name 'SPEC-*-marker-without-a-dash*' \) -exec rm -f {} +
+rm -f projects/PROJ-001-example-mvp/specs/prompts/SPEC-*-crate-scaffold-* \
+      projects/PROJ-001-example-mvp/specs/prompts/SPEC-*-marker-without-a-dash* "$SC_STAGE"
+
+# decisions-audit: a bare name that exists at the repo root matches (globs match
+# repo-relative paths), so it must not warn; a bare name that exists nowhere at
+# the root still does (irradiance: AGENTS.md warned forever, so the audit was
+# never clean).
+cat > decisions/DEC-705-root-scope.md <<'ROOTSCOPE'
+---
+insight:
+  id: DEC-705
+  type: decision
+created_at: 2026-11-08
+affected_scope:
+  - AGENTS.md
+  - _headers
+---
+# DEC-705: root-level scope
+ROOTSCOPE
+rs_out=$(just decisions-audit 2>&1 || true)
+case "$rs_out" in
+    *"affected_scope 'AGENTS.md'"*) fail "decisions-audit warns on a root-level file that exists: ${rs_out}" ;;
+    *"affected_scope '_headers'"*) pass "decisions-audit: a bare name at the root is fine; a missing one still warns" ;;
+    *) fail "decisions-audit root-scope unexpected: ${rs_out}" ;;
+esac
+rm -f decisions/DEC-705-root-scope.md
+
+# Cost grandfathering takes PATCH ids. It used to read every id as SPEC-, so a
+# grandfathered patch never matched.
+gf() { COST_AUDIT_GRANDFATHERED="$1" bash -c 'source scripts/_lib.sh; is_grandfathered_cost "$0" && echo yes || echo no' "$2"; }
+assert_eq "$(gf "PATCH-003" "PATCH-003-fix-out-dir")" "yes" "a grandfathered PATCH id matches its file stem"
+assert_eq "$(gf "PATCH-003" "PATCH-004-other")" "no" "a different PATCH id is not grandfathered"
+assert_eq "$(gf "PATCH-003" "SPEC-003-same-number")" "no" "PATCH-003 does not grandfather SPEC-003"
+assert_eq "$(gf "SPEC-002" "SPEC-002-test-spec")" "yes" "SPEC grandfathering still works"
+
+# ============================================================
 # claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)
 #
 # Until now the suite ONLY ever scaffolded claude-only, so the entire
@@ -3184,7 +3349,12 @@ rm -rf "$PA_SCRATCH/repo/.git"
 # silently discard every pass recorded inside it (the suite would under-report
 # its own coverage). cd back to the primary scratch when done.
 cd "$PA_SCRATCH/repo"
-printf "2\n" | just init >/dev/null 2>&1 || fail "just init (claude-plus-agents) exited non-zero"
+# The interactive path: pick, then confirm.
+pa_init_out=$(printf "2\ny\n" | just init 2>&1) || fail "just init (claude-plus-agents) exited non-zero: ${pa_init_out}"
+case "$pa_init_out" in
+    *"You chose: claude-plus-agents"*) pass "init echoes the chosen variant before confirming" ;;
+    *) fail "init did not echo the chosen variant: ${pa_init_out}" ;;
+esac
 if [ "$(cat .variant 2>/dev/null)" = "claude-plus-agents" ]; then
     pass "init scaffolds the claude-plus-agents variant"
 else
@@ -3203,6 +3373,11 @@ if just status >/dev/null 2>&1; then
 else
     fail "plus-agents: status failed on a fresh scaffold"
 fi
+[ ! -e projects/PROJ-001-example-mvp ] && pass "plus-agents: init removes the example project (and its HANDOFF-001)" \
+    || fail "plus-agents: init left the example project"
+# Restore the example as this section's fixture (see the claude-only section).
+cp -R "$TEMPLATE_ROOT/variants/claude-plus-agents/projects/PROJ-001-example-mvp" projects/
+cp "$TEMPLATE_ROOT/variants/claude-plus-agents/decisions/DEC-001-example-structured-logging.md" decisions/
 
 just new-stage "Delegated Infra" >/dev/null 2>&1
 PA_STAGE=$(ls projects/PROJ-001-example-mvp/stages/STAGE-*-delegated-infra.md | sed -n 1p)

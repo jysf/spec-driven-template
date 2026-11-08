@@ -28,7 +28,9 @@ Click **"Use this template"** at the top of this repo on GitHub. Create your new
 just init
 ```
 
-This asks whether you want the `claude-only` or `claude-plus-agents` variant, moves the right files to the repo root, and removes what you don't need. GitHub's template feature already gives you a clean history, so answer **N** when `init` offers to reset it.
+This asks whether you want the `claude-only` or `claude-plus-agents` variant, confirms the choice (it can't be re-run), moves the right files to the repo root, and removes what you don't need — including the template's own docs and its example project and DEC, so `PROJ-001` and `DEC-001` are free for yours. GitHub's template feature already gives you a clean history, so answer **N** when `init` offers to reset it.
+
+Already know the variant? `just init claude-only` or `just init claude-plus-agents` skips the prompts (and leaves git history alone).
 
 **Option B — Clone directly:**
 
@@ -52,7 +54,7 @@ You'll have a repo root containing:
 - `docs/`, `guidance/`, `decisions/` — repo-level (accumulate across all projects)
   - `guidance/recommended-tools.md` — optional, project-level tool escalations (Mermaid is the default for diagrams; Structurizr, LineSpec, etc. when you outgrow it)
 - `SECURITY.md` — the trust model for your repo (adapt the reporting section to your team)
-- `projects/PROJ-001-example-mvp/` — example project you can learn from or delete
+- `projects/_templates/` — the brief, stage and spec templates your first project starts from
 
 **Next step:** open `GETTING_STARTED.md` and follow it.
 
@@ -80,7 +82,7 @@ Run `just --list` to see everything. The main ones:
 
 | Command | What it does |
 |---|---|
-| `just init` | One-time: choose variant, scaffold the repo |
+| `just init [variant]` | One-time: choose variant (asks and confirms, or pass `claude-only` / `claude-plus-agents`), scaffold the repo |
 | `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`spikes`/`defects`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |

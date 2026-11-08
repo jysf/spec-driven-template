@@ -45,14 +45,15 @@ STAGE_FILE=$(find_stage "$STAGE_ID" "$PROJECT_DIR")
 [ -n "$STAGE_FILE" ] || die "Stage not found in ${PROJECT_ID}: ${STAGE_ID}"
 
 # Split a backlog bullet into "COMPLEXITY|SUMMARY". Mirrors backlog.sh's
-# formatter: strip the checkbox and the `(not yet written) —` marker, then lift
-# a bracketed [S]/[M]/[L] tag out of the remaining text.
+# formatter: strip the checkbox and the `(not yet written)` marker (with the
+# dash, em dash or colon after it, if any), then lift a bracketed [S]/[M]/[L]
+# tag out of the remaining text. The marker is stripped wherever it sits: with
+# no dash after it, it used to survive into every file name and H1 the run made.
 parse_bullet() {
     local line="$1" summary complexity=""
     summary=$(printf '%s' "$line" \
         | sed -E 's/^[[:space:]]*-[[:space:]]*\[[ x~?]\][[:space:]]*//' \
-        | sed -E 's/\(not yet written\)[[:space:]]*—[[:space:]]*//' \
-        | sed -E 's/\(not yet written\)[[:space:]]*-[[:space:]]*//')
+        | sed -E 's/\(not yet written\)[[:space:]]*(—|-|:)?[[:space:]]*/ /')
     # Only a recognized size token is lifted out — a bracketed `[CI]` or `[api]`
     # in a summary stays part of the summary.
     if [[ "$summary" =~ \[(XS|S|M|L|XL|XXL)\] ]]; then
