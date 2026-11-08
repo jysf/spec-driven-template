@@ -760,22 +760,53 @@ from outside the builder, sits under DEC-009 above. The open question for each i
     close whether the full cycle was the right weight.
 
 - **Separate structure changes from behavior changes, Tidy First (raised
-  2026-11-08) — likely at bar, verify the count first.** Beck: never mix a
-  change in how code is arranged with a change in what it does, in one step.
-  `AGENTS.md` does not say this anywhere. Instances already practise it: refactor
-  specs that prove output is byte-identical against goldens. From brag entries
-  (not yet checked against the specs themselves): irradiance SPEC-048 (demosaic
-  fast path) and SPEC-049 (memory fuse), and diamond-exif SPEC-018 (one shared
-  report code path). That is N=3 same-outcome across two projects. irradiance
-  SPEC-047 does **not** count: it changed behavior on purpose.
-  - Possible shape: a spec declares `change_kind: structure | behavior`. A
-    structure spec's acceptance criteria must include an equivalence proof
-    (goldens / byte-for-byte), and verify checks it. The reader could be one
-    line in `dash`. Ship the reader with the field.
-  - Also covers the missing **refactor** step of red→green→refactor: §12 has
-    red and green, and refactor is never named.
-  - Earn it: read the three specs and confirm they were scoped as pure structure
-    from design, not described that way after the fact.
+  2026-11-08) — checked against the specs: Tidy First is N=1 (below bar); a
+  narrower convention is at N=3.** Beck: never mix a change in how code is
+  arranged with a change in what it does, in one step. `AGENTS.md` does not say
+  this anywhere. The first draft of this entry claimed N=3 from brag summaries.
+  Reading the specs' design-time Goal, Acceptance Criteria, Failing Tests and
+  Non-Goals sections did not hold that up:
+  - **irradiance SPEC-048 (demosaic fast path): pure structure, from design.**
+    Goal: "the arithmetic is unchanged, so the output is bit-identical".
+    Acceptance requires "no public API change"; Non-Goals forbid any change to
+    the kernel or output bytes. Counts.
+  - **irradiance SPEC-049: mixed by design.** Its Goal names "two
+    output-preserving changes": a memory fuse (structure) *and* a new public
+    `develop_color_f32_into` (new behavior, additive). Tidy First would make
+    these two specs. It is also the spec whose first build slowed demosaic ~2.8×
+    and cost ~2× SPEC-048. That regression was in the fuse half, though, not
+    caused by the mixing, so it is not a paired-opposing case. Does not count.
+  - **diamond-exif SPEC-018: mixed spec, but a deliberate refactor split.** It
+    adds new API (`ReportBuilder`, `Format`, `render`) while rerouting the
+    one-shot renderers through it. Its Context says it was "split out of
+    SPEC-016 so the binary's spec does not carry a refactor of the renderers".
+    That is Tidy First's preparatory refactor at spec level, even though the
+    spec itself is not pure structure. Half a count.
+  - **So: don't codify Tidy First yet.** Watch for the split being made (or
+    missed) at design in the next projects.
+
+  **What *is* at N=3: the equivalence proof as the acceptance test for
+  output-preserving changes.** All three specs name a byte-for-byte equivalence
+  test at design: `interior_fast_path_matches_the_reference_demosaic` (048),
+  `fused_develop_color_is_byte_identical_to_the_reference` (049), and
+  `builder_equals_the_one_shot_*` with a fuzz guard (018). Each also requires
+  the existing goldens to pass unchanged. That is the same outcome three times
+  across two projects. It holds whether or not the spec also adds behavior,
+  because it covers the part that must not change.
+  - **The template seam it exposes:** the spec template's `## Failing Tests`
+    assumes red→green. SPEC-048 had to explain itself in prose: "because the
+    change is output-invariant, the test is an equivalence/invariance gate
+    rather than a red→green feature test." That is the missing **refactor** step
+    of red→green→refactor; §12 never names it.
+  - **Possible shape, smallest first:** (1) one paragraph in §12 and the spec
+    template's Failing Tests guidance: when a change must preserve output, the
+    failing test is an equivalence gate (new output == reference output, plus
+    goldens unchanged). (2) A verify-checklist line: for a claimed
+    output-preserving change, was the equivalence gate shown to fail on a
+    planted difference? All three specs did this (adversarial mutations, plants).
+    (3) Only if (1) gets skipped: a `change_kind: structure | behavior | mixed`
+    field with a reader in `dash`.
+  - Both variants, and coverage in `test.sh` if any field or reader lands.
 
 - **Small, reversible steps (raised 2026-11-08) — below bar, two halves.** No
   section of `AGENTS.md` talks about reversibility; the only related rule is
