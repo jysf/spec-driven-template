@@ -794,6 +794,127 @@ from outside the builder, sits under DEC-009 above. The open question for each i
   - Cost caveat: the token figures above come from brag and mix metering
     regimes. Use them as direction, not as numbers to cite.
 
+**External comparison, 2026-11-08 — [minimumcd.org](https://minimumcd.org).** The
+minimum practices for continuous delivery, plus its "Agentic CD" page: extra
+rules for agent-written code. Pages read: home, practices index, trunk-based
+development, definition of deployable, FAQ, Agentic CD. The metrics, rollback and
+anti-pattern pages were not read.
+
+**Where we already match.** The template already meets six of Agentic CD's eight
+rules, mostly by construction: human-owned intent (brief → stage → spec), intent
+and architecture versioned with the change ("the repo is the app"), behavior
+specified apart from the code (failing tests written at design), consistency
+checked (cold verify + `decisions-audit --changed`), written constraints
+(`constraints.yaml`), and agents not promoting their own work (separate verify
+session; release sessions stop before the tag). Two caveats: consistency is
+checked by an agent's judgment rather than enforced by the pipeline, and
+constraints are honor-system (see #14). Its anti-patterns "rubber-stamping AI
+code" and "high coverage, weak tests" are already countered in instances by
+red-proof CI jobs (irradiance) and mutants shown red (diamond-exif). Its line
+"continuous delivery is not continuous deployment; deploy is not release" matches
+the separate release spec (DEC-006).
+
+The gaps, cheapest first:
+
+- **Stop the line when main is red (raised 2026-11-08) — below bar, but
+  costs one paragraph.** minimumcd: all feature work stops while the main
+  pipeline is red. Agentic CD rule 8: while red, agents may only make changes that
+  restore health. `AGENTS.md` says nothing about a red main. Possible shape: one
+  rule in §13 (the next spec is the repair, not new work), and an advisory in
+  `status` *only if* it can read CI state without a new dependency. A prompt rule
+  first; tooling only if the rule gets skipped.
+
+- **Merge order: build reaches main before verify (raised 2026-11-08) — checked,
+  needs a decision.** In irradiance the build PR merges to `main` before the
+  verify PR: #137 → #138 (SPEC-047), #142 → #143 (SPEC-048), #147 → #148
+  (SPEC-049). For SPEC-049 the build with the ~2.8× demosaic slowdown sat on
+  `main` for ~14 minutes before the follow-up fixed it. Under minimumcd, the
+  merge to trunk is where the deployable verdict happens, so verify would gate
+  the merge rather than follow it. This is the most consequential finding here.
+  - Two honest options: (a) verify approves the build PR before it merges, so
+    the verify record rides in the same PR or as a required review; or (b) keep
+    merge-then-verify but say so explicitly, and never cut a release from a
+    commit whose spec is unverified.
+  - Open: is this an irradiance habit or the template's default? Check whether
+    the other plus-agents instances (diamond-exif, grebe) and the claude-only
+    ones do the same before deciding.
+
+- **Definition of deployable, automated (raised 2026-11-08) — below bar; an
+  instance already built it.** minimumcd: the pipeline's verdict on readiness is
+  final; checks are automated, identical across environments, and fail fast.
+  The scaffolded `ci.yml` gates only process records (cost audit, `validate`,
+  decisions index) and leaves app checks as "add per stack". Release readiness
+  is a checklist a person ticks in the release spec. irradiance grew its own:
+  ~318 lines covering fmt, clippy, tests, fuzz smoke, MSRV, license policy, and
+  red-proof jobs that must fail.
+  - Possible shape: a "definition of deployable" comment block in the
+    scaffolded `ci.yml` naming the categories (security, functionality,
+    performance, reliability, code quality), and a release pre-flight rule that
+    each item names the CI job proving it wherever one can. This is the
+    "two-tier QA" routing rule above applied to releases: if a script can
+    decide it, it belongs in CI.
+  - Candidate golden path: **red-proof jobs** (a CI job that plants a known-bad
+    change and must go red). Count instances that have them before promoting.
+
+- **DORA-style health metrics from existing fields (raised 2026-11-08) —
+  buildable, a reader over data we already have.** minimumcd uses lead time,
+  change failure rate and time to restore as diagnostics, and its nav names
+  "DORA metrics as improvement goals" as an anti-pattern. Every input exists:
+  `created_at` → `shipped_at` (lead time), patches against shipped specs (change
+  failure), the defects view (what escaped). A read-only `dash` lens needs no new
+  field, which satisfies "ship the reader with the field" in the easy direction.
+  It is also the first concrete step on the reliability half of DEC-009's
+  outside-outcome gap above. Advisory only, never a target: warn by default.
+  - Caveat: a spec is not a deploy. Decide whether "deployment frequency"
+    means specs shipped or releases cut before naming anything after DORA.
+  - **First measurement, 2026-11-08, via the sdt-warehouse (`wh`, 9
+    instances).** Prototype numbers, not a baseline. diamond-exif and bragfile
+    were not fast-forwarded, so theirs may be slightly stale.
+    - *Lead time, spec created → shipped:* median 0 days in zany (104 specs),
+      crustyimg (141), irradiance (26); 1 day in bragfile (79). p90 ≤ 5 days
+      everywhere, max 53 (crustyimg). This is design → ship, not DORA's
+      commit → production.
+    - *Ship → release* (next git tag after a spec ships), the closer match to
+      DORA lead time: crustyimg median 9.5 days (14 tags, median gap between
+      tags 1 day), bragfile 1 day (10 tags), irradiance 32.5 days (2 tags, 10
+      of 44 shipped specs not yet released). This needs git tags joined in,
+      which `wh` does not have yet; it came from a one-off script. zany has no
+      tags but is a live site, so "no tags" is not "no deploys".
+    - *Change failure / time to restore:* **cannot be measured.** Only 9
+      patches exist and none carry `created_at`/`shipped_at` or a link to the
+      spec they fix. Making them measurable is a template change: date patches
+      and name the fixed spec, and ship the reader with the field. irradiance
+      PATCH-001 ("CI has been red for four specs") is direct evidence for the
+      stop-the-line gap above.
+    - *Quality caught before trunk:* verify first-pass approval runs 43/44
+      (irradiance), 13/17 (diamond-exif), 1/5 (grebe). Rework (shipped specs
+      with >1 build or verify session) runs crustyimg 13%, irradiance 11%,
+      diamond-exif 29%. zany's 0% likely reflects how its cost sessions were
+      recorded, not clean work.
+    - *Beyond DORA, also worth a lens:* estimates miss in one direction only
+      (irradiance: 8 of 44 larger than expected, 0 smaller); stale work in
+      flight (grebe 10 of 15 specs open; bragfile 6 open, nothing shipped
+      since August); stage cycle-time outliers (median 0.5–2 days, but 65 days
+      in crustyimg and 73 in irradiance).
+    - Where it lives: the warehouse is where these are tried first. Only the
+      lenses that keep getting used move into `dash`, per its own "promote what
+      proves useful" rule.
+
+- **One path to production (raised 2026-11-08) — one checklist line.**
+  minimumcd: every deploy goes through the pipeline, no deploys from a local
+  machine, artifacts immutable after build, rollback on demand. DEC-008
+  (provenance) and the release spec's rollback item cover most of it. The release
+  pre-flight never asks whether the published artifact was built by CI or on a
+  laptop. Add the question; whether each instance can answer "CI" is itself the
+  finding.
+
+- **Small batches — measured, looks fine (2026-11-08).** irradiance's last 80
+  merged PRs: median ~13 minutes open → merge, p90 ~2.3 h, 2 open over a day.
+  That measures PR open time, not branch age, so it understates branch life; but
+  nothing suggests long-lived branches. Not a gap; recorded so it isn't
+  re-measured. (minimumcd's bar: integrate at least daily, branches under a day,
+  Agentic CD work increments of two days or less.)
+
 ## Parked with a note — ContextCore alignment (2026-08-13)
 
 Two threads, deliberately deferred. Recorded so they aren't rediscovered:
