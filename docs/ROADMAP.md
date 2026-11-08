@@ -230,6 +230,19 @@ was reported as **362 specs (352 shipped) · 208 DECs across 8 live instances**.
   signal / explicit "exploratory" (open question #5). Do not build cold — the
   3-disciplined-project harvest is its validation path, and the Goals layer above
   is its likely parent.
+  - **Gap noted 2026-11-08 — no outcome signal from outside the builder.**
+    Raised by an external comparison (ByteByteGo's "How to Build Software You
+    Can Trust", branch *Verified workflow → measure outcomes and reliability*).
+    DEC-009's `value_metric` measures *technical* targets the builder sets and
+    checks (routing accuracy, RTP, ms, MiB). Once a project ships, nothing records
+    whether **anyone besides the maintainer** got value from it: no adoption,
+    usage, issue, or user-feedback signal, and no post-ship reliability readout.
+    Today the only judge of value is "I find it useful", which is a legitimate
+    outcome for a personal tool but should be **stated as one** (beneficiary: the
+    maintainer) rather than left implied. The released instances (bragfile,
+    crustyimg, irradiance, zany) are where an outside signal could first be
+    observed. Not to be built cold: the first step is noticing, at the next
+    project close, what outside evidence existed and whether anything captured it.
 
 ## Deferred — accepted, phase/track pending
 
@@ -720,6 +733,66 @@ These are shaped by real usage — start them *on* a live project, not in the ab
   competing with it. If the real need is *different instructions per agent*, that
   is a `guidance/agents/<name>.md` the handoff links (sibling of the toolchain
   brief), not a repo fork.
+
+**External comparison, 2026-11-08 — ByteByteGo's "How to Build Software You Can
+Trust".** A map of XP practice (Kent Beck) applied to trust and AI-assisted work.
+The template matched or went past it on evidence, agent contracts, estimates and
+review. The three gaps below had no equivalent here. A fourth, measuring outcomes
+from outside the builder, sits under DEC-009 above. The open question for each is
+*whether* and *how* to layer it in, not a commitment to build it.
+
+- **Product stage awareness: Explore / Expand / Extract (raised 2026-11-08) —
+  below bar, needs a real project.** Beck's 3X model says the right amount of
+  rigor depends on the product's stage: explore cheaply, expand to prove value,
+  extract for dependable operation. The template has the Explore end (the spike
+  lane, DEC-012) and the Extract end (the release spec, DEC-006; the patch lane,
+  DEC-003). But a **project** gets the same full design→build→verify→ship cycle
+  whether it is a first experiment or a mature product, and nothing records which
+  stage it is in. DEC-009 already reaches for this twice: "value tracks stakes,
+  not size", and its open question on an "exploratory" escape hatch.
+  - Possible shape: a project-level `phase: explore | expand | extract`, read by
+    `status`/`dash`, which *advises* how much ceremony fits. It warns and never
+    gates, per "warn by default".
+  - Open: is the stage a property of the project or of the whole repo/app? Does
+    it change mid-project, and who decides? Would it ever relax verify, or only
+    change what verify looks for?
+  - Earn it: at the next project's frame, ask which stage it is in, and note at
+    close whether the full cycle was the right weight.
+
+- **Separate structure changes from behavior changes, Tidy First (raised
+  2026-11-08) — likely at bar, verify the count first.** Beck: never mix a
+  change in how code is arranged with a change in what it does, in one step.
+  `AGENTS.md` does not say this anywhere. Instances already practise it: refactor
+  specs that prove output is byte-identical against goldens. From brag entries
+  (not yet checked against the specs themselves): irradiance SPEC-048 (demosaic
+  fast path) and SPEC-049 (memory fuse), and diamond-exif SPEC-018 (one shared
+  report code path). That is N=3 same-outcome across two projects. irradiance
+  SPEC-047 does **not** count: it changed behavior on purpose.
+  - Possible shape: a spec declares `change_kind: structure | behavior`. A
+    structure spec's acceptance criteria must include an equivalence proof
+    (goldens / byte-for-byte), and verify checks it. The reader could be one
+    line in `dash`. Ship the reader with the field.
+  - Also covers the missing **refactor** step of red→green→refactor: §12 has
+    red and green, and refactor is never named.
+  - Earn it: read the three specs and confirm they were scoped as pure structure
+    from design, not described that way after the fact.
+
+- **Small, reversible steps (raised 2026-11-08) — below bar, two halves.** No
+  section of `AGENTS.md` talks about reversibility; the only related rule is
+  rollback in the release pre-flight (DEC-006).
+  - **Small:** the XL/XXL "split it" warning works on the size *predicted* at
+    design. Nothing reacts to a spec that turns out large. irradiance SPEC-049
+    was reported at ~60M tokens over 4 sessions, and its first build slowed
+    demosaic ~2.8× before a revision. `just calibration` has the data to flag
+    this once enough specs ship. A ship-time advisory when actual size beats the
+    expected size by two steps is the cheapest form.
+  - **Reversible:** design never asks "how would we undo this?". Harvest signal
+    #6 (2026-07-06) is related: it wants the mechanical-prep / irreversible-cut
+    split made first-class for releases. Possible shape: one design question,
+    asked only when a spec touches a one-way door (data migration, public API,
+    published artifact, tag). A prompt line, not a field.
+  - Cost caveat: the token figures above come from brag and mix metering
+    regimes. Use them as direction, not as numbers to cite.
 
 ## Parked with a note — ContextCore alignment (2026-08-13)
 
