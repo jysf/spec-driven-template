@@ -153,7 +153,6 @@ Read first:
 - /AGENTS.md (Work Hierarchy section)
 - /.repo-context.yaml
 - /projects/_templates/project-brief.md
-- /projects/PROJ-001-example-mvp/brief.md (delete later)
 - Any existing shipped projects
 
 Project frame (from 1a):
@@ -188,9 +187,6 @@ Your task:
      that could make the thesis wrong). Be specific. "Users
      will love it" is not a thesis; "reducing month-2 churn by
      making activation faster" is.
-
-5. If the example project folder still exists
-   (projects/PROJ-001-example-mvp/), propose deleting it.
 
 Stop and let me review.
 ```
@@ -365,7 +361,7 @@ Read:
 2. /AGENTS.md
 3. /.repo-context.yaml
 4. /guidance/constraints.yaml
-5. /decisions/DEC-001-example-structured-logging.md
+5. /docs/decisions/ (the template's own DECs — worked examples of the format)
 6. /decisions/_template.md
 7. /projects/_templates/spec.md
 8. /projects/<active-project>/brief.md
@@ -395,9 +391,9 @@ Your task:
 
 6. Update /AGENTS.md: real tech stack, commands, conventions, glossary.
 
-7. Delete examples:
-   - /decisions/DEC-001-example-structured-logging.md
-   - /projects/<active-project>/specs/SPEC-001-example-project-logger.md
+7. Remove seed constraints in /guidance/constraints.yaml that don't apply
+   (e.g. `no-auth-changes-without-approval` when there is no auth), and
+   check that every DEC and constraint you kept cites ids that exist.
 
 8. Cross-check first stage's backlog against new architecture.
 

@@ -20,11 +20,13 @@ Step-by-step walkthrough for your first project. Assumes you just ran `just init
 ```bash
 just --list      # see available commands
 just info        # confirm variant and active project
-just status      # see the example project
+just status      # empty until your first project exists
 ```
 
-Explore. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
-`PROJ-001-example-mvp`. Then come back.
+Explore. Read `AGENTS.md` and `docs/CONTEXTCORE_ALIGNMENT.md`, and skim
+`projects/_templates/` for the shape of a brief, stage and spec. Then come back.
+(`init` removed the template's example project and example DEC, so PROJ-001 and
+DEC-001 are free for your own.)
 
 ---
 
@@ -47,9 +49,8 @@ Explore. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
 1. Copy **Prompt 1b: PROJECT BRIEF**.
 2. Paste project frame.
 3. Claude produces `projects/PROJ-001-<slug>/brief.md`.
-4. Delete the example: `rm -rf projects/PROJ-001-example-mvp`.
-5. Move Claude's real project into place.
-6. Commit.
+4. Move Claude's real project into place.
+5. Commit.
 
 ---
 
@@ -71,7 +72,6 @@ Explore. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
    - `docs/data-model.md`, `docs/api-contract.md` (if applicable)
    - `decisions/DEC-*` files
    - Updates `guidance/constraints.yaml`, `.repo-context.yaml`, `AGENTS.md`
-   - Deletes the example DEC-001 if not relevant
 4. Commit.
 
 ---

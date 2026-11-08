@@ -163,6 +163,15 @@ EOF
     basename "$first"
 }
 
+# True when at least one projects/PROJ-* directory exists. A fresh scaffold has
+# none (init removes the example project), and the commands a new repo runs
+# first (status, dash, info, and cost-audit in its CI) must report that state
+# rather than die on it.
+has_projects() {
+    [ -n "$(find "${REPO_ROOT}/projects" -maxdepth 1 -type d -name 'PROJ-*' 2>/dev/null | sed -n 1p)" ]
+}
+NO_PROJECTS_HINT="No projects yet. Create the first: copy projects/_templates/project-brief.md to projects/PROJ-001-<slug>/brief.md (GETTING_STARTED.md, step 3)."
+
 # Resolve a project id/name to its directory, deterministically.
 #   $1 = optional PROJ-NNN, a full dir name, or empty (→ active project).
 # Empty reuses get_active_project (which already skips the example project).
@@ -295,11 +304,19 @@ next_id() {
 }
 
 # Slugify a string. "Foo Bar Baz" -> "foo-bar-baz"
+# Capped at SLUG_MAX characters: the slug becomes a file name, and a long backlog
+# summary used to exceed the 255-byte name limit and kill frame-stage
+# (irradiance). The id is the identity; the slug is only a human hint.
+SLUG_MAX=60
 slugify() {
-    echo "$1" \
+    local s
+    s=$(echo "$1" \
         | tr '[:upper:]' '[:lower:]' \
         | sed -E 's/[^a-z0-9]+/-/g' \
-        | sed -E 's/^-+|-+$//g'
+        | sed -E 's/^-+|-+$//g')
+    s="${s:0:${SLUG_MAX}}"
+    while [ "${s%-}" != "$s" ]; do s="${s%-}"; done
+    printf '%s\n' "$s"
 }
 
 # Escape a string for safe use as the REPLACEMENT half of a
@@ -1369,8 +1386,16 @@ COST_AUDIT_GRANDFATHERED="${COST_AUDIT_GRANDFATHERED:-}"
 # bare id ("SPEC-014") or a full file stem ("SPEC-014-some-slug") and matches
 # on the SPEC-NNN id prefix.
 is_grandfathered_cost() {
-    local rest="${1#SPEC-}"
-    local id="SPEC-${rest%%-*}"
+    # Takes an id or a file stem (SPEC-012-slug, PATCH-003-slug); compares the
+    # PREFIX-NNN part. Patches used to be read as SPEC- ids, so a grandfathered
+    # patch never matched and the list could not exempt one.
+    local prefix rest id
+    case "$1" in
+        PATCH-*) prefix=PATCH ;;
+        *)       prefix=SPEC ;;
+    esac
+    rest="${1#"${prefix}"-}"
+    id="${prefix}-${rest%%-*}"
     case " ${COST_AUDIT_GRANDFATHERED} " in
         *" $id "*) return 0 ;;
         *) return 1 ;;

@@ -2,6 +2,56 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-08 — scaffold: confirm init, ship only the app, frame-stage file names (v0.6.47)
+
+Batch 5 of the 2026-11 harvest, from irradiance's scaffold-time feedback
+(2026-08-15). Each one hits every instance, once, at the start.
+
+**`init` confirms, or takes the variant as an argument.** It copied a variant
+over the root and deleted `variants/` on a bare `read`, at the moment the user
+knew least about the difference. Irradiance picked the wrong one and recovered
+only because nothing was committed yet. `just init` now echoes the choice and
+asks `[y/N]`; a no, or EOF, changes nothing. `just init claude-only` (or
+`claude-plus-agents`) runs without prompting and leaves git history alone; an
+unknown name exits 2 with nothing touched. The logic moved from the justfile
+into `scripts/init.sh`.
+
+**`init` removes the template's maintainer content and its examples.**
+`scaffold-clean` covered four root files. About 4,800 lines below the root
+survived: the roadmap, blog, session notes, talks, harvests (a registry of
+other people's repos), other instances' feedback and two sample reports, which
+an agent grepping for facts reads as this repo's. Those go now. So do the
+example project and example DEC: they sat on PROJ-001 and DEC-001, `just status`
+counted a decision nobody made, and the DEC passed `decisions-audit` while
+citing a constraint irradiance had deleted. The `use-project-logger`
+constraint, which exists only to be cited by that DEC, goes with it. Kept:
+`docs/decisions/` (cited by AGENTS.md and the templates), `docs/PLAYBOOK.md`,
+`docs/USAGE.md`. GETTING_STARTED and FIRST_SESSION_PROMPTS no longer say to
+read or delete the example.
+
+**A repo with no project yet is a state, not an error.** With the example gone,
+a fresh scaffold has no project, and `status`, `dash` and `cost-audit` died on
+it. `cost-audit` runs in the instance's CI, so the first push would have been
+red. All three, and `info`, now report "no projects yet" and exit 0; `status
+--json` gives `active_project: null`. Commands that act on a project (`backlog`,
+`new-stage`, …) still stop with the same hint.
+
+**`frame-stage` file names.** A ~300-character backlog summary became a file
+name over the 255-byte limit and stopped the run (atomically, at least). Slugs
+are now capped at 60 characters everywhere `slugify` is used; the title keeps
+the full summary. A `(not yet written)` with no dash after it (`(not yet
+written) [S] Crate scaffold…`) survived into every file name and H1 the run
+made; the marker is now stripped wherever it sits.
+
+**Root-level `affected_scope` no longer warns.** The bare-name check warned on
+`AGENTS.md`, which matches fine (globs match repo-relative paths). Process
+decisions govern exactly those files, so the audit was never clean. A bare name
+that exists at the repo root is skipped; one that does not (`_headers`) still
+warns.
+
+**`COST_AUDIT_GRANDFATHERED` accepts `PATCH-` ids.** It read every id as
+`SPEC-`, so a grandfathered patch never matched.
+
 ## 2026-11-07 — tools that reported zero while work existed (v0.6.46)
 
 Batch 4 of the 2026-11 harvest. Each of these exited 0 and reported nothing,

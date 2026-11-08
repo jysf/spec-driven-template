@@ -20,11 +20,13 @@ Step-by-step walkthrough for your first project. Assumes you just ran `just init
 ```bash
 just --list      # see available commands
 just info        # confirm variant and active project
-just status      # see the example project and its one example spec
+just status      # empty until your first project exists
 ```
 
-Explore the files. Read `AGENTS.md`, `docs/CONTEXTCORE_ALIGNMENT.md`, and
-the example `PROJ-001-example-mvp` project. Then come back.
+Explore the files. Read `AGENTS.md` and `docs/CONTEXTCORE_ALIGNMENT.md`, and
+skim `projects/_templates/` for the shape of a brief, stage, spec and handoff.
+Then come back. (`init` removed the template's example project and example DEC,
+so PROJ-001 and DEC-001 are free for your own.)
 
 ---
 
@@ -45,14 +47,13 @@ the example `PROJ-001-example-mvp` project. Then come back.
 
 ## Step 3 — FIRST PROJECT (15 min)
 
-**Goal:** create your real first project (PROJ-001). The example project will be deleted.
+**Goal:** create your real first project (PROJ-001).
 
 1. Copy **Prompt 1b: PROJECT BRIEF** from `FIRST_SESSION_PROMPTS.md`.
 2. Paste your project frame from Step 2 and the template will guide Claude
    to produce `projects/PROJ-001-<slug>/brief.md`.
-3. Delete the example: `rm -rf projects/PROJ-001-example-mvp`
-4. Move your real project into place (Claude will have written it).
-5. Commit: `git commit -am "chore: first project brief"`.
+3. Move your real project into place (Claude will have written it).
+4. Commit: `git commit -am "chore: first project brief"`.
 
 ---
 
@@ -81,7 +82,6 @@ the example `PROJ-001-example-mvp` project. Then come back.
    - Update `guidance/constraints.yaml` with derived rules
    - Update `.repo-context.yaml` with your real stack
    - Update `AGENTS.md` with real commands, conventions, glossary
-   - Delete the example `DEC-001-example-structured-logging.md` if not relevant
 4. Review everything carefully.
 5. Commit: `git commit -am "design: project architecture and decisions"`.
 

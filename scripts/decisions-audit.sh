@@ -406,11 +406,15 @@ done
 # affected_scope hygiene: a bare name (no path separator AND no wildcard) almost
 # never matches a nested repo path, so the decision silently governs nothing —
 # false confidence, worse than noise (zany harvest: `['_headers']` never matched
-# the real `public/_headers`).
+# the real `public/_headers`). Globs match repo-relative paths, so a bare name
+# that exists at the repo root (AGENTS.md, justfile, Cargo.toml) does match and
+# is not warned about — process decisions govern exactly those files, and a
+# permanent false warning trains people to ignore the audit (irradiance).
 for file in "${ACTIVE_FILES[@]}"; do
     idc=$(get_insight_id "$file")
     while IFS= read -r g; do
         [ -n "$g" ] || continue
+        [ -e "${REPO_ROOT}/${g}" ] && continue
         case "$g" in
             *[/*?]*) : ;;   # has a path separator or a wildcard — fine
             *) warn "${idc}: affected_scope '${g}' has no path separator or wildcard — it likely matches nothing (did you mean 'dir/${g}' or '**/${g}'?)"
