@@ -114,6 +114,13 @@ else
     fail "init: EOF at the confirm (rc=${init_rc}) still changed the repo"
 fi
 init_rc=0
+just init </dev/null >/dev/null 2>&1 || init_rc=$?
+if [ "$init_rc" -ne 0 ] && init_untouched; then
+    pass "init: EOF at the variant prompt aborts (Enter picks the default; no input does not)"
+else
+    fail "init: EOF at the variant prompt (rc=${init_rc}) still changed the repo"
+fi
+init_rc=0
 just init claude-onyl >/dev/null 2>&1 || init_rc=$?
 assert_eq "$init_rc" "2" "init: an unknown variant name is a usage error (exit 2)"
 init_untouched && pass "init: an unknown variant name changes nothing" \
@@ -124,6 +131,11 @@ init_out=$(just init claude-only </dev/null 2>&1) \
 case "$init_out" in
     *"[y/N]"*|*"Enter 1 or 2"*) fail "just init claude-only still prompted: ${init_out}" ;;
     *) pass "init: 'just init claude-only' runs without prompting" ;;
+esac
+# DEC-015: claude-only still scaffolds (instances use it) but says it's deprecated.
+case "$init_out" in
+    *"claude-only is deprecated (DEC-015)"*) pass "init: claude-only prints the DEC-015 deprecation notice" ;;
+    *) fail "init claude-only did not print the deprecation notice: ${init_out}" ;;
 esac
 assert_file "AGENTS.md"
 assert_file ".variant"
@@ -3653,11 +3665,16 @@ rm -rf "$PA_SCRATCH/repo/.git"
 # silently discard every pass recorded inside it (the suite would under-report
 # its own coverage). cd back to the primary scratch when done.
 cd "$PA_SCRATCH/repo"
-# The interactive path: pick, then confirm.
-pa_init_out=$(printf "2\ny\n" | just init 2>&1) || fail "just init (claude-plus-agents) exited non-zero: ${pa_init_out}"
+# The interactive path: pick, then confirm. An empty answer (Enter) takes the
+# default, which is claude-plus-agents since DEC-015.
+pa_init_out=$(printf "\ny\n" | just init 2>&1) || fail "just init (claude-plus-agents) exited non-zero: ${pa_init_out}"
 case "$pa_init_out" in
     *"You chose: claude-plus-agents"*) pass "init echoes the chosen variant before confirming" ;;
     *) fail "init did not echo the chosen variant: ${pa_init_out}" ;;
+esac
+case "$pa_init_out" in
+    *"deprecated (DEC-015)"*) fail "init printed the claude-only deprecation notice for claude-plus-agents" ;;
+    *) pass "init: Enter at the variant prompt picks claude-plus-agents, with no deprecation notice" ;;
 esac
 if [ "$(cat .variant 2>/dev/null)" = "claude-plus-agents" ]; then
     pass "init scaffolds the claude-plus-agents variant"

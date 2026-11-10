@@ -2,7 +2,7 @@
 
 *This file replaces the template README when you run `just init` — rename or customize as needed.*
 
-This repo uses a spec-driven multi-agent workflow. Claude handles architecture and review; a separate implementer agent (Kilo Code, Factory Droids, AdaL, Cursor, etc.) handles implementation.
+This repo uses a spec-driven multi-agent workflow. Claude designs each spec; build and verify are handed off, usually to a fresh Claude session or subagent (another tool such as Kilo Code, Factory Droids or Cursor also works), through a handoff document per cycle.
 
 ## Hierarchy
 

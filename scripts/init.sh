@@ -2,8 +2,8 @@
 # scripts/init.sh — scaffold one variant to the repo root (`just init`).
 #
 #   just init                       # interactive: pick a variant, then confirm
-#   just init claude-only           # non-interactive, scriptable
-#   just init claude-plus-agents
+#   just init claude-plus-agents    # non-interactive, scriptable
+#   just init claude-only           # deprecated (DEC-015); still works
 #
 # Init is one-shot: it copies variants/<name>/ over the root and deletes
 # variants/, so the choice cannot be re-made from inside the tool. It used to
@@ -15,6 +15,10 @@
 #     from stdin (the fresh-history offer is skipped too, since answering it
 #     rewrites the history you would restore from).
 #
+# New instances use claude-plus-agents (DEC-015): it is listed first and is the
+# default on Enter. claude-only still scaffolds, with a notice, because existing
+# instances use it and template-update serves them from variants/claude-only.
+#
 # Deliberately does not source _lib.sh: before init this is the template repo,
 # and nothing here needs more than echo.
 #
@@ -22,8 +26,14 @@
 set -euo pipefail
 
 usage() {
-    echo "usage: just init [claude-only|claude-plus-agents]" >&2
+    echo "usage: just init [claude-plus-agents|claude-only]" >&2
     exit 2
+}
+
+deprecation_notice() {
+    echo "⚠  claude-only is deprecated (DEC-015). New projects should use" >&2
+    echo "   claude-plus-agents: same cycle and scripts, plus a handoff per build" >&2
+    echo "   and verify, which works with Claude as every agent. Continuing." >&2
 }
 
 [ "$#" -le 1 ] || usage
@@ -49,22 +59,27 @@ case "$ARG" in
     claude-only|claude-plus-agents)
         VARIANT="$ARG"
         INTERACTIVE=0
+        [ "$VARIANT" = claude-only ] && deprecation_notice
         ;;
     '')
         INTERACTIVE=1
         echo "Pick a variant:"
-        echo "  1) claude-only         (Claude plays every role; simpler)"
-        echo "  2) claude-plus-agents  (Claude architects, separate agent implements)"
+        echo "  1) claude-plus-agents  (recommended; build and verify each get a"
+        echo "                          handoff, usually to a fresh Claude session)"
+        echo "  2) claude-only         (deprecated; one session plays every role)"
         echo ""
-        printf "Enter 1 or 2: "
+        printf "Enter 1 or 2 [1]: "
         variant_choice=""
-        read -r variant_choice || true
+        # EOF here (no input at all) must not pick a default: an empty pipe is
+        # not a choice. Only an answered empty line means "the default".
+        read -r variant_choice || { echo ""; echo "Aborted — nothing was changed."; exit 1; }
         case "$variant_choice" in
-            1) VARIANT="claude-only" ;;
-            2) VARIANT="claude-plus-agents" ;;
+            1|'') VARIANT="claude-plus-agents" ;;
+            2) VARIANT="claude-only" ;;
             *) echo "Invalid choice: ${variant_choice}"; exit 1 ;;
         esac
         echo ""
+        [ "$VARIANT" = claude-only ] && deprecation_notice
         echo "You chose: ${VARIANT}"
         echo "This copies variants/${VARIANT}/ to the repo root and deletes variants/"
         echo "(both variants). It cannot be re-run; undoing it means restoring from git."

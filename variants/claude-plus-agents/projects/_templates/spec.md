@@ -1,7 +1,8 @@
 ---
 # Maps to ContextCore task.* semantic conventions.
-# This variant assumes a separate implementer agent — context for the
-# implementer lives in handoffs/HANDOFF-*.md, not in the spec itself.
+# Build and verify run as separate agents (usually fresh Claude sessions
+# or subagents) — context for them lives in handoffs/HANDOFF-*.md, not in
+# the spec itself.
 
 task:
   id: SPEC-XXX

@@ -27,8 +27,8 @@ default:
 # ONE-TIME SETUP
 # ----------------------------------------------------------------------------
 
-# `just init` asks, then confirms; `just init claude-only` (or
-# claude-plus-agents) runs without prompting. See scripts/init.sh.
+# `just init` asks, then confirms; `just init claude-plus-agents` (or the
+# deprecated claude-only, DEC-015) runs without prompting. See scripts/init.sh.
 # Initialize the repo: pick a variant and scaffold files to the root.
 init variant="":
     @./scripts/init.sh {{quote(variant)}}
@@ -42,8 +42,8 @@ fresh-start:
 # List the available variants (useful before init)
 list-variants:
     @echo "Available variants:"
-    @echo "  claude-only         — Claude plays every role; no handoff documents"
-    @echo "  claude-plus-agents  — Claude architects, separate agent implements; adds /handoffs/"
+    @echo "  claude-plus-agents  — recommended; a handoff per build/verify, usually to a fresh Claude session"
+    @echo "  claude-only         — deprecated (DEC-015); one session plays every role, no handoffs"
     @echo ""
     @echo "Run 'just init' to pick one."
 

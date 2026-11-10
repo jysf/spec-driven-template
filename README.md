@@ -28,9 +28,9 @@ Click **"Use this template"** at the top of this repo on GitHub. Create your new
 just init
 ```
 
-This asks whether you want the `claude-only` or `claude-plus-agents` variant, confirms the choice (it can't be re-run), moves the right files to the repo root, and removes what you don't need — including the template's own docs and its example project and DEC, so `PROJ-001` and `DEC-001` are free for yours. GitHub's template feature already gives you a clean history, so answer **N** when `init` offers to reset it.
+This asks which variant you want (`claude-plus-agents`, the default, or the deprecated `claude-only`), confirms the choice (it can't be re-run), moves the right files to the repo root, and removes what you don't need — including the template's own docs and its example project and DEC, so `PROJ-001` and `DEC-001` are free for yours. GitHub's template feature already gives you a clean history, so answer **N** when `init` offers to reset it.
 
-Already know the variant? `just init claude-only` or `just init claude-plus-agents` skips the prompts (and leaves git history alone).
+Already know the variant? `just init claude-plus-agents` skips the prompts (and leaves git history alone).
 
 **Option B — Clone directly:**
 
@@ -60,21 +60,28 @@ You'll have a repo root containing:
 
 ## The two variants at a glance
 
-### `claude-plus-agents/` — Claude architects, a separate agent implements
+### `claude-plus-agents/` — use this one
 
-For workflows where:
-- Claude writes specs + reviews PRs (architect + reviewer)
-- A different tool (Kilo Code, Factory Droids, AdaL, Cursor, etc.) implements
+Claude designs each spec. Build and verify are each handed off through a
+`HANDOFF-NNN` document, usually to a fresh Claude session or subagent (another
+tool such as Kilo Code, Factory Droids or Cursor also works). The agent that ran
+the cycle fills in its verdict, model and measured cost, and `just handback-sync`
+copies them into the spec.
 
-Adds `/projects/*/handoffs/` — explicit handoff documents that carry context between agents that don't share memory.
+The handoff pays off even when every agent is Claude: build starts from a clean
+context with only what design wrote down, verify stays independent of the build,
+and cost is measured per cycle by the agent that ran it.
 
-### `claude-only/` — Claude does everything
+### `claude-only/` — deprecated
 
-For workflows where Claude plays every role — architect, implementer, reviewer. No separate implementer tool.
+One session plays every role, with the build context folded into each spec's
+`## Implementation Context` section and no handoffs. It still scaffolds (`just
+init claude-only` prints a notice) and existing instances keep getting fixes
+through `just template-update`, but new projects should not start on it. See
+[DEC-015](docs/decisions/DEC-015-one-variant-claude-plus-agents.md).
 
-No `/handoffs/` folder. The context the implementer needs is folded into each spec's `## Implementation Context` section.
-
-**Not sure which?** Start with `claude-only`. Migration to `claude-plus-agents` later is about an hour of mechanical work.
+The two share every script and 31 of their 45 common files; claude-plus-agents
+adds the handoff template.
 
 ## `just` commands available
 
@@ -82,7 +89,7 @@ Run `just --list` to see everything. The main ones:
 
 | Command | What it does |
 |---|---|
-| `just init [variant]` | One-time: choose variant (asks and confirms, or pass `claude-only` / `claude-plus-agents`), scaffold the repo |
+| `just init [variant]` | One-time: choose variant (asks and confirms, or pass `claude-plus-agents`; `claude-only` is deprecated), scaffold the repo |
 | `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`spikes`/`defects`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
