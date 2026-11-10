@@ -92,6 +92,11 @@ if [ -d "$HANDOFF_DIR" ]; then
         husd=$(get_handback_field "$hf" estimated_usd)
         hmin=$(get_handback_field "$hf" duration_minutes)
         hnotes=$(get_handback_field "$hf" notes)
+        hbasis=$(get_handback_field "$hf" basis)
+        # The model that actually ran, when the agent reported it. to_agent is
+        # the tier_map PREDICTION, wrong for irradiance's build 6 times in 7.
+        hagent=$(get_handback_field "$hf" agent)
+        [ -n "$hagent" ] && [ "$hagent" != "null" ] || hagent=$(get_handoff_field "$hf" to_agent)
         hsynced=$(get_handback_field "$hf" synced_at)
 
         # Already transcribed → skip (idempotence).
@@ -137,7 +142,7 @@ if [ -d "$HANDOFF_DIR" ]; then
             # YAML scalar with \ " newline and tab escaped: a raw copy of a
             # multi-line or `#`-bearing note left the spec unparseable. It goes
             # through ENVIRON, not -v, because -v would expand its backslashes.
-            HB_NOTE="$note" awk -v cyc="$hcycle" -v agent="$(get_handoff_field "$hf" to_agent)" \
+            HB_NOTE="$note" awk -v cyc="$hcycle" -v agent="$hagent" -v basis="${hbasis:-}" \
                 -v hid="$hid" -v tok="${htok:-null}" -v usd="${husd:-null}" \
                 -v mins="${hmin:-null}" -v day="$(today)" '
                 function yq(s,   out, i, c) {
@@ -159,6 +164,7 @@ if [ -d "$HANDOFF_DIR" ]; then
                     print "      handoff: " hid
                     print "      agent: " agent
                     print "      interface: other"
+                    if (basis != "" && basis != "null") print "      basis: " basis
                     print "      tokens_total: " tok
                     print "      estimated_usd: " usd
                     print "      duration_minutes: " mins

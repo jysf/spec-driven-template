@@ -2,6 +2,70 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-08 — how to measure a cycle's cost, and every verify round kept (v0.6.48)
+
+Batch 6 of the 2026-11 harvest. crustyimg and irradiance each checked their
+recorded cost against the raw transcripts and found the template's method wrong
+by large factors; neither repo's own AGENTS.md had caught up with what they
+learned. The template now carries the method, and records which method produced
+each number.
+
+**The method, written down** (`docs/cost-tracking.md` "Measuring a cycle",
+AGENTS §4, both cost snippets, the handoff template). Read the cycle's own
+transcript, including a worktree's directory and `subagents/` (crustyimg called
+22 records unrecoverable; 12 were in sibling directories). Count each
+`message.id` once: one line per content block repeats the same `usage`, and
+summing every line over-counted 1.6–2.25× on five irradiance transcripts. Take
+the largest `output_tokens` per message, since output grows across its lines and
+the first line under-counts about 11×. Leave out the orchestrator's transcript
+(its spend goes in the stage's `orchestration_cost`). Re-sum after the session
+ends: live figures were 17% and 25% low. In the desktop Code tab `/cost` reports
+context size, not spend.
+
+**Pricing per component, at the model that ran.** `estimated_usd` was
+`tokens_total` × one list rate. Cache reads are 95%+ of a long cycle's tokens
+and cost a tenth of input, so that overstated 2.6–14.7× across six measured
+cycles. Now: each component at the rates of the model in `message.model`, cache
+reads ×0.10, cache writes ×1.25 (5-minute) or ×2 (1-hour). The two repos
+disagreed on the write multiplier because they used different cache lifetimes;
+the doc names both. Old entries are not comparable with new ones.
+
+**`basis:` on each cost session** — `transcript`, `agent-result`,
+`slash-cost`, `api-usage`, `estimate` (an open set; `validate` reports others).
+These are different quantities, not readings of one: irradiance measured an
+`Agent` result at 197,940 tokens and the same cycle's transcript at 5.2M.
+`just calibration` shows each spec's basis, flags a token band built from more
+than one, and takes `--basis transcript` to compare within one; `--json` adds
+`cost_basis`, `band_bases` and `bands_mix_bases`. No instance records a basis
+yet, so every existing spec reads as `unrecorded` and calibration says so.
+
+**`handback.agent` and `handback.basis`.** `handback-sync` wrote the session's
+`agent` from `to_agent`, which is `tier_map`'s prediction (wrong for
+irradiance's build 6 times in 7), and pricing at the wrong model overstated one
+spec 5×. The handback now carries the model that ran and how it measured;
+`handback-sync` copies both, falling back to `to_agent` when absent.
+
+**`task.verify_rounds`, and pushback counted from every round.**
+`verify_verdict` keeps only the last outcome, so a spec sent back and then
+approved reads as plain `approved`. On irradiance the field shows 1 pushback in
+44 specs (2%); its verify handoffs show at least 6. `advance-cycle` now appends
+each outcome to `verify_rounds`, and a verify handoff can carry
+`handback.verdict`. `just dash defects` counts a spec as sent back if any of
+these says so: its rounds, a handback verdict, a second verify handoff (which
+covers specs from before either field), or the last verdict. It names the
+source of each; `--json` adds `verify_pushback`. On irradiance it now reports 6
+specs (13%). A count of the verdicts written in irradiance's free-text notes
+finds about 9, so 6 is a floor.
+
+`dash defects` also stopped exiting before the verdict section when no artifact
+had answered Q4 (crustyimg: 0 of 148).
+
+Three smaller fixes found on the way. `validate` ended with exit 2 and no message
+on any project folder without a `brief.md` (`awk` on the missing file under
+`set -e`). `calibration` split its rows on `|`, so a spec title containing one
+shifted every later field and broke `--json` (bragfile's SPEC-014). The `defects-view` header no longer claims every escaped defect in
+the dogfood was operational: the corpus has no recorded escaped defects.
+
 ## 2026-11-08 — scaffold: confirm init, ship only the app, frame-stage file names (v0.6.47)
 
 Batch 5 of the 2026-11 harvest, from irradiance's scaffold-time feedback

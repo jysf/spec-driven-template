@@ -69,6 +69,7 @@ depends_notes=""
 actual_notes=""
 roadmap_notes=""
 verdict_notes=""
+basis_notes=""
 closed_notes=""
 
 while IFS= read -r pdir; do
@@ -117,6 +118,21 @@ while IFS= read -r pdir; do
                 *) verdict_notes="${verdict_notes}    ${name}: verify_verdict='${vv}'"$'\n' ;;
             esac
         fi
+        for vr in $(get_spec_verify_rounds "$f"); do
+            case "$VALID_VERDICT" in
+                *" $vr "*) : ;;
+                *) verdict_notes="${verdict_notes}    ${name}: verify_rounds has '${vr}'"$'\n' ;;
+            esac
+        done
+
+        # Cost session `basis:` — open set, advisory (docs/cost-tracking.md "Basis").
+        while IFS= read -r cb; do
+            [ -n "$cb" ] || continue
+            case "$SUGGESTED_COST_BASIS" in
+                *" $cb "*) : ;;
+                *) basis_notes="${basis_notes}    ${name}: basis='${cb}'"$'\n' ;;
+            esac
+        done < <(list_cost_session_bases "$f" | sort -u)
 
         # `depends_on:` refs. ADVISORY only — a dangling ref is collected here and
         # never counted as an offender, so a spec that names a not-yet-created
@@ -180,11 +196,13 @@ while IFS= read -r pdir; do
     fi
 
     # `closed_reason` (optional, stamped at close). Open set, advisory only.
+    # `|| true`: a project folder with no brief.md made awk exit 2 here, which
+    # under set -e ended validate with exit 2 and no message.
     pname=$(basename "$pdir")
     cr=$(awk '
         /^---$/ { f = !f; next } !f { next }
         /^closed_reason:/ { v = $2; if (v != "null" && v != "") print v; exit }
-    ' "${pdir}/brief.md" 2>/dev/null)
+    ' "${pdir}/brief.md" 2>/dev/null || true)
     if [ -n "$cr" ]; then
         case "$SUGGESTED_CLOSED_REASON" in
             *" $cr "*) : ;;
@@ -367,8 +385,14 @@ fi
 
 # Advisory: an unrecognized `task.verify_verdict`. Never changes the exit code.
 if [ -n "$verdict_notes" ]; then
-    warn "validate: unrecognized task.verify_verdict (advisory — expected one of${VALID_VERDICT}):"
+    warn "validate: unrecognized verify verdict (advisory — expected one of${VALID_VERDICT}):"
     printf '%s' "$verdict_notes"
+fi
+
+# Advisory: an unrecognized cost-session `basis` (open set). Never changes the exit code.
+if [ -n "$basis_notes" ]; then
+    warn "validate: unrecognized cost basis (advisory — open set, documented:${SUGGESTED_COST_BASIS}):"
+    printf '%s' "$basis_notes"
 fi
 
 # Advisory: an unrecognized `task.complexity_actual`. Never changes the exit code.
