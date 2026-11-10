@@ -103,6 +103,7 @@ Run `just --list` to see everything. The main ones:
 | `just id-audit` | Fail if one artifact id (SPEC/STAGE/PATCH/SPIKE/HANDOFF/DEC) is used by two different artifacts across this checkout, other worktrees and local branches; collisions already renumbered are listed but pass; `--json` |
 | `just cost-audit` | Fail if any shipped spec is missing real build/verify cost (`tokens_total`); same check the CI `cost-data` job runs |
 | `just validate` | Fail if any spec's front-matter is missing required structural fields or has invalid enums, or if any front matter under `projects/` or `decisions/` does not parse as YAML (ruby when installed, else a weaker bash check; the schema gate, see `docs/schema-reference.md`) |
+| `just template-update <instance>` | Maintainers, from the template repo: update an instance's template-managed files to this version — unedited files replaced, edited ones three-way merged, conflicts never written (drafts saved elsewhere; `--take PATH` after review). Dry run by default; `--apply`, `--base X.Y.Z`, `--json` |
 | `just template-version` | Print the spec-driven template version (the version your repo was scaffolded from); `--json` for machine-readable |
 | `just next-version` | Suggest this app's next release version per its scheme (default CalVer `vYYYY.MM.PATCH`); `--json` |
 | `just build-info` | Build provenance stamp — a `git describe` ref + commit + dirty flag, to bake into the artifact so a build traces back to source; `--json` |

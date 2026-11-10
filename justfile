@@ -304,3 +304,11 @@ build-info *ARGS:
 # Maintainer self-test of the template itself (the app keeps `just test`).
 template-selftest:
     @./scripts/test.sh
+
+# Maintainers, from the template repo: bring an instance's template-managed
+# files up to this template's version (a three-way update per file, based on
+# the instance's VERSION). Dry run by default; --apply writes, --take PATH
+# accepts the template's copy of a reviewed conflict. See CONTRIBUTING.md.
+# Update an instance's template files to this version (template repo only).
+template-update *ARGS:
+    @./scripts/template-update.sh {{ARGS}}

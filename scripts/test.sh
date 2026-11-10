@@ -3474,6 +3474,170 @@ esac
 rm -rf "$CB_P"
 
 # ============================================================
+# template-update (v0.6.49): bring an instance's template files up to date
+# ============================================================
+# Against a synthetic template with two versions, so each case is pinned to a
+# change the test controls rather than to whatever the real template changed
+# between two releases. The script under test and its _lib.sh are the real ones.
+TU=$(mktemp -d 2>/dev/null || mktemp -d -t template-update-test)
+TU_T="$TU/template"; TU_I="$TU/instance"
+tug() { git -C "$1" -c user.email=t@t -c user.name=t "${@:2}"; }
+mkdir -p "$TU_T/scripts" "$TU_T/variants/claude-only/projects/_templates" \
+         "$TU_T/variants/claude-only/docs" "$TU_T/variants/claude-plus-agents"
+cp "$TEMPLATE_ROOT/scripts/_lib.sh" "$TEMPLATE_ROOT/scripts/template-update.sh" "$TU_T/scripts/"
+printf '#!/usr/bin/env bash\necho a1\n' > "$TU_T/scripts/a.sh"
+printf '#!/usr/bin/env bash\necho b-top\necho b-mid\necho b-mid2\necho b-mid3\necho b-end\n' > "$TU_T/scripts/b.sh"
+printf '#!/usr/bin/env bash\necho c1\n' > "$TU_T/scripts/c.sh"
+chmod +x "$TU_T"/scripts/*.sh
+printf 'default:\n    @echo hi\n' > "$TU_T/justfile"
+printf '# spec template v1\n' > "$TU_T/variants/claude-only/projects/_templates/spec.md"
+printf '# cost doc v1\n' > "$TU_T/variants/claude-only/docs/cost-tracking.md"
+printf '# AGENTS v1\n' > "$TU_T/variants/claude-only/AGENTS.md"
+echo 1.0.0 > "$TU_T/VERSION"
+tug "$TU_T" init -q && tug "$TU_T" add -A && tug "$TU_T" commit -q -m v1
+
+# The instance, scaffolded from 1.0.0, then edited: its spec template, its
+# AGENTS.md, the bottom of b.sh, and c.sh's one line.
+mkdir -p "$TU_I/scripts" "$TU_I/projects/_templates" "$TU_I/docs"
+cp "$TU_T"/scripts/_lib.sh "$TU_T"/scripts/a.sh "$TU_T"/scripts/b.sh "$TU_T"/scripts/c.sh "$TU_I/scripts/"
+cp "$TU_T/justfile" "$TU_T/VERSION" "$TU_I/"
+cp "$TU_T/variants/claude-only/docs/cost-tracking.md" "$TU_I/docs/"
+printf '# spec template v1, edited here\n' > "$TU_I/projects/_templates/spec.md"
+printf '# AGENTS, ours\n' > "$TU_I/AGENTS.md"
+echo claude-only > "$TU_I/.variant"
+sed_inplace_portable 's/^echo b-end$/echo b-end-ours/' "$TU_I/scripts/b.sh"
+printf '#!/usr/bin/env bash\necho c-ours\n' > "$TU_I/scripts/c.sh"
+tug "$TU_I" init -q && tug "$TU_I" add -A && tug "$TU_I" commit -q -m scaffold
+
+# Template 1.1.0: a.sh now needs a new library function; b.sh changed at the
+# top (merges with the instance's bottom edit); c.sh changed on the line the
+# instance also changed (conflict); d.sh is new; AGENTS.md changed.
+printf '\nlib_new_fn() { echo new; }\n' >> "$TU_T/scripts/_lib.sh"
+printf '#!/usr/bin/env bash\nsource "$(dirname "$0")/_lib.sh"\nlib_new_fn\n' > "$TU_T/scripts/a.sh"
+sed_inplace_portable 's/^echo b-top$/echo b-top-v2/' "$TU_T/scripts/b.sh"
+printf '#!/usr/bin/env bash\necho c2\n' > "$TU_T/scripts/c.sh"
+printf '#!/usr/bin/env bash\necho d\n' > "$TU_T/scripts/d.sh"; chmod +x "$TU_T/scripts/d.sh"
+printf '# AGENTS v2\n' > "$TU_T/variants/claude-only/AGENTS.md"
+echo 1.1.0 > "$TU_T/VERSION"
+tug "$TU_T" add -A && tug "$TU_T" commit -q -m v1.1
+TU_RUN="$TU_T/scripts/template-update.sh"
+
+# Dry run: classifies every file, writes nothing.
+tu_rc=0; tu_out=$("$TU_RUN" "$TU_I" 2>&1) || tu_rc=$?
+assert_eq "$tu_rc" "0" "template-update dry run exits 0"
+for want in "update    scripts/a.sh" "update    scripts/_lib.sh" "merge     scripts/b.sh" \
+            "conflict  scripts/c.sh" "add       scripts/d.sh"; do
+    case "$tu_out" in
+        *"$want"*) : ;;
+        *) fail "template-update dry run missing '${want}': ${tu_out}" ;;
+    esac
+done
+pass "template-update: unedited → update, edited both sides → merge or conflict, new → add"
+case "$tu_out" in
+    *"kept "*"edited here; template unchanged"*) pass "template-update keeps a local edit the template never touched" ;;
+    *) fail "template-update did not report the kept spec template: ${tu_out}" ;;
+esac
+case "$tu_out" in
+    *"AGENTS.md"*"git -C"*"diff"*) pass "template-update lists an instance-owned file changed upstream, never writes it" ;;
+    *) fail "template-update did not list AGENTS.md as changed upstream: ${tu_out}" ;;
+esac
+[ -z "$(git -C "$TU_I" status --porcelain)" ] && pass "template-update dry run writes nothing" \
+    || fail "template-update dry run changed the instance: $(git -C "$TU_I" status --porcelain)"
+
+# --apply refuses on a dirty tree: the update's undo is git.
+echo scratch > "$TU_I/untracked.txt"
+tu_rc=0; "$TU_RUN" --apply "$TU_I" >/dev/null 2>&1 || tu_rc=$?
+assert_eq "$tu_rc" "1" "template-update --apply refuses on an instance with uncommitted changes"
+rm -f "$TU_I/untracked.txt"
+
+# --apply with an unresolved conflict: applies the rest, leaves the conflicted
+# file alone, keeps VERSION at the base so a re-run still knows it.
+tu_rc=0; tu_out=$("$TU_RUN" --apply "$TU_I" 2>&1) || tu_rc=$?
+assert_eq "$tu_rc" "1" "template-update --apply exits 1 when it could only apply part"
+assert_eq "$(cat "$TU_I/scripts/c.sh" | sed -n 2p)" "echo c-ours" "a conflicted file is never written"
+assert_eq "$(tr -d '\n' < "$TU_I/VERSION")" "1.0.0" "VERSION stays at the base after a partial update"
+assert_eq "$(sed -n 2p "$TU_I/scripts/b.sh")" "echo b-top-v2" "a clean merge takes the template's change"
+assert_eq "$(tail -n 1 "$TU_I/scripts/b.sh")" "echo b-end-ours" "a clean merge keeps the instance's edit"
+assert_eq "$(sed -n 1p "$TU_I/projects/_templates/spec.md")" "# spec template v1, edited here" "a kept file is untouched"
+assert_eq "$(sed -n 1p "$TU_I/AGENTS.md")" "# AGENTS, ours" "an instance-owned file is untouched"
+[ -x "$TU_I/scripts/d.sh" ] && pass "an added script arrives executable" || fail "added script d.sh is not executable"
+tu_draft=$(printf '%s\n' "$tu_out" | sed -n 's/.*conflict markers, for the conflicts above: //p' | sed -n 1p)
+if [ -n "$tu_draft" ] && grep -q '^<<<<<<< ' "$tu_draft/scripts/c.sh" 2>/dev/null; then
+    pass "the conflict's merged draft, with markers, is saved outside the instance"
+else
+    fail "no conflict draft found (path: '${tu_draft}')"
+fi
+# Commit the partial update; the re-run picks up from there.
+tug "$TU_I" add -A && tug "$TU_I" commit -q -m partial
+
+# --take: the template's copy for a file you reviewed. Completes the update.
+tu_rc=0; "$TU_RUN" --apply --take scripts/c.sh "$TU_I" >/dev/null 2>&1 || tu_rc=$?
+assert_eq "$tu_rc" "0" "template-update --take resolves the last conflict and completes"
+assert_eq "$(sed -n 2p "$TU_I/scripts/c.sh")" "echo c2" "--take writes the template's copy"
+assert_eq "$(tr -d '\n' < "$TU_I/VERSION")" "1.1.0" "a complete update moves VERSION to the template's"
+assert_eq "$(bash "$TU_I/scripts/a.sh")" "new" "the updated script runs against the updated library"
+tug "$TU_I" add -A && tug "$TU_I" commit -q -m complete
+tu_out=$("$TU_RUN" "$TU_I" 2>&1 || true)
+case "$tu_out" in
+    *"update "*|*"merge "*|*"conflict "*|*"add "*) fail "a re-run after a complete update still has work: ${tu_out}" ;;
+    *) pass "a re-run after a complete update finds nothing to do" ;;
+esac
+tu_rc=0; "$TU_RUN" --take scripts/nope.sh "$TU_I" >/dev/null 2>&1 || tu_rc=$?
+assert_eq "$tu_rc" "2" "--take of a file the template doesn't manage is a usage error"
+
+# Scripts move together: an instance that edited _lib.sh where the template also
+# changed it can't take the new library, so a.sh (which needs lib_new_fn) is
+# held rather than left calling a function its library lacks.
+tug "$TU_I" reset -q --hard HEAD~2
+printf '\nours_fn() { echo ours; }\n' >> "$TU_I/scripts/_lib.sh"
+tug "$TU_I" commit -q -am "our library edit"
+tu_rc=0; tu_out=$("$TU_RUN" --apply "$TU_I" 2>&1) || tu_rc=$?
+case "$tu_out" in
+    *"conflict  scripts/_lib.sh"*"held      scripts/a.sh"*"held back: scripts/_lib.sh"*)
+        pass "a library conflict holds back every script change (scripts and _lib.sh move together)" ;;
+    *) fail "template-update did not hold the scripts behind a _lib.sh conflict: ${tu_out}" ;;
+esac
+assert_eq "$(sed -n 2p "$TU_I/scripts/a.sh")" "echo a1" "a held script is not written"
+tug "$TU_I" reset -q --hard HEAD
+
+# No VERSION: no base, so a comparison only; --apply refuses unless --base.
+git -C "$TU_I" rm -q VERSION && tug "$TU_I" commit -q -m "no version"
+tu_out=$("$TU_RUN" "$TU_I" 2>&1 || true)
+case "$tu_out" in
+    *"no VERSION file"*) pass "template-update without a VERSION reports a comparison only" ;;
+    *) fail "template-update without VERSION: ${tu_out}" ;;
+esac
+tu_rc=0; "$TU_RUN" --apply "$TU_I" >/dev/null 2>&1 || tu_rc=$?
+assert_eq "$tu_rc" "1" "template-update --apply refuses with no VERSION and no --base"
+tu_out=$("$TU_RUN" --base 1.0.0 "$TU_I" 2>&1 || true)
+case "$tu_out" in
+    *"base 1.0.0 (from --base"*) pass "--base supplies the scaffold version an old instance never recorded" ;;
+    *) fail "--base not used: ${tu_out}" ;;
+esac
+if [ "$HAVE_PY3" = 1 ]; then
+    if "$TU_RUN" --json --base 1.0.0 "$TU_I" 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+assert d["command"] == "template-update", d
+d = d["data"]
+assert d["base_version"] == "1.0.0" and d["template_version"] == "1.1.0", d
+assert d["applied"] is False and d["counts"]["conflict"] >= 1, d
+assert any(n["path"] == "AGENTS.md" for n in d["owned_changed_upstream"]), d
+' 2>/dev/null; then
+        pass "template-update --json follows the envelope and reports counts and owned changes"
+    else
+        fail "template-update --json unexpected: $("$TU_RUN" --json --base 1.0.0 "$TU_I" 2>&1 || true)"
+    fi
+fi
+rm -rf "$TU"
+# In an instance (this scratch repo) there is no template to update from.
+tu_out=$(just template-update "$PWD" 2>&1 || true)
+case "$tu_out" in
+    *"Run this from the template repo"*) pass "template-update refuses inside an instance, and says why" ;;
+    *) fail "template-update inside an instance: ${tu_out}" ;;
+esac
+
+# ============================================================
 # claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)
 #
 # Until now the suite ONLY ever scaffolded claude-only, so the entire
