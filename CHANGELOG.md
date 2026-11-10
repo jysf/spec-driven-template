@@ -2,6 +2,64 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-09 — `just template-update`: template fixes reach existing instances (v0.6.49)
+
+Batch 7 of the 2026-11 harvest, and the last. `just init` copies a variant
+once, and nothing afterwards brought template fixes in. Measured over nine
+instances, the five with a `VERSION` file each held 22–26 template files they
+had never edited, still at their scaffold version, and 1–10 with local edits.
+
+**`just template-update <instance>`**, run from the template repo, is a
+three-way update per template-managed file (`scripts/`, the `justfile`,
+`projects/_templates/`, the reference docs, CI). The base is the template's own
+history at the instance's `VERSION`: of the commits carrying that version, the
+one whose files the instance still matches best.
+
+- **Updated:** files the instance never edited are replaced with the template's
+  copy, and new files are added.
+- **Merged:** files edited on both sides are merged with `git merge-file`. A
+  merged script that fails `bash -n` counts as a conflict.
+- **Conflicts:** never written into the instance. The draft with markers is
+  saved elsewhere, and `--take PATH` accepts the template's copy once you have
+  reviewed it.
+- **Left alone:** files the template has not changed since the base.
+- **Never written:** instance-owned files (`AGENTS.md`, `GETTING_STARTED.md`,
+  `FIRST_SESSION_PROMPTS.md`, `CLAUDE.md`, `.repo-context.yaml`,
+  `guidance/constraints.yaml`). When the template changed one, it is listed
+  with the `git diff` that shows the change.
+
+It is a dry run by default. `--apply` refuses on a dirty tree, since the undo
+is git. `--json` follows DEC-001.
+
+**Scripts move together.** Every script sources `_lib.sh`. Trying `--apply` on
+a clone of irradiance left `status.sh` calling a `has_projects()` the
+instance's older library lacked. Worse, `cost-audit` hit the same missing
+function and passed its gate as if the repo had no projects. So if `_lib.sh`
+can't be updated, or a script in the resulting set would call a function the
+resulting library doesn't define, every script and justfile change is held
+back and reported. The same check stopped `--take scripts/_lib.sh` on
+irradiance from dropping functions irradiance had added to its own library.
+
+**VERSION moves only on a complete update**, because it is the next run's base.
+After a partial update it stays put, and a re-run picks up from there. An
+instance with no `VERSION` gets a comparison only, unless you pass
+`--base X.Y.Z`.
+
+Dry runs on the nine instances:
+
+| Instances | Result |
+|---|---|
+| irradiance, diamond-exif, grebe, standup | `_lib.sh` conflicts (1–3 hunks), which holds their scripts; templates and docs apply |
+| skillport | updates completely after `--take .github/workflows/ci.yml`. On a clone, every command checked exits 0 afterwards, and a re-run finds nothing to do |
+| bragfile, crustyimg, zany, rspeed | no `VERSION` file; comparison only |
+
+This reverses two recorded positions, both amended in place:
+- DEC-014 put the update channel in the Go `sdt` binary. It ships in bash
+  first, since none of DEC-014's open questions block it and `git merge-file`
+  does the hard part.
+- The `instances-diff.sh` header said no update mechanism was needed. That held
+  for porting one script by hand, not for dozens of files nothing refreshed.
+
 ## 2026-11-08 — how to measure a cycle's cost, and every verify round kept (v0.6.48)
 
 Batch 6 of the 2026-11 harvest. crustyimg and irradiance each checked their

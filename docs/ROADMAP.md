@@ -1073,6 +1073,13 @@ This supersedes the "documented manual update recipe → `just template-update`"
 sequence in the 2026-08-13 update-path entry above: the update channel becomes
 an `sdt` command.
 
+> **Amended 2026-11-09:** the update channel shipped in bash first, as
+> `just template-update` (v0.6.49; DEC-014 amendment). On a dry run, four of
+> the five instances with a `VERSION` file conflict in `_lib.sh` (1–3 hunks),
+> which holds back their script updates until that is resolved. skillport
+> updates completely after one `--take`. The four instances with no `VERSION`
+> (bragfile, crustyimg, zany, rspeed) get a comparison only.
+
 ## Explicitly rejected — recorded so it isn't re-asked
 
 From the 2026-08-12 external comparison. *(This section is itself the evidence

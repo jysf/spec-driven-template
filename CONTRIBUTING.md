@@ -63,11 +63,42 @@ or change a recipe:
 
 ## Keeping instances current
 
-Porting improvements into an existing instance is **manual, by hand, with an
-agent** — and that works. What breaks is knowing *what to port*: you port what
-you need today, which is rational every time and in aggregate strands the
-cross-cutting analytical tooling, whose whole value is being in every repo at
-once.
+Two tools, both run from this repo against a checkout on disk.
+
+**`just template-update ~/path/to/instance`** brings an instance's
+template-managed files (`scripts/`, the `justfile`, `projects/_templates/`, the
+reference docs, CI) up to this version. It is a three-way update per file, with
+the template's own history at the instance's `VERSION` as the base:
+
+- files the instance never edited are replaced;
+- files edited on both sides are merged with `git merge-file`;
+- conflicts are never written into the instance; a draft with markers is saved
+  elsewhere, and `--take <path>` accepts the template's copy once you have
+  reviewed it.
+
+Instance-owned files (`AGENTS.md`, `guidance/`, `.repo-context.yaml`, …) are
+never written; when the template changed one, it is listed with the `git diff`
+that shows the change.
+
+Dry run by default; `--apply` writes, and refuses on a dirty tree, since the
+undo is git. `scripts/` and the `justfile` move together: every script sources
+`_lib.sh`, so if the library can't be updated (or a script would call a
+function the resulting library lacks), every script change is held. Only a
+complete update moves the instance's `VERSION`, because that is the next run's
+base. An instance with no `VERSION` gets a comparison only, unless you pass
+`--base X.Y.Z`.
+
+```bash
+just template-update ~/path/to/instance                 # report
+just template-update --apply ~/path/to/instance         # write, then review `git diff` there
+just template-update --apply --take scripts/_lib.sh ~/path/to/instance
+```
+
+**`instances-diff`** answers the other question: which repos are behind, and
+on what. Porting by hand, with an agent, also works. What breaks is knowing
+*what to port*: you port what you need today, which is rational every time and
+in aggregate strands the cross-cutting analytical tooling, whose whole value is
+being in every repo at once.
 
 ```bash
 ./scripts/instances-diff.sh ~/path/to/instance [more...]   # --json for the typed surface

@@ -16,6 +16,11 @@
 # So the gap is not capability, it is VISIBILITY. This turns "which repos are
 # behind, and on what?" into one command.
 #
+# (Since v0.6.49 there is also an update mechanism: template-update.sh. The
+# argument above held for porting one script by hand; it did not hold for
+# 22-26 unedited files per instance that nothing ever refreshed. This report
+# stays the visibility half.)
+#
 # It deliberately lives in the TEMPLATE repo and is not shipped to instances:
 # an instance cannot diff itself against a template it has no pointer to, and
 # putting the checker in the place that goes stale is the same trap one level

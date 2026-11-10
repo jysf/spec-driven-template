@@ -107,6 +107,22 @@ adopted incrementally and always optional.**
 - **YAML library:** the original `gopkg.in/yaml.v3` repo has been archived.
   Confirm which maintained successor is current when the first spec is written.
 
+## Amendment 2026-11-09: the update channel ships in bash first
+
+`sdt template-update` was to be the update path. It ships instead as
+`scripts/template-update.sh` (v0.6.49), for three reasons:
+
+- Measured drift made it urgent. The five instances with a `VERSION` file each
+  held 22–26 template files they had never edited, still at their scaffold
+  version.
+- None of this decision's open questions block it.
+- The hard part is merging, and `git merge-file` already does it.
+
+It runs from the template repo, so nothing is installed into an instance. If
+`sdt` is built, it can port the command; `test.sh` holds the behaviour it must
+match. This does not change anything else here: the YAML and
+comment-preserving edit commands remain the case for `sdt`.
+
 ## Revisit when
 
 - The first three commands ship and a harvest shows whether instances actually
