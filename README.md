@@ -90,10 +90,11 @@ Run `just --list` to see everything. The main ones:
 | `just new-patch "title"` | Scaffold a patch — the lightweight fix lane (collapsed patch→verify→ship, keeps independent verify + DEC) |
 | `just new-spike "question" [TIMEBOX] [MODE]` | Scaffold a spike — the bounded-exploration lane (collapsed spike→land, no verify). `MODE=build` is a vibe-coding session. Lives at the repo root; may precede any project |
 | `just new-handoff SPEC-NNN build\|verify` | Scaffold a delegation handoff (claude-plus-agents) — one per delegated cycle; `to_agent` from `tier_map.<cycle>` |
-| `just handback-sync SPEC-NNN` | Transcribe the agent's self-reported cost from its handoffs into the spec — the orchestrator never estimates a delegated cycle |
+| `just handback-sync SPEC-NNN` | Transcribe the agent's self-reported cost from its handoffs into the spec — the orchestrator never estimates a delegated cycle. Carries the handback's `agent` (the model that actually ran) and `basis` (how the tokens were measured) |
 | `just archive-spike SPIKE-NNN` | File a **landed** spike under `spikes/done/` — refuses one with no `spike.outcome` |
 | `just new-release-spec "vX" STAGE-NNN` | Scaffold a release spec with a generic runtime pre-flight checklist (or `new-spec … --release`) |
-| `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field |
+| `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field; leaving verify stamps `verify_verdict` and appends it to `verify_rounds` |
+| `just calibration` | Expected vs actual size and tokens for shipped specs, with each spec's cost `basis`; flags a token band that mixes bases. `--basis transcript` to compare within one, `--all`, `--json` |
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog + stamp `shipped_at`; says how many unwritten backlog items the stage still holds |
 | `just close-project PROJ-NNN` | Close a project: refuses on in-flight specs (when claiming `shipped`), an empty reflection, or undisposed signals; stamps `shipped_at`; prints the cost/value/decision rollup. `--dry-run`, `--json` |
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |

@@ -1039,6 +1039,40 @@ get_spec_complexity_actual() { get_task_scalar "$1" complexity_actual; }
 # ARE Prompt 4's three verdicts, so nothing new is asked of the verifier.
 get_spec_verify_verdict() { get_task_scalar "$1" verify_verdict; }
 
+# Every verify outcome, oldest first, space-separated (`punch-list approved`).
+# Empty when none recorded. verify_verdict above is only the last of these, so
+# a spec sent back and then approved reads as plain "approved" there; this is
+# the history. Written as a flow list (`verify_rounds: [punch-list, approved]`)
+# by append_verify_round; a block list is read too.
+get_spec_verify_rounds() {
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { exit }
+        /^task:/ { intask = 1; next }
+        intask && /^[^[:space:]]/ { exit }
+        intask && inlist && /^[[:space:]]+- / { v = $0; sub(/^[[:space:]]+- */, "", v); sub(/[[:space:]]*#.*$/, "", v); printf "%s ", v; next }
+        intask && inlist { exit }
+        intask && /^[[:space:]]+verify_rounds:/ {
+            v = $0; sub(/^[[:space:]]+verify_rounds:[[:space:]]*/, "", v)
+            sub(/[[:space:]]*#.*$/, "", v)
+            if (v == "") { inlist = 1; next }
+            gsub(/[][,]/, " ", v)
+            n = split(v, w, /[[:space:]]+/)
+            for (i = 1; i <= n; i++) if (w[i] != "" && w[i] != "null") printf "%s ", w[i]
+            exit
+        }
+    ' "$1" | sed -E 's/[[:space:]]+$//'
+}
+
+# Append one verify outcome to task.verify_rounds (inserting the key on a spec
+# written before it existed).
+append_verify_round() {
+    local file="$1" verdict="$2" rounds
+    rounds=$(get_spec_verify_rounds "$file")
+    rounds="${rounds:+${rounds} }${verdict}"
+    upsert_frontmatter_scalar "$file" "task.verify_rounds" "[$(printf '%s' "$rounds" | sed 's/ /, /g')]"
+}
+
 # Rank a t-shirt size so expected-vs-actual can be compared. 0 = unrecognized.
 # Usage: size_rank M
 size_rank() {
@@ -1254,6 +1288,52 @@ sum_cost_tokens_for_spec() {
         END { print total+0 }
     ' "$file"
 }
+
+# How a spec's metered (build/verify) cost was measured: one word for the whole
+# spec — the basis its metered sessions share, "mixed" when they differ, or
+# "unrecorded" when a metered session with a number names none. Empty when no
+# metered session has a number. See docs/cost-tracking.md "Basis": the bases
+# are different quantities (agent-result vs transcript measured 26× apart), so
+# calibration must not band them together.
+get_spec_cost_basis() {
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^  sessions:/ { in_s = 1; next }
+        in_cost && in_s && /^  [a-zA-Z_]/ { in_s = 0 }
+        function flush() {
+            if (metered && tok ~ /^[0-9]+$/ && tok > 0) {
+                b = (basis == "" || basis == "null") ? "unrecorded" : basis
+                if (!(b in seen)) { seen[b] = 1; nb++; only = b }
+            }
+            metered = 0; tok = ""; basis = ""
+        }
+        in_s && /^    - cycle:/ { flush(); c = $3; metered = (c == "build" || c == "verify") ; next }
+        in_s && /^      tokens_total:/ { tok = $2 }
+        in_s && /^      basis:/ { basis = $2 }
+        END {
+            flush()
+            if (nb == 1) print only
+            else if (nb > 1) print "mixed"
+        }
+    ' "$1"
+}
+
+# Every `basis:` value written on a spec's cost sessions, one per line (for the
+# validate advisory; get_spec_cost_basis above is the per-spec summary).
+list_cost_session_bases() {
+    awk '
+        /^---$/ { fm = !fm; next }
+        !fm { next }
+        /^cost:/ { in_cost = 1; next }
+        in_cost && /^[a-zA-Z_]/ { in_cost = 0 }
+        in_cost && /^      basis:/ { if ($2 != "null") print $2 }
+    ' "$1"
+}
+# The documented bases. An open set: validate reports others, never rejects them.
+SUGGESTED_COST_BASIS=" transcript agent-result slash-cost api-usage estimate "
 
 # Sum tokens across a STAGE's orchestration_cost.sessions[] — the framing and
 # cross-spec steering spend that has no spec to attach to. Prints an integer

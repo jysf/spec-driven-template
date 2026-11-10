@@ -101,8 +101,17 @@ make it stick. Full reference: `docs/cost-tracking.md`.
 - **design / ship cycles** are orchestrator main-loop work with no clean
   per-cycle metering — leave numerics `null` with a "main-loop, not
   separately metered" note.
-- **`estimated_usd`** = `tokens_total` × your model's published list rate,
-  no cache discount — an order-of-magnitude estimate; say so in the note.
+- **Measure from the transcript** (`docs/cost-tracking.md`, "Measuring a
+  cycle"): count each `message.id` once, take its largest `output_tokens`,
+  include the worktree's and `subagents/` transcripts, and leave out the
+  orchestrator's own. Summing every line over-counts 1.6–2.25×. Record how the
+  number was measured in `basis:` (`transcript` | `agent-result` |
+  `slash-cost` | `api-usage` | `estimate`): those are different quantities,
+  and `just calibration` will not band them together.
+- **`estimated_usd`** is priced per component at the list rates of the model
+  that actually ran (`message.model`, also written to `agent`), with cache
+  reads at 0.10× input. Not `tokens_total` × one rate: on cache-heavy cycles
+  that overstated 2.6–14.7×.
 - **Other interfaces:** `interface: claude-ai` (estimate by length),
   `api` (the `usage` object), `ollama`/`other`. Only genuinely un-metered
   cycles may be null-with-note.

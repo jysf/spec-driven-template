@@ -2773,6 +2773,10 @@ assert_contains "$DSPEC" "verify_verdict: approved" "verify → ship infers appr
 just advance-cycle "$VSPEC_ID" verify >/dev/null 2>&1
 just advance-cycle "$VSPEC_ID" build --verdict rejected >/dev/null 2>&1
 assert_contains "$DSPEC" "verify_verdict: rejected" "--verdict overrides the inference"
+# Every outcome is kept, not just the last (irradiance: the last-verdict field
+# showed 1 pushback where its handoffs showed 5).
+assert_eq "$(bash -c 'source scripts/_lib.sh; get_spec_verify_rounds "$1"' _ "$DSPEC")" "punch-list approved rejected" \
+    "advance-cycle appends every verify outcome to task.verify_rounds"
 assert_cmd_fails "advance-cycle rejects an unknown verdict" \
     just advance-cycle "$VSPEC_ID" build --verdict maybe
 
@@ -2791,7 +2795,7 @@ fi
 # Advisory only — an unrecognized verdict must never fail the gate.
 if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  verify_verdict: rejected$/  verify_verdict: bogus/' "$DSPEC"; else sed -i 's/^  verify_verdict: rejected$/  verify_verdict: bogus/' "$DSPEC"; fi
 vout=$(just validate 2>&1) || fail "validate failed on an unrecognized verify_verdict (must be advisory)"
-if printf '%s\n' "$vout" | grep -q "unrecognized task.verify_verdict"; then
+if printf '%s\n' "$vout" | grep -q "unrecognized verify verdict"; then
     pass "validate warns (advisory) on an unrecognized verify_verdict"
 else
     fail "validate did not surface the verify_verdict advisory: $vout"
@@ -3334,6 +3338,142 @@ assert_eq "$(gf "PATCH-003" "SPEC-003-same-number")" "no" "PATCH-003 does not gr
 assert_eq "$(gf "SPEC-002" "SPEC-002-test-spec")" "yes" "SPEC grandfathering still works"
 
 # ============================================================
+# Cost basis and verify rounds (v0.6.48)
+# ============================================================
+# A fixture project, read through its own scope so the rest of the scratch
+# repo's specs don't move the numbers. Four shipped specs, all with a LAST
+# verdict of approved — so the old field alone would say verify never pushed
+# back — and four different histories:
+#   SPEC-960  verify_rounds [punch-list, approved]           basis transcript
+#   SPEC-961  two verify handoffs, no rounds                 basis agent-result
+#   SPEC-962  one verify handoff whose handback.verdict is punch-list, no basis
+#   SPEC-963  one verify handoff, approved                   basis transcript
+CB_P="projects/PROJ-095-cost-basis-fixture"
+mkdir -p "$CB_P/specs/done" "$CB_P/handoffs"
+cb_spec() {   # id rounds basis
+    {
+        echo "---"
+        echo "task:"
+        echo "  id: $1"
+        echo "  type: story"
+        echo "  cycle: ship"
+        echo "  complexity: S"
+        echo "  verify_verdict: approved"
+        echo "  verify_rounds: $2"
+        echo "project:"
+        echo "  id: PROJ-095"
+        echo "  stage: STAGE-095"
+        echo "repo:"
+        echo "  id: bragfile-test"
+        echo "cost:"
+        echo "  sessions:"
+        for cyc in build verify; do
+            echo "    - cycle: $cyc"
+            echo "      agent: claude-opus-4-8"
+            [ "$3" = none ] || echo "      basis: $3"
+            echo "      tokens_total: 1000"
+        done
+        echo "  totals:"
+        echo "    tokens_total: 2000"
+        echo "---"
+        # A `|` in the title used to shift calibration's row fields (bragfile).
+        echo "# $1: fixture | with a pipe"
+    } > "$CB_P/specs/done/$1-fixture.md"
+}
+cb_handoff() {   # n spec verdict
+    {
+        echo "---"
+        echo "handoff:"
+        echo "  id: HANDOFF-$1"
+        echo "  cycle: verify"
+        echo "  status: completed"
+        echo "task:"
+        echo "  spec_id: $2"
+        echo "handback:"
+        echo "  status: completed"
+        echo "  verdict: $3"
+        echo "  tokens_total: 1000"
+        echo "---"
+    } > "$CB_P/handoffs/HANDOFF-$1-verify-fixture.md"
+}
+cb_spec SPEC-960 "[punch-list, approved]" transcript
+cb_spec SPEC-961 "[]" agent-result
+cb_spec SPEC-962 "[]" none
+cb_spec SPEC-963 "[]" transcript
+cb_handoff 960 SPEC-961 null
+cb_handoff 961 SPEC-961 null
+cb_handoff 962 SPEC-962 punch-list
+cb_handoff 963 SPEC-963 approved
+
+# defects-view: pushback from every round, not the last verdict.
+cb_dd=$(just dash defects PROJ-095 2>&1 || true)
+case "$cb_dd" in
+    *"never pushed back"*) fail "defects: last-verdict-only reading came back: ${cb_dd}" ;;
+    *"sent back at least once: 3 spec(s)"*) pass "defects counts pushback from rounds, handback verdicts and repeat handoffs (3 of 4)" ;;
+    *) fail "defects pushback count unexpected: ${cb_dd}" ;;
+esac
+if [ "$HAVE_PY3" = 1 ]; then
+    cb_dj=$(just dash defects PROJ-095 --json 2>/dev/null || true)
+    if printf '%s' "$cb_dj" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+p, v = d["verify_pushback"], d["verify_verdicts"]
+assert v["approved"] == 4, v
+assert (p["specs_pushed_back"], p["from_verify_rounds"], p["from_handback_verdicts"], p["from_repeat_handoffs"]) == (3, 1, 1, 1), p
+assert (p["rounds_recorded"], p["punch_list_rounds"]) == (2, 1), p
+' 2>/dev/null; then
+        pass "defects --json splits pushback by source (rounds 1, handback 1, repeat handoffs 1)"
+    else
+        fail "defects --json verify_pushback unexpected: ${cb_dj}"
+    fi
+fi
+
+# calibration: one band, three bases → flagged; --basis narrows it.
+cb_cal=$(just calibration PROJ-095 2>&1 || true)
+case "$cb_cal" in
+    *"mix cost measured different ways"*) pass "calibration flags a band built from more than one cost basis" ;;
+    *) fail "calibration did not flag mixed bases: ${cb_cal}" ;;
+esac
+cb_calt=$(just calibration PROJ-095 --basis transcript 2>&1 || true)
+case "$cb_calt" in
+    *SPEC-961*|*SPEC-962*) fail "calibration --basis transcript kept other bases: ${cb_calt}" ;;
+    *SPEC-960*SPEC-963*|*SPEC-963*SPEC-960*)
+        case "$cb_calt" in
+            *"mix cost"*) fail "calibration --basis transcript still says mixed: ${cb_calt}" ;;
+            *) pass "calibration --basis keeps only that basis, and the band is no longer mixed" ;;
+        esac ;;
+    *) fail "calibration --basis transcript unexpected: ${cb_calt}" ;;
+esac
+if [ "$HAVE_PY3" = 1 ]; then
+    cb_cj=$(just calibration PROJ-095 --json 2>/dev/null || true)
+    if printf '%s' "$cb_cj" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)["data"]
+assert d["bands_mix_bases"] is True, d
+assert d["band_bases"] == {"agent-result": 1, "transcript": 2, "unrecorded": 1}, d["band_bases"]
+b = {s["id"]: s["cost_basis"] for s in d["specs"]}
+assert b == {"SPEC-960": "transcript", "SPEC-961": "agent-result", "SPEC-962": "unrecorded", "SPEC-963": "transcript"}, b
+assert all(s["title"].endswith("fixture | with a pipe") and s["expected_size"] == "S" for s in d["specs"]), d["specs"]
+' 2>/dev/null; then
+        pass "calibration --json reports each spec's cost_basis and basis mix, with a '|' in titles"
+    else
+        fail "calibration --json basis fields unexpected: ${cb_cj}"
+    fi
+fi
+assert_cmd_fails "calibration --basis with no value is a usage error" just calibration PROJ-095 --basis
+
+# validate: an undocumented basis is reported, never fatal (open set). The
+# fixture project has no brief.md, which used to end validate with exit 2 and no
+# message; this run covers that too.
+sed_inplace_portable 's/^      basis: agent-result$/      basis: vibes/' "$CB_P/specs/done/SPEC-961-fixture.md"
+cb_val=$(just validate 2>&1) || fail "validate failed on an undocumented cost basis (must be advisory)"
+case "$cb_val" in
+    *"basis='vibes'"*) pass "validate reports an undocumented cost basis (advisory)" ;;
+    *) fail "validate did not report basis='vibes': ${cb_val}" ;;
+esac
+rm -rf "$CB_P"
+
+# ============================================================
 # claude-plus-agents variant — handoff / handback (v0.6.28, DEC-005)
 #
 # Until now the suite ONLY ever scaffolded claude-only, so the entire
@@ -3438,6 +3578,10 @@ assert_cmd_fails "handback-sync refuses a handback with no tokens_total" just ha
 # With a real self-reported count it transcribes into the spec's cost.sessions.
 sed_pa 's/^  tokens_total: null.*/  tokens_total: 48211/' "$HB"
 sed_pa 's/^  estimated_usd: null.*/  estimated_usd: 0.32/' "$HB"
+# The build agent reports the model that actually ran (not tier_map's
+# prediction) and how it measured. The verify handback leaves both out.
+sed_pa 's/^  agent: null.*/  agent: claude-opus-4-8/' "$HB"
+sed_pa 's/^  basis: null.*/  basis: transcript/' "$HB"
 sed_pa 's/^  status: null.*/  status: completed/' "$HV"
 sed_pa 's/^  tokens_total: null.*/  tokens_total: 12044/' "$HV"
 sed_pa 's/^  estimated_usd: null.*/  estimated_usd: 0.08/' "$HV"
@@ -3450,6 +3594,13 @@ assert_contains "$PA_SPEC" "48211" "build cost landed in the spec's cost.session
 assert_contains "$PA_SPEC" "12044" "verify cost landed in the spec's cost.sessions"
 assert_contains "$PA_SPEC" "^ +- cycle: build$"  "transcribed session carries cycle: build"
 assert_contains "$PA_SPEC" "^ +- cycle: verify$" "transcribed session carries cycle: verify"
+# v0.6.48: the session names the model that ran, not the one tier_map predicted
+# (irradiance: the prediction was wrong for build 6 times in 7), and its basis.
+assert_contains "$PA_SPEC" "^      agent: claude-opus-4-8$" "handback-sync records handback.agent over the predicted to_agent"
+assert_contains "$PA_SPEC" "^      basis: transcript$" "handback-sync carries handback.basis into the session"
+assert_contains "$PA_SPEC" "^      agent: claude-opus-4-7$" "with no handback.agent, the session falls back to to_agent"
+assert_eq "$(bash -c 'source scripts/_lib.sh; get_spec_cost_basis "$1"' _ "$PA_SPEC")" "mixed" \
+    "a spec whose build has a basis and verify has none reads as mixed"
 assert_contains "$HB" "synced_at: 2"         "handback-sync stamps synced_at"
 
 # Idempotence: re-running must not double-count (the cost record's integrity).
