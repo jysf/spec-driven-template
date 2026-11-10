@@ -266,6 +266,10 @@ links a public GitHub ContextCore repo, which conflicts with "closed-source".
 
 ## First batch (proposed)
 
+> **Done, 2026-11-10:** all seven shipped as v0.6.40–v0.6.49. What each one
+> changed, and where the instance rollout stands, is in
+> [`2026-11-10-harvest-outcome.md`](2026-11-10-harvest-outcome.md).
+
 Ranked by severity × cost; each has a reference fix in some instance.
 
 1. **Corruption fixes:** quoted-`#` strip in all three readers; multi-line scalar
