@@ -8,7 +8,9 @@ Step-by-step walkthrough for your first project. Assumes you just ran `just init
 
 ## Before you start
 
-- Pick your implementer tool (Kilo, Factory, AdaL, Cursor, etc.). Commit to one.
+- Decide who runs build and verify. The usual answer is Claude itself: a fresh
+  session or subagent per handoff, with the model `tier_map` names. Another tool
+  (Kilo, Factory, AdaL, Cursor, …) works too; commit to one per cycle.
 - API access for Claude and your implementer's models.
 - A Git repo. Branch protection on `main` recommended.
 - `just` installed (`brew install just` on macOS, `cargo install just` elsewhere).

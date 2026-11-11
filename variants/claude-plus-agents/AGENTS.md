@@ -226,7 +226,7 @@ Every spec moves through five cycles. **Cycles are tags, not gates** — edit an
 |---|---|---|
 | **frame** | Go/no-go on the spec | Human + Claude (1 min) |
 | **design** | Spec + failing tests + handoff | Claude (architect) |
-| **build** | Make failing tests pass | Implementer agent |
+| **build** | Make failing tests pass | Implementer agent (usually a fresh Claude session or subagent) |
 | **verify** | Review + validation | Claude (reviewer) |
 | **ship** | Merge, deploy, reflect, archive | Human + light agent |
 
@@ -300,6 +300,18 @@ sequence). Patches are first-class in `just validate`, `just cost-audit`
 files it under `patches/done/`.
 
 ### Delegated cycles: the handoff / handback contract
+
+**The implementer is usually Claude, and the handoff still applies.** Build and
+verify normally run in a fresh Claude session or subagent (`to_agent` is whatever
+`tier_map` names); another tool is an option, not the premise. Writing the
+handoff even then is the point (DEC-015 in the template):
+
+- build starts from a clean context holding only what design wrote down, so a
+  gap in the spec surfaces as a question instead of being filled from the
+  designer's memory;
+- verify stays independent of the session that built it;
+- the agent that ran the cycle reports its own cost, model and verdict, so
+  `cost.sessions` and `verify_rounds` hold measured values, not recollections.
 
 **One handoff per delegated CYCLE.** With build and verify on different agents
 you get two per spec — `handoff.cycle` distinguishes them, and `to_agent` comes
@@ -544,8 +556,8 @@ before any commit.
 
 ### Delegated execution (sub-agents) — DEC-004
 
-This variant delegates build/verify to a separate implementer/reviewer agent via
-`HANDOFF-*`. Five rules keep that delegation honest:
+This variant delegates build/verify to a separate implementer/reviewer agent (a
+fresh Claude session or subagent, or another tool) via `HANDOFF-*`. Five rules keep that delegation honest:
 
 1. **Reconcile over self-report — never flip `handoff.status` to `completed` (or
    advance `task.cycle`) on the sub-agent's word alone.** After it reports, verify

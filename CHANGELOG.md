@@ -2,6 +2,38 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-10 — new instances use claude-plus-agents; claude-only is deprecated (v0.6.50)
+
+[DEC-015](docs/decisions/DEC-015-one-variant-claude-plus-agents.md). The two
+variants share every script and 31 of their 45 common files;
+claude-plus-agents adds the handoff template. Its docs described it as "a
+different tool implements" and the README told an unsure user to start with
+claude-only. But its two active instances ran build on Claude subagents through
+handoffs for nearly every spec (irradiance 50 of 55, diamond-exif 20 of 22). The
+handoff is what gives build a clean context, keeps verify independent, and has
+each cycle's cost, model and verdict reported by the agent that ran it.
+
+- **`just init` lists claude-plus-agents first, as the default.** Enter at the
+  prompt picks it. An EOF at that prompt still aborts with nothing changed, so
+  an empty pipe is never read as a choice.
+- **claude-only still scaffolds, with a deprecation notice** on stderr, from
+  either the prompt (option 2) or `just init claude-only`. Its files stay in
+  `variants/`: six instances use it, and `just template-update` serves them from
+  there.
+- **The claude-plus-agents docs say the implementer is usually Claude**, a fresh
+  session or subagent per handoff, and why the handoff still applies:
+  - AGENTS §8 and the DEC-004 section;
+  - GETTING_STARTED;
+  - the README stub;
+  - the spec template header.
+- **The template README** recommends claude-plus-agents and marks claude-only
+  deprecated. `just list-variants` agrees.
+
+Instance-owned files (`AGENTS.md`, `GETTING_STARTED.md`) are never written by
+`template-update`, so existing claude-plus-agents instances see the AGENTS.md
+change only as a listed upstream diff. The spec-template header comment does
+arrive.
+
 ## 2026-11-09 — `just template-update`: template fixes reach existing instances (v0.6.49)
 
 Batch 7 of the 2026-11 harvest, and the last. `just init` copies a variant
