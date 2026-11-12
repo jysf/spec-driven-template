@@ -2,6 +2,20 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-11 — decisions-index --check passes on a repo with no decisions yet (v0.6.51)
+
+`--check` is opt-in by existence: it should pass quietly until an `INDEX.md` has
+been generated. But when `decisions/` held no DEC files, the script died with
+"no DEC-*.md files found" before it reached that branch. The CI job runs
+`--check`, so it failed on every new repo made from the template until someone
+wrote a first decision.
+
+- **`--check` with no DECs and no `INDEX.md` now exits 0** with an info line.
+- **Every other case is unchanged.** A plain `just decisions-index` with no DECs
+  still refuses, and so does `--check` with no DECs but a committed index.
+- `test.sh` covers the zero-DEC case. The suite missed it before because its
+  scratch repo always kept the example DEC-001.
+
 ## 2026-11-10 — new instances use claude-plus-agents; claude-only is deprecated (v0.6.50)
 
 [DEC-015](docs/decisions/DEC-015-one-variant-claude-plus-agents.md). The two

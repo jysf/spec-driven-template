@@ -54,6 +54,13 @@ decs=()
 while IFS= read -r f; do [ -n "$f" ] && decs+=("$f"); done < <(find_all_decisions)
 
 if [ "${#decs[@]}" -eq 0 ]; then
+    # A brand-new instance has no DECs yet, and so no index either. That is the
+    # same "never generated one" state the opt-in rule below covers, so --check
+    # must pass quietly here too, or CI fails on every repo fresh from `just init`.
+    if [ "$CHECK" = 1 ] && [ ! -f "$INDEX_FILE" ]; then
+        info "decisions-index: no decisions and no ${INDEX_FILE#"${REPO_ROOT}/"} yet — nothing to keep in sync."
+        exit 0
+    fi
     die "no DEC-*.md files found in ${DECISIONS_DIR#"${REPO_ROOT}/"}/ — nothing to index."
 fi
 
