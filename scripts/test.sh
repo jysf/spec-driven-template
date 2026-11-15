@@ -1401,6 +1401,17 @@ rm -f decisions/DEC-702-undeclared.md
 # is what lets the CI job ship to every instance without breaking the ones that
 # never wanted an index.
 assert_no_file "decisions/INDEX.md"
+# A brand-new instance whose decisions/ holds no DEC files at all is the same
+# never-generated state, and must pass too (it used to die before reaching the
+# opt-in branch, failing CI on every fresh repo). Regenerating still refuses.
+mv decisions/DEC-001-example-structured-logging.md "$SCRATCH/DEC-001.parked"
+just decisions-index --check >/dev/null 2>&1 \
+    && pass "decisions-index --check passes on a repo with no DECs and no index" \
+    || fail "decisions-index --check failed on a repo with no DECs (breaks CI on fresh instances)"
+assert_cmd_fails "decisions-index still refuses to write an index with no DECs" \
+    just decisions-index
+assert_no_file "decisions/INDEX.md"
+mv "$SCRATCH/DEC-001.parked" decisions/DEC-001-example-structured-logging.md
 just decisions-index --check >/dev/null 2>&1 \
     && pass "decisions-index --check passes when no index has been generated" \
     || fail "decisions-index --check failed on a repo with no index"
