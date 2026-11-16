@@ -3752,6 +3752,36 @@ else
 fi
 assert_cmd_fails "new-handoff rejects a non-delegated cycle" just new-handoff "$PA_SPEC_ID" design
 
+# --to overrides to_agent for ONE handoff; tier_map stays the default. A separate
+# spec keeps these handoffs out of the PA_SPEC handback-sync assertions below.
+just new-spec "Override Widget" "$PA_STAGE_ID" >/dev/null 2>&1
+PO_SPEC=$(ls projects/PROJ-001-example-mvp/specs/SPEC-*-override-widget.md | grep -v timeline | sed -n 1p)
+PO_SPEC_ID=$(basename "$PO_SPEC" | grep -oE 'SPEC-[0-9]+')
+po_out=$(just new-handoff "$PO_SPEC_ID" build --to gpt-5-codex 2>&1 || true)
+HO=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-build-override-widget.md 2>/dev/null | sed -n 1p)
+HO_ID=$(basename "${HO:-none}" | grep -oE 'HANDOFF-[0-9]+' || true)
+assert_contains "$HO" "to_agent: gpt-5-codex" "new-handoff --to overrides to_agent"
+case "$po_out" in
+    *"--to override, tier_map.build is claude-sonnet-4-6"*) pass "new-handoff --to names the tier_map default it overrode" ;;
+    *) fail "new-handoff --to output did not mention the override: $po_out" ;;
+esac
+# Assert on the READER, not the field: the handoffs lens must report the override.
+if [ "$HAVE_PY3" = 1 ]; then
+    dho=$(just dash handoffs --json 2>/dev/null || true)
+    if printf '%s' "$dho" | python3 -c 'import json,sys; d=json.load(sys.stdin); hid=sys.argv[1]; assert any(h["handoff.id"]==hid and h["handoff.to_agent"]=="gpt-5-codex" for h in d["data"]["handoffs"])' "$HO_ID"; then
+        pass "dash handoffs reads the --to agent back"
+    else
+        fail "dash handoffs did not report to_agent gpt-5-codex for ${HO_ID:-?}"
+    fi
+fi
+just new-handoff "$PO_SPEC_ID" verify --to=claude-opus-x >/dev/null 2>&1 || true
+HOV=$(ls projects/PROJ-001-example-mvp/handoffs/HANDOFF-*-verify-override-widget.md 2>/dev/null | sed -n 1p)
+assert_contains "$HOV" "to_agent: claude-opus-x" "new-handoff accepts --to=<agent>"
+assert_contains ".repo-context.yaml" "build: claude-sonnet-4-6" "--to leaves tier_map untouched"
+assert_cmd_fails "new-handoff --to rejects a value with whitespace" ./scripts/new-handoff.sh "$PO_SPEC_ID" build --to "gpt 5"
+assert_cmd_fails "new-handoff --to without a value fails" ./scripts/new-handoff.sh "$PO_SPEC_ID" build --to
+assert_cmd_fails "new-handoff rejects an unknown flag" ./scripts/new-handoff.sh "$PO_SPEC_ID" build --bogus
+
 # --- handback-sync: the cost path -------------------------------------------
 # Nothing handed back yet → must FAIL and name the offender, not silently pass.
 assert_cmd_fails "handback-sync fails while handoffs are un-returned" just handback-sync "$PA_SPEC_ID"

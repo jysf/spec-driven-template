@@ -320,7 +320,12 @@ from `.repo-context.yaml` → `spec.agent.tier_map.<cycle>` (DEC-005).
 ```bash
 just new-handoff SPEC-042 build     # → HANDOFF-NNN, to_agent = tier_map.build
 just new-handoff SPEC-042 verify    # → HANDOFF-MMM, to_agent = tier_map.verify
+just new-handoff SPEC-043 build --to gpt-5-codex   # this one handoff only
 ```
+
+`--to` sends a single cycle to a different agent without changing `tier_map`,
+which stays the repo default. The handback contract is unchanged: whatever agent
+runs the cycle fills `handback:`, including `tokens_total`.
 
 **The handback is the return path, and it is mandatory.** The executing agent
 fills the `handback:` front-matter block before reporting done — **including a

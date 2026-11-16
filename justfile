@@ -110,9 +110,10 @@ archive-patch PATCH_ID:
 
 # Scaffold a delegation handoff (claude-plus-agents). ONE per delegated CYCLE —
 # with build and verify on different agents you get two per spec. Picks to_agent
-# from .repo-context tier_map.<cycle>. Usage: just new-handoff SPEC-NNN build|verify
-new-handoff SPEC_ID CYCLE:
-    @./scripts/new-handoff.sh "{{SPEC_ID}}" "{{CYCLE}}"
+# from .repo-context tier_map.<cycle>; --to <agent> overrides it for this handoff.
+# Usage: just new-handoff SPEC-NNN build|verify [--to <agent>]
+new-handoff SPEC_ID CYCLE *FLAGS:
+    @./scripts/new-handoff.sh "{{SPEC_ID}}" "{{CYCLE}}" {{FLAGS}}
 
 # Transcribe agent-reported cost from a spec's handoffs into its cost.sessions.
 # The orchestrator never estimates: the agent that ran the cycle self-reports in

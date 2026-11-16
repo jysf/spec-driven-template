@@ -2,6 +2,23 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-15 — new-handoff --to picks the agent for one handoff (v0.6.52)
+
+`new-handoff` took `to_agent` only from `tier_map.<cycle>`. To send one spec's
+build to another agent (Codex, say) you had to edit `.repo-context.yaml`, which
+changed the default for every later spec, or hand-edit the handoff afterwards.
+
+- **`just new-handoff SPEC-NNN build --to <agent>`** (or `--to=<agent>`) sets
+  `to_agent` for that handoff only. `tier_map` stays the default, and the output
+  names the default it overrode.
+- **The value must be one bare name** (letters, digits, `. _ / @ : -`). Both
+  `dash handoffs` and `handback-sync` read `to_agent` as a plain YAML scalar.
+  Unknown flags and a `--to` with no value are refused.
+- `test.sh` checks the override through `dash handoffs --json`, the `--to=`
+  form, the refusals, and that `tier_map` is unchanged.
+- The `claude-plus-agents` `AGENTS.md` documents the flag. `claude-only` has no
+  handoffs, so it has nothing to mirror.
+
 ## 2026-11-11 — decisions-index --check passes on a repo with no decisions yet (v0.6.51)
 
 `--check` is opt-in by existence: it should pass quietly until an `INDEX.md` has
