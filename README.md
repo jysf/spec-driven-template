@@ -96,7 +96,7 @@ Run `just --list` to see everything. The main ones:
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |
 | `just new-patch "title"` | Scaffold a patch — the lightweight fix lane (collapsed patch→verify→ship, keeps independent verify + DEC) |
 | `just new-spike "question" [TIMEBOX] [MODE]` | Scaffold a spike — the bounded-exploration lane (collapsed spike→land, no verify). `MODE=build` is a vibe-coding session. Lives at the repo root; may precede any project |
-| `just new-handoff SPEC-NNN build\|verify` | Scaffold a delegation handoff (claude-plus-agents) — one per delegated cycle; `to_agent` from `tier_map.<cycle>` |
+| `just new-handoff SPEC-NNN build\|verify [--to <agent>]` | Scaffold a delegation handoff (claude-plus-agents) — one per delegated cycle; `to_agent` from `tier_map.<cycle>`, or `--to` for this one handoff |
 | `just handback-sync SPEC-NNN` | Transcribe the agent's self-reported cost from its handoffs into the spec — the orchestrator never estimates a delegated cycle. Carries the handback's `agent` (the model that actually ran) and `basis` (how the tokens were measured) |
 | `just archive-spike SPIKE-NNN` | File a **landed** spike under `spikes/done/` — refuses one with no `spike.outcome` |
 | `just new-release-spec "vX" STAGE-NNN` | Scaffold a release spec with a generic runtime pre-flight checklist (or `new-spec … --release`) |
