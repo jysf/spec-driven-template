@@ -2770,6 +2770,41 @@ if [ "$HAVE_PY3" = 1 ]; then
         && pass "dash defects buckets a non-escaped answer correctly" || fail "dash defects mis-bucketed a verify answer"
 fi
 
+# ============================================================
+# dash context lens — the CAFE word in the build reflection (v0.6.53)
+# ============================================================
+# The field ships with its reader; these assert on the READER. Work on a copy of
+# the spec template so no other test's spec counts move; removed at the end.
+json_ok "dash context --json"   just dash context --json
+CSPEC=projects/PROJ-001-example-mvp/specs/SPEC-998-context-probe.md
+sed 's/SPEC-XXX/SPEC-998/g' projects/_templates/spec.md > "$CSPEC"
+assert_contains "$CSPEC" "Which kind of context problem was the worst one above?" "spec template carries the context question"
+csed() { if [ "$(uname)" = "Darwin" ]; then sed -i '' "$@"; else sed -i "$@"; fi; }
+if [ "$HAVE_PY3" = 1 ]; then
+    # Unanswered: the backticked vocabulary in the prompt must never count.
+    cx=$(just dash context --json 2>/dev/null)
+    printf '%s' "$cx" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["answered"]==0 and d["unanswered"]>=1 and sum(d["distribution"].values())==0, d' \
+        && pass "dash context ignores the unanswered template vocabulary" || fail "dash context counted template prose: $cx"
+    # The ship reflection follows and its Q5 accepts "none": it must not be
+    # read as the answer to an unanswered build Q4.
+    csed 's/^   — <answer | none>$/   — none/' "$CSPEC"
+    cx=$(just dash context --json 2>/dev/null)
+    printf '%s' "$cx" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["answered"]==0, d' \
+        && pass "dash context does not borrow ship Q5's 'none'" || fail "dash context read a later question's answer: $cx"
+    # Answered (capitalised, trailing period — how people write it).
+    csed 's/^   — <one word>$/   — Fidelity./' "$CSPEC"
+    cx=$(just dash context --json 2>/dev/null)
+    printf '%s' "$cx" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["answered"]==1 and d["distribution"]["fidelity"]==1, d; a=d["problem_artifacts"][0]; assert a["kind"]=="spec" and a["context"]=="fidelity" and a["artifact"].startswith("SPEC-998"), a' \
+        && pass "dash context counts an answered fidelity word" || fail "dash context missed the answer: $cx"
+    cxh=$(just dash context 2>&1)
+    case "$cxh" in
+        *"Fidelity leads"*) pass "dash context points at the leading problem's remedy" ;;
+        *) fail "dash context human output unexpected: $cxh" ;;
+    esac
+fi
+assert_cmd_fails "dash context rejects an unknown argument" just dash context --bogus
+rm -f "$CSPEC"
+
 # --- task.verify_verdict: the second axis -----------------------------------
 # The field ships with a READER, not just a slot — the reserved-but-unwired
 # pattern (harvest signal #7) is the thing to avoid here.
@@ -3751,6 +3786,15 @@ else
     fail "verify handoff did not use tier_map.verify"
 fi
 assert_cmd_fails "new-handoff rejects a non-delegated cycle" just new-handoff "$PA_SPEC_ID" design
+
+# The handoff's reflection carries the CAFE word; dash context reads it there.
+assert_contains "$HB" "Which kind of context problem was the worst one above?" "handoff template carries the context question"
+if [ "$HAVE_PY3" = 1 ]; then
+    if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^   — <one word>$/   — clarity/' "$HB"; else sed -i 's/^   — <one word>$/   — clarity/' "$HB"; fi
+    pcx=$(just dash context --json 2>/dev/null || true)
+    printf '%s' "$pcx" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; assert d["distribution"]["clarity"]==1, d; assert any(a["kind"]=="handoff" and a["context"]=="clarity" for a in d["problem_artifacts"]), d' \
+        && pass "plus-agents: dash context reads the word from a handoff" || fail "plus-agents: dash context missed the handoff answer: $pcx"
+fi
 
 # --to overrides to_agent for ONE handoff; tier_map stays the default. A separate
 # spec keeps these handoffs out of the PA_SPEC handback-sync assertions below.

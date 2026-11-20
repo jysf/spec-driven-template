@@ -66,7 +66,7 @@ TEMPLATE_VERSION=$(tr -d ' \t\n\r' < "${REPO_ROOT}/VERSION" 2>/dev/null || print
 # so they are the ones selective porting reliably strands. Called out separately
 # because "you're missing 20 scripts" is noise; "you're missing the three that
 # make a corpus-wide study possible" is a decision.
-CROSS_CUTTING=" defects-view.sh calibration.sh decisions-index.sh cost-audit.sh validate.sh lifetime-report.sh "
+CROSS_CUTTING=" defects-view.sh context-view.sh calibration.sh decisions-index.sh cost-audit.sh validate.sh lifetime-report.sh "
 
 rows=()
 for t in "${TARGETS[@]}"; do

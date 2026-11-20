@@ -565,7 +565,7 @@ Implement:
 - If the spec is ambiguous, STOP and ask. Don't guess.
 
 When done:
-1. Fill in the handoff's "Completion" section INCLUDING the three
+1. Fill in the handoff's "Completion" section INCLUDING the four
    implementer reflection questions. Not optional.
 2. Update handoff.status → "completed".
 3. Append a build cost session entry to the spec's `cost.sessions`:
@@ -622,7 +622,7 @@ COMPLETING THIS CYCLE HAS TWO PARTS, AND THE SECOND IS NOT OPTIONAL:
      handback.notes. Do NOT invent or estimate a number — a fabricated cost is
      worse than a missing one, because it looks real downstream.
    - handback.estimated_usd, duration_minutes, branch, pr, completed_at
-   - The three reflection questions in the ## Handback section.
+   - The four reflection questions in the ## Handback section.
 
 If you hit a real blocker: still fill the handback (including tokens — blocked
 work costs money too), set handoff.status: rejected, and say what blocked you.

@@ -11,8 +11,9 @@ is your job — you are the half a linter cannot do.
 ## Read first
 
 The brief (`value.thesis`, `success_signals`, `value_realized`), the
-Project-Level Reflection, `just dash signals`, `just dash defects`, and the ship
-Reflection Q5 of every shipped spec.
+Project-Level Reflection, `just dash signals`, `just dash defects`,
+`just dash context` (which kind of context problem build kept hitting), and the
+ship Reflection Q5 of every shipped spec.
 
 ## Ask
 

@@ -190,7 +190,7 @@ transcribes it via `just handback-sync`, it does not estimate it.
 - **Follow-up work identified:**
   - [any new specs that should be added to the stage's backlog]
 
-### Reflection (3 questions, short answers)
+### Reflection (4 questions, short answers)
 
 1. **What was unclear in the spec or handoff that slowed you down?**
    — <answer>
@@ -200,3 +200,14 @@ transcribes it via `just handback-sync`, it does not estimate it.
 
 3. **If you did this task again, what would you do differently?**
    — <answer>
+
+4. **Which kind of context problem was the worst one above?** — one word from a
+   fixed vocabulary, so `just dash context` can count it across handoffs.
+   Name what the context did wrong, not how it felt:
+   `clarity` (it could be read more than one way) | `actionability` (something
+   you needed was never said) | `fidelity` (something it said was wrong or
+   stale) | `none` (nothing slowed you down).
+   — <one word>
+   *(Asked separately because answers to Q1 mix these up: across 1,047 dogfood
+   answers, "unclear" most often meant "wrong". See
+   docs/harvests/2026-11-19-cafe-reflection-harvest.md in the template repo.)*
