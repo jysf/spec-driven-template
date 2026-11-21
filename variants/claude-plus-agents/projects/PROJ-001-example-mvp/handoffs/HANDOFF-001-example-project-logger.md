@@ -106,3 +106,6 @@ The implementer signals completion by:
 
 3. **If you did this task again, what would you do differently?**
    —
+
+4. **Which kind of context problem was the worst one above?** (`clarity` | `actionability` | `fidelity` | `none`)
+   —

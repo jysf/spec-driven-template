@@ -90,7 +90,7 @@ Run `just --list` to see everything. The main ones:
 | Command | What it does |
 |---|---|
 | `just init [variant]` | One-time: choose variant (asks and confirms, or pass `claude-plus-agents`; `claude-only` is deprecated), scaffold the repo |
-| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`spikes`/`defects`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
+| `just dash` | The project dashboard — one read view, many lenses: `dash now`/`next`/`future`/`ledger` (= status/backlog/roadmap/specs-by-stage), plus `dash decisions`/`questions`/`signals`/`patches`/`spikes`/`defects`/`context`/`constraints`/`handoffs`; no arg stitches an overview with governance flags. Add `--json` to any of them |
 | `just status` | Current state: active project, stage, specs by cycle, stale items |
 | `just new-spec "title" STAGE-NNN` | Scaffold a new spec with next available ID |
 | `just new-stage "title" PROJ-NNN` | Scaffold a new stage in the active (or named) project |

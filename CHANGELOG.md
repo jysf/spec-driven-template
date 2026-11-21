@@ -2,6 +2,36 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-19 — the build reflection names its context problem, and dash context counts it (v0.6.53)
+
+Every build reflection asks "What was unclear?" and "What should have been
+listed?", but the answers are prose and nothing counted them. A harvest of
+1,047 answers across all 10 instances, sorted by the CAFE(S) context-quality
+framework (ACM Queue, Sept 2026), found the first question misleads. Asked what
+was *unclear*, agents most often reported something that was *wrong or stale*
+(fidelity, 141 answers) ahead of missing (actionability, 97) or ambiguous
+(clarity, 89). Read as prose, the three can't be told apart. Write-up:
+`docs/harvests/2026-11-19-cafe-reflection-harvest.md`.
+
+- **The build reflection gains Q4**: one word from `clarity | actionability |
+  fidelity | none`. It sits in the spec's Build-phase reflection
+  (claude-only) and the handoff's Handback reflection (claude-plus-agents).
+  Efficiency and security are left out on purpose: agents almost never
+  report them (2 and 0 of 610 problem answers). Noise shows up in `cost.*`,
+  not in what agents notice.
+- **`just dash context`** is the reader that ships with it. It shows the
+  distribution across specs and handoffs and lists the artifacts that named a
+  problem. It also prints a one-line pointer to the remedy for whichever kind
+  leads. `--active` / `PROJ-NNN` scope it, and `--json` emits
+  `distribution` and `problem_artifacts`. Artifacts that predate the question
+  are not counted as unanswered.
+- The parser follows `defects-view`: only a bare word counts, so the template's
+  backticked vocabulary never does. It stops at the next heading or numbered
+  question, so the ship reflection's Q5 `none` is never borrowed.
+- `instances-diff` lists `context-view.sh` as a cross-cutting reader.
+- `test.sh` covers an unanswered template, the Q5 trap, a capitalised answer in
+  a spec, a handoff answer (plus-agents), the human output, and a bad argument.
+
 ## 2026-11-15 — new-handoff --to picks the agent for one handoff (v0.6.52)
 
 `new-handoff` took `to_agent` only from `tier_map.<cycle>`. To send one spec's

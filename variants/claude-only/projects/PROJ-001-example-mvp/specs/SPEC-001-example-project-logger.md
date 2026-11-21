@@ -133,6 +133,8 @@ None — first spec in PROJ-001.
 1. **What was unclear that slowed you down?** —
 2. **Constraint or decision that should have been listed but wasn't?** —
 3. **If you did this task again, what would you do differently?** —
+4. **Which kind of context problem was the worst one above?** (`clarity` | `actionability` | `fidelity` | `none`)
+   —
 
 ---
 

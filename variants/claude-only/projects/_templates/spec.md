@@ -175,7 +175,7 @@ Gotchas, style preferences, reuse opportunities.
 - **Follow-up work identified:**
   - [any new specs for the stage's backlog]
 
-### Build-phase reflection (3 questions, short answers)
+### Build-phase reflection (4 questions, short answers)
 
 Process-focused: how did the build go? What friction did the spec create?
 
@@ -187,6 +187,17 @@ Process-focused: how did the build go? What friction did the spec create?
 
 3. **If you did this task again, what would you do differently?**
    — <answer>
+
+4. **Which kind of context problem was the worst one above?** — one word from a
+   fixed vocabulary, so `just dash context` can count it across specs.
+   Name what the context did wrong, not how it felt:
+   `clarity` (it could be read more than one way) | `actionability` (something
+   you needed was never said) | `fidelity` (something it said was wrong or
+   stale) | `none` (nothing slowed you down).
+   — <one word>
+   *(Asked separately because answers to Q1 mix these up: across 1,047 dogfood
+   answers, "unclear" most often meant "wrong". See
+   docs/harvests/2026-11-19-cafe-reflection-harvest.md in the template repo.)*
 
 ---
 

@@ -530,7 +530,7 @@ Implement:
 
 When done:
 1. Fill in the spec's "## Build Completion" section INCLUDING the
-   three build-phase reflection questions. Not optional.
+   four build-phase reflection questions. Not optional.
 2. Append a build cost session entry to the spec's `cost.sessions`:
 
      - cycle: build

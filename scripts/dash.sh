@@ -19,6 +19,7 @@
 #   just dash patches    the patch lane by cycle (DEC-003)
 #   just dash spikes     the spike lane by cycle (DEC-012) — repo-level
 #   just dash defects    where defects are caught (ship Q4) — the escape distribution
+#   just dash context    which kind of context problem build/verify reported (CAFE word)
 #   just dash constraints repo-level rules by severity (guidance/constraints.yaml)
 #   just dash handoffs   delegation handoffs by status (plus-agents)
 set -euo pipefail
@@ -40,6 +41,7 @@ case "$lens" in
     patches)     shift; exec "${SCRIPT_DIR}/patches-view.sh" "$@" ;;
     spikes)      shift; exec "${SCRIPT_DIR}/spikes-view.sh" "$@" ;;
     defects)     shift; exec "${SCRIPT_DIR}/defects-view.sh" "$@" ;;
+    context)     shift; exec "${SCRIPT_DIR}/context-view.sh" "$@" ;;
     constraints) shift; exec "${SCRIPT_DIR}/constraints-view.sh" "$@" ;;
     handoffs)    shift; exec "${SCRIPT_DIR}/handoffs-view.sh" "$@" ;;
     help|-h|--help)
@@ -56,13 +58,14 @@ just dash [lens] [--json]
   patches     the patch lane by cycle (patch|verify|ship), DEC-003
   spikes      the spike lane by cycle (spike|land), DEC-012 — repo-level, flags un-landed
   defects     defect-escape distribution from ship Reflection Q4 (all projects; --active to scope)
+  context     context-problem kind from the build reflection: clarity | actionability | fidelity
   constraints repo-level rules from guidance/constraints.yaml, by severity
   handoffs    delegation handoffs (HANDOFF-*.md) by status (plus-agents)
   --json      machine-readable output (works on the dashboard and every lens)
 EOF
         exit 0 ;;
     ""|--json) : ;;  # no lens → stitched dashboard (human or, with --json, JSON)
-    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | spikes | defects | constraints | handoffs | help, or no arg for the dashboard)" ;;
+    *)      die "Unknown lens: '$lens' (use: now | next | future | ledger | decisions | questions | signals | patches | spikes | defects | context | constraints | handoffs | help, or no arg for the dashboard)" ;;
 esac
 
 if ! has_projects; then
