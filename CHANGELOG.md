@@ -2,6 +2,33 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-19 — README catches up, and an overview of the template (v0.6.54)
+
+The README's command table had fallen behind: 15 template recipes were missing
+from it (`frame-stage`, `archive-patch`, `ready`, `claim`/`unclaim`,
+`release-notes`, `backlog`, `roadmap`, the three `lifetime-*`, `info`,
+`list-variants`, `template-selftest`, and the `app.just` stubs).
+
+- **A four-paragraph overview opens the README**, replacing the one-line
+  intro: what the template is, the process, the tooling, and what real
+  projects showed. It points to `docs/OVERVIEW.md` for the long version.
+- **The table is grouped** — setup, the daily loop, the other lanes, views,
+  gates, reports, the app's own commands, maintainers — and every recipe in
+  `just --list` now appears.
+- **Documentation is ordered** into start-here / why / reference, and links the
+  talk plan (`docs/talks/spec-driven-template.md`), the decision index,
+  `CHANGELOG.md`, `docs/ROADMAP.md` and `KNOWN_LIMITATIONS.md`.
+- **New `docs/OVERVIEW.md`**: a standalone essay on what the template is and
+  why — the memory problem, the hierarchy, the fresh-session rule, the three
+  lanes, and what real projects showed (escaped defects were all operational,
+  value tracks stakes not size). Adapted from the talk plan and brought up to
+  date with handoffs as the default (DEC-015) and the cost-basis caveat
+  (v0.6.48). Linked from the top of the README (not from `PLAYBOOK.md`,
+  which ships into instances where this file does not).
+- **`init` removes `docs/OVERVIEW.md`** with the other maintainer docs: it
+  links `PROJECTS.md`, the talk plan and `KNOWN_LIMITATIONS.md`, which an
+  instance no longer has. `test.sh` asserts it is gone after init.
+
 ## 2026-11-19 — the build reflection names its context problem, and dash context counts it (v0.6.53)
 
 Every build reflection asks "What was unclear?" and "What should have been
