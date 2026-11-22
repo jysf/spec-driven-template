@@ -1080,6 +1080,83 @@ an `sdt` command.
 > updates completely after one `--take`. The four instances with no `VERSION`
 > (bragfile, crustyimg, zany, rspeed) get a comparison only.
 
+## Now-tier, added 2026-11-22 — the contract doc has no reader
+
+**Provenance: external comparison (OpenSpec v2.1.1) read against the corpus.**
+OpenSpec's one durable idea is unchanged since its first release: a
+**living spec of current behavior** (`openspec/specs/<domain>/spec.md`,
+`Requirement: … SHALL` + Scenarios). Every change carries ADDED / MODIFIED /
+REMOVED deltas against it, and `archive` merges them back. We never adopted it.
+The corpus says our instances rebuilt it anyway, by hand.
+
+**The gap.** Both variants ship `docs/api-contract.md` as a 48-line stub.
+Nothing reads it: no script, no line in `AGENTS.md`, no section in the spec
+template, no ritual at verify or ship. It is a field with no reader, the
+repo's most recurring defect (see CLAUDE.md, "ship the reader with the field").
+
+**What instances did with it** (warehouse + `git log`, 2026-11-22, 546 specs /
+496 shipped across 10 instances):
+
+| Instance | Durable behavior record | Size | Commits | Specs citing it |
+|---|---|---|---|---|
+| crustyimg | `docs/api-contract.md` | 746 lines | 64 | 162 |
+| bragfile000 | `docs/api-contract.md` | 1,544 lines | 51 | 79 |
+| irradiance | `docs/oracle-contract.md` | 292 lines | 8 | — |
+| zany | 10 × `*.contract.test.ts` (api-contract left a 13-line stub) | — | — | — |
+| diamond-exif | 9 × `fuzz/shared/*_invariants.rs` (api-contract left a stub) | — | — | — |
+
+Every instance with more than ~30 specs built a durable record of current
+behavior, in one of two forms: **prose contract** (N=3) or **executable
+invariants** (N=2). That clears the codification bar either way. Instances
+under ~20 specs (rspeed, grebe, standup, skillport) kept it small (40–144
+lines, at most 2 commits), which is the expected shape: the need arrives with surface area.
+
+**Why the hand-built version is not enough.** crustyimg's late bug specs are
+almost all **cross-command invariants**, not local defects: SPEC-113 "`optimize`
+never silently grows a pinned same-format output", SPEC-115 "never passes
+through bytes it cannot name", SPEC-126 "`apply` and `build` agree on output
+format", SPEC-149 "No flag is accepted and ignored". SPEC-113 names the
+mechanism itself: *"the guarantee and the reporting both exist; the pinned path
+simply never reaches them."* The contract is organized per command, so a
+guarantee written under one command is never checked against the others. A
+delta step at ship time is what forces that question. (Reading: titles of all
+45 `type: bug` specs + one full body. Not yet a classification. Run that
+before building.)
+
+**Proposal, warn-only throughout:**
+
+1. **A `## Contract changes` section in the spec template.** Optional. Lists
+   what the spec adds, changes or removes in the contract, or `none`. Same
+   vocabulary as OpenSpec's deltas, without the merge machinery: the agent edits
+   the contract directly in the build.
+2. **The reader, in the same change.** At `ship` (and in `validate`): a spec
+   whose section claims a change but whose diff does not touch the contract
+   file (or a `*contract*` / `*invariant*` test) gets a warning. A spec that
+   omits the section gets nothing. Never refuse; the missing thing is not the
+   failure this ritual exists to prevent.
+3. **An `## Invariants` section in the `api-contract.md` stub**, for
+   guarantees that cut across commands. This is the slot the crustyimg bug
+   wave had nowhere to go. Point at executable invariants as an equal
+   alternative, since two instances chose that form.
+4. **`AGENTS.md` verify step**: read the contract's invariants against the
+   spec's surface. One line, both variants.
+
+**Assert in `test.sh`:** the warning fires on a claimed-but-untouched contract,
+stays silent on `none`, stays silent when only a `*.contract.test.*` file
+changed. Assert on the warning, not on the section's presence.
+
+**Also, while here:** `variants/claude-plus-agents/GETTING_STARTED.md:263`
+says "Want multiple implementers in parallel → consider OpenSpec". The corpus
+does not support it: parallelism was never the constraint, contract drift was.
+Drop the line when this lands.
+
+**Not borrowed from OpenSpec, and why** (see also *Explicitly rejected* below):
+custom workflow schemas, stores and worksets (beta), the 30-tool skill
+installer. DEC-015 and DEC-005 already cover what we need. One smaller idea
+is worth a separate look later: OpenSpec's `instructions <artifact> --json`
+(an agent asks "what does this step need for this change?") is a cheap
+extension of DEC-001.
+
 ## Explicitly rejected — recorded so it isn't re-asked
 
 From the 2026-08-12 external comparison. *(This section is itself the evidence
@@ -1106,6 +1183,13 @@ nowhere to live but prose in this file.)*
   risk stated outright: *"a spec written months before its code can be quietly
   wrong by the time anyone implements it."* [`PLAYBOOK.md`](PLAYBOOK.md) Phase 1
   already forbids this.
+- **Adopting OpenSpec** (re-checked 2026-11-22, against v2.1.1). It covers the
+  change-to-living-spec loop and nothing above it: no project / stage / thesis,
+  cost, provenance, verify verdict, DECs, spikes or patches. It is also a Node 22
+  tool with breaking renames twice in ten months (`/opsx:*` → skills in v2.0),
+  against our zero-dependency bash 3.2 constraint. Running both would mean two
+  systems. Its one load-bearing idea is taken on its own terms in the
+  2026-11-22 now-tier item above.
 
 ## Hygiene — not roadmap items, just do them
 
