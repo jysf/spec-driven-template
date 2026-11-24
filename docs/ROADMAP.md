@@ -176,6 +176,15 @@ was reported as **362 specs (352 shipped) · 208 DECs across 8 live instances**.
     And does the linter check that a thread **exists**, or that it is
     **current**? Phase 3 is where every RTM in the wild dies; the answer decides
     whether this is a live guard or a decorative matrix.
+    - **One worked answer, from outside (AIUP, read 2026-11-24).** The unit is
+      the *test*: tests carry `@UseCase(id=…)`, enforcing code carries a
+      `UC-xxx BR-yyy` comment, and a deterministic lint builds the matrix and
+      can gate CI. It checks that a thread **exists**, not that it is
+      **current**. AIUP is honest about the second half by other means: specs
+      are edited first and code is reconciled against them. That is one real
+      system choosing "exists". It is an input to the open question, not an
+      answer to it. Our analogue would be a `SPEC-NNN` tag in a test name, and
+      nothing in the corpus has been counted for that yet.
 
 - **[DEC-011](decisions/DEC-011-roadmap-structure.md) — roadmap structure
   (drafted 2026-07-13). ✅ Phase 1 shipped v0.6.32 (2026-08-12); accepted.**
@@ -946,6 +955,27 @@ The gaps, cheapest first:
   re-measured. (minimumcd's bar: integrate at least daily, branches under a day,
   Agentic CD work increments of two days or less.)
 
+- **Decision rights: what the agent may decide alone (raised 2026-11-24, AIUP)
+  — unearned.** AIUP ships an optional `docs/architecture/decision-rights.md`
+  with three lists: what the agent decides alone, what it asks about first,
+  and what it never decides. Departing from an ADR is always a question for a
+  human. **We have no equivalent:** `AGENTS.md` says nothing about agent
+  autonomy (grep, 2026-11-24). It is the only idea in that comparison with no
+  counterpart here, and it fits "warn, don't refuse", since it routes a
+  question and gates nothing. **Bar not met.** Before building, count the
+  corpus: build reflections and verify punch lists where the agent made a
+  call the human later reversed, or where the agent stopped to ask about
+  something the human considered obviously its call. Both directions matter,
+  which makes this an N=2 paired-opposing candidate if both turn up.
+
+- **Blocking open questions (raised 2026-11-24, AIUP) — below bar.** AIUP
+  keeps `docs/open_questions.md` (`OQ-*`). A question marked blocking stops
+  that use case, and the agent is told never to guess. We have
+  `guidance/questions.yaml`, but no spec references it and nothing blocks on
+  it. The cheap version is an optional `references.questions:` on a spec, with
+  `validate` warning when a referenced question is still `open` at ship. **Ship
+  the reader with the field**, or don't add the field.
+
 ## Parked with a note — ContextCore alignment (2026-08-13)
 
 Two threads, deliberately deferred. Recorded so they aren't rediscovered:
@@ -1190,6 +1220,24 @@ nowhere to live but prose in this file.)*
   against our zero-dependency bash 3.2 constraint. Running both would mean two
   systems. Its one load-bearing idea is taken on its own terms in the
   2026-11-22 now-tier item above.
+- **Adopting AIUP, the AI Unified Process** (unifiedprocess.ai, read
+  2026-11-24; site pages and GitHub org only, plugin source not read). It is a
+  requirements method: RUP's four phases, use cases as the unit of work,
+  Apache-2.0 Claude Code plugins split by stack layer (mostly Java/Vaadin),
+  with a paid Studio, book and workshops. It complements this template more
+  than it competes: it has no cost, harvest, retrospective or cross-project
+  learning loop, and we have nothing about the content of requirements. Not
+  borrowed: **the pre-code artifact set** (vision, requirements, glossary,
+  entity model, use-case diagram, BPMN), which is the same shape as the
+  rejected six-artifact pipeline above; **layer plugins**, which conflict with
+  zero dependencies and any stack; and **business-reader use cases with a
+  business-review gate**, since our instances are solo builders with no
+  stakeholder to review. Its living spec reconciled in place makes it the
+  second outside system, after OpenSpec, that points at the 2026-11-22
+  contract-doc item. The instances' hand-built contracts are still the
+  evidence that counts. Its other ideas are recorded where they apply:
+  test-level trace markers under the RTM's Phase 3, and decision rights and
+  blocking open questions under *Candidate conventions*.
 
 ## Hygiene — not roadmap items, just do them
 
