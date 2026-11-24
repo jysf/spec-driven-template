@@ -188,7 +188,7 @@ fi
 # (irradiance: ~4,800 lines about other repos shipped into every instance; the
 # example project sat on PROJ-001; the example DEC was counted and audited
 # clean while citing a constraint the instance had deleted.)
-for tp in docs/ROADMAP.md docs/blog docs/sessions docs/talks docs/harvests \
+for tp in docs/ROADMAP.md docs/OVERVIEW.md docs/blog docs/sessions docs/talks docs/harvests \
           .github/TEMPLATE_README.md projects/PROJ-001-example-mvp \
           decisions/DEC-001-example-structured-logging.md; do
     [ ! -e "$tp" ] || fail "init left template content in the instance: ${tp}"

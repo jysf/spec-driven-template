@@ -46,7 +46,7 @@ TEMPLATE_DOCS="PROJECTS.md CONTRIBUTING.md KNOWN_LIMITATIONS.md MIGRATION_TO_REP
 
 # Maintainer content below the root: directories and single files.
 TEMPLATE_DIRS="docs/blog docs/sessions docs/talks docs/harvests"
-TEMPLATE_FILES="docs/ROADMAP.md .github/TEMPLATE_README.md"
+TEMPLATE_FILES="docs/ROADMAP.md docs/OVERVIEW.md .github/TEMPLATE_README.md"
 
 removed=""
 for f in $TEMPLATE_DOCS $TEMPLATE_FILES; do
