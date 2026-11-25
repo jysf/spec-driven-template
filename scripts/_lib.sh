@@ -2182,6 +2182,27 @@ emit_constraints_tsv() {
     ' "$f"
 }
 
+# Inline `paths:` list of one constraint, one glob per line. Reads the TSV
+# paths column (`["**"]`, `["package.json", "go.mod"]`) emitted above.
+constraint_path_globs() {
+    printf '%s' "$1" | sed -e 's/^\[//' -e 's/\]$//' | tr ',' '\n' \
+        | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' \
+        | awk 'NF'
+}
+
+# Convert a path glob to a regex body (no anchors). `**` matches across
+# `/`, `*` matches within a path segment, `?` matches one char. Uses a
+# placeholder token instead of \x01 so it works with BSD sed. Shared by
+# decisions-audit (affected_scope) and pr-body (constraint paths).
+glob_to_regex() {
+    printf '%s' "$1" \
+        | sed -e 's/\./\\./g' \
+              -e 's/\*\*/@@GLOBSTAR@@/g' \
+              -e 's/\*/[^\/]*/g' \
+              -e 's/@@GLOBSTAR@@/.*/g' \
+              -e 's/?/./g'
+}
+
 # Count blocking constraints (severity: blocking).
 count_blocking_constraints() {
     emit_constraints_tsv | awk -F'\t' '$2=="blocking"' | wc -l | tr -d ' '

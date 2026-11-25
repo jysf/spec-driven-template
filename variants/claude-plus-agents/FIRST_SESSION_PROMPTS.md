@@ -584,8 +584,8 @@ When done:
    report: null fields + `notes: "agent does not report cost"`.
 4. Run: just advance-cycle SPEC-NNN verify
 5. Open PR from feat/spec-NNN-<slug>.
-6. PR description references: project ID, stage ID, spec ID, handoff
-   ID, decisions used, constraints checked, new DEC-* files.
+6. PR description: `just pr-body SPEC-NNN build` (pass it to
+   `gh pr create --body`); tick the constraints you checked.
 7. Mark build `[x]` in the timeline with PR number, cost, and date:
      - [x] **build** — prompt: `prompts/SPEC-NNN-build.md`
             PR #NNN, $X.XX, completed <YYYY-MM-DD>

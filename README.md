@@ -103,6 +103,7 @@ Run `just --list` to see everything. The main ones:
 | `just advance-cycle SPEC-NNN verify` | Update a spec's `task.cycle` field; leaving verify stamps `verify_verdict` and appends it to `verify_rounds` |
 | `just calibration` | Expected vs actual size and tokens for shipped specs, with each spec's cost `basis`; flags a token band that mixes bases. `--basis transcript` to compare within one, `--all`, `--json` |
 | `just archive-spec SPEC-NNN` | Move a shipped spec to `done/` + update stage backlog + stamp `shipped_at`; says how many unwritten backlog items the stage still holds |
+| `just pr-body SPEC-NNN [CYCLE]` | Print a spec PR's description from front-matter and the diff: project, stage, handoffs, DECs referenced and new, and the constraints whose paths the diff touches. For `gh pr create --body "$(just pr-body SPEC-NNN build)"`; `--base REF`, `--json` |
 | `just close-project PROJ-NNN` | Close a project: refuses on in-flight specs (when claiming `shipped`), an empty reflection, or undisposed signals; stamps `shipped_at`; prints the cost/value/decision rollup. `--dry-run`, `--json` |
 | `just specs-by-stage` | Flat ledger of every spec by stage (all projects); `--active` or `PROJ-NNN` to scope |
 | `just decisions-audit` | Lint `DEC-*` files + warn on scope conflicts; `--changed` flags decisions governing pending edits |

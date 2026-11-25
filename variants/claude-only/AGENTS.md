@@ -472,13 +472,20 @@ DECs are stable; specs come and go. DECs don't reciprocally list specs.
 ## 13. Git and PR Conventions
 
 - **Branch:** `feat/spec-NNN-<slug>`, etc.
-- **One spec per branch, one PR per branch.**
+- **One spec per PR, one cycle per PR.** Each cycle that commits work
+  (frame, design, build, verify, ship) opens its own PR, titled
+  `<cycle>(SPEC-NNN): <title>`. A PR may *mention* other specs (what this
+  one unblocks, what it split out); it advances only one.
 - **Commits:** [REPLACE]
-- **PR description must include:**
-  - Project: `PROJ-NNN`
-  - Stage: `STAGE-NNN`
-  - Spec: `SPEC-NNN`
-  - Decisions referenced, constraints checked, new `DEC-*` files
+- **PR description: generate it, don't type it.**
+  `gh pr create --title "<cycle>(SPEC-NNN): <title>" --body "$(just pr-body SPEC-NNN <cycle>)"`
+  fills project, stage, spec, the DECs the spec references, the DECs
+  this branch adds, and an unticked box for every constraint whose `paths:`
+  match the diff. Tick the boxes you actually checked and write the summary;
+  the ids are derived, the prose is yours. Pass the cycle: after
+  `advance-cycle`, the spec's own `task.cycle` names the *next* one.
+  (A `.github` PR template would not help here: `gh pr create --body`
+  never loads it.)
 
 ---
 

@@ -95,17 +95,7 @@ get_affected_scope() { get_dec_affected_scope "$1"; }
 # Glob helpers.
 # ---------------------------------------------------------------------
 
-# Convert a path glob to a regex body (no anchors). `**` matches across
-# `/`, `*` matches within a path segment, `?` matches one char. Uses a
-# placeholder token instead of \x01 so it works with BSD sed.
-glob_to_regex() {
-    printf '%s' "$1" \
-        | sed -e 's/\./\\./g' \
-              -e 's/\*\*/@@GLOBSTAR@@/g' \
-              -e 's/\*/[^\/]*/g' \
-              -e 's/@@GLOBSTAR@@/.*/g' \
-              -e 's/?/./g'
-}
+# glob_to_regex lives in _lib.sh (shared with pr-body.sh).
 
 # Literal directory prefix of a glob: everything before the first
 # wildcard char, trailing slash removed. Empty for wildcard-leading

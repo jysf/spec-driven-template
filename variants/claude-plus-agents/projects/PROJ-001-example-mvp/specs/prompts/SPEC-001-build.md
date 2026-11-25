@@ -38,7 +38,7 @@ When done:
 3. Append a build cost session entry to the spec's cost.sessions.
 4. Run: just advance-cycle SPEC-001 verify
 5. Open PR from feat/spec-001-logger-module.
-6. PR description: project, stage, spec, handoff, decisions,
-   constraints, new DEC-* files.
+6. PR description: `just pr-body SPEC-001 build`; tick the
+   constraints you checked.
 7. Mark build [x] in the timeline with PR number, cost, date.
 ```

@@ -84,6 +84,13 @@ new-stage TITLE PROJECT_ID="":
 advance-cycle SPEC_ID NEW_CYCLE *FLAGS:
     @./scripts/advance-cycle.sh "{{SPEC_ID}}" "{{NEW_CYCLE}}" {{FLAGS}}
 
+# Print a spec PR's description (AGENTS.md §13), filled from front-matter and
+# the diff: project, stage, handoffs, DECs referenced + new, and the
+# constraints whose paths the diff touches. Pass the PR's cycle.
+# Usage: gh pr create --body "$(just pr-body SPEC-NNN build)"
+pr-body SPEC_ID *ARGS:
+    @./scripts/pr-body.sh "{{SPEC_ID}}" {{ARGS}}
+
 # Archive a shipped spec: move to done/ and update stage backlog.
 # Usage: just archive-spec SPEC-NNN
 archive-spec SPEC_ID:
