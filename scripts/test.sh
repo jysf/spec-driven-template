@@ -1260,6 +1260,74 @@ fi
 rm -f decisions/DEC-703-no-heading.md
 git checkout -q "$DA_BASE"
 
+# --- pr-body (v0.6.54) --------------------------------------------------------
+# AGENTS.md §13 listed the ids a PR description carries and nothing read it;
+# "constraints checked" was the field agents dropped. pr-body derives every id
+# from front-matter and the diff. Asserted on what it READS: a constraint shows
+# only when its paths match the diff, a DEC is "new" only if the base lacks it.
+git checkout -q -b pb-feature
+just new-spec "PR Body Widget" STAGE-002 >/dev/null 2>&1
+PB_SPEC=$(ls projects/*/specs/SPEC-*-pr-body-widget.md | grep -v timeline | sed -n 1p)
+PB_ID=$(basename "$PB_SPEC" | grep -oE 'SPEC-[0-9]+')
+PB_PROJ=$(printf '%s' "$PB_SPEC" | grep -oE 'PROJ-[0-9]+' | sed -n 1p)
+if [ "$(uname)" = "Darwin" ]; then sed -i '' 's/^  decisions: \[\].*/  decisions: [DEC-001]/' "$PB_SPEC"; else sed -i 's/^  decisions: \[\].*/  decisions: [DEC-001]/' "$PB_SPEC"; fi
+cat > decisions/DEC-704-pr-body-new.md <<'PBDEC'
+---
+insight:
+  id: DEC-704
+  type: decision
+  confidence: 0.8
+created_at: 2026-11-25
+---
+
+# DEC-704: a decision this branch adds
+PBDEC
+echo '{}' > package.json
+git add -A >/dev/null 2>&1
+git -c user.email=t@t -c user.name=t commit -qm "pr-body fixture" >/dev/null 2>&1
+pb=$(just pr-body "$PB_ID" build 2>/dev/null) || fail "pr-body exited non-zero on a valid spec"
+case "$pb" in *"- **Project:** ${PB_PROJ}"*) pass "pr-body reads project.id" ;; *) fail "pr-body missed project.id ${PB_PROJ}: $pb" ;; esac
+case "$pb" in *"- **Stage:** STAGE-002"*) pass "pr-body reads project.stage" ;; *) fail "pr-body missed project.stage: $pb" ;; esac
+case "$pb" in *"- **Cycle:** build"*) pass "pr-body uses the cycle passed, not task.cycle" ;; *) fail "pr-body ignored the cycle argument: $pb" ;; esac
+case "$pb" in *"- **Decisions referenced:** DEC-001"*) pass "pr-body reads references.decisions" ;; *) fail "pr-body missed references.decisions: $pb" ;; esac
+case "$pb" in *"- **New decisions:** DEC-704"*) pass "pr-body lists a DEC the base does not have as new" ;; *) fail "pr-body missed the new DEC: $pb" ;; esac
+case "$pb" in *"suggested title: build(${PB_ID}): PR Body Widget"*) pass "pr-body suggests a <cycle>(SPEC-NNN): title" ;; *) fail "pr-body suggested title is wrong: $pb" ;; esac
+case "$pb" in *'`no-new-top-level-deps-without-decision` (warning)'*) pass "pr-body lists a constraint whose paths match the diff (package.json)" ;; *) fail "pr-body missed the package.json constraint: $pb" ;; esac
+case "$pb" in *'`one-spec-per-pr` (blocking)'*) pass "pr-body lists a ** constraint" ;; *) fail "pr-body missed one-spec-per-pr: $pb" ;; esac
+case "$pb" in *"**Handoff:**"*) fail "pr-body printed a Handoff line with no handoffs (claude-only)" ;; *) pass "pr-body omits Handoff when the spec has none" ;; esac
+case "$pb" in *"$(printf '\033')"*) fail "pr-body emitted ANSI colour codes into a PR body" ;; *) pass "pr-body output is plain markdown" ;; esac
+# Same spec, a base that already has everything: nothing in the diff, so the
+# path-scoped constraint and the "new" DEC must both drop out.
+pb=$(just pr-body "$PB_ID" build --base HEAD 2>/dev/null) || fail "pr-body --base HEAD exited non-zero"
+case "$pb" in *"no-new-top-level-deps"*) fail "pr-body listed a constraint whose paths the diff does not touch: $pb" ;; *) pass "pr-body leaves out constraints whose paths the diff misses" ;; esac
+case "$pb" in *"- **New decisions:** none"*) pass "pr-body: a DEC the base already has is not new" ;; *) fail "pr-body called an existing DEC new: $pb" ;; esac
+pb=$(just pr-body "$PB_ID" 2>/dev/null) || fail "pr-body with no cycle exited non-zero"
+pb_cyc=$(awk '/^---$/{f=!f;next} !f{exit} /^[[:space:]]+cycle:/{print $2;exit}' "$PB_SPEC")
+case "$pb" in *"- **Cycle:** ${pb_cyc}"*) pass "pr-body falls back to task.cycle when no cycle is passed" ;; *) fail "pr-body did not fall back to task.cycle (${pb_cyc}): $pb" ;; esac
+if command -v python3 >/dev/null 2>&1; then   # HAVE_PY3 is set later in the suite
+    pbj=$(just pr-body "$PB_ID" build --json 2>/dev/null || true)
+    printf '%s' "$pbj" | python3 -c 'import json,sys; e=json.load(sys.stdin); d=e["data"]; assert e["command"]=="pr-body", e; assert d["project.stage"]=="STAGE-002", d; assert d["decisions_new"]==["DEC-704"], d; assert d["decisions_referenced"]==["DEC-001"], d; assert any(c["id"]=="one-spec-per-pr" for c in d["constraints"]), d; assert d["handoffs"]==[], d' \
+        && pass "pr-body --json carries ids, new DECs and matched constraints" || fail "pr-body --json is wrong: $pbj"
+fi
+rc=0; just pr-body "$PB_ID" shipit >/dev/null 2>&1 || rc=$?
+[ "$rc" = 2 ] && pass "pr-body rejects an unknown cycle with exit 2" || fail "pr-body bad cycle exit was ${rc}, want 2"
+rc=0; just pr-body STAGE-002 >/dev/null 2>&1 || rc=$?
+[ "$rc" = 2 ] && pass "pr-body rejects a non-spec id with exit 2" || fail "pr-body non-spec id exit was ${rc}, want 2"
+rc=0; just pr-body SPEC-999 >/dev/null 2>&1 || rc=$?
+[ "$rc" = 1 ] && pass "pr-body exits 1 for a spec that does not exist" || fail "pr-body missing spec exit was ${rc}, want 1"
+rc=0; just pr-body "$PB_ID" --base no-such-ref >/dev/null 2>&1 || rc=$?
+[ "$rc" = 2 ] && pass "pr-body rejects an unknown --base ref with exit 2" || fail "pr-body bad --base exit was ${rc}, want 2"
+# A ship PR is the one that archives the spec, so done/ must still resolve.
+PB_DONE=$(ls projects/*/specs/done/SPEC-*.md 2>/dev/null | grep -v timeline | sed -n 1p || true)
+if [ -n "$PB_DONE" ]; then
+    PB_DONE_ID=$(basename "$PB_DONE" | grep -oE 'SPEC-[0-9]+')
+    just pr-body "$PB_DONE_ID" ship >/dev/null 2>&1 \
+        && pass "pr-body resolves an archived spec (done/)" || fail "pr-body could not find archived ${PB_DONE_ID}"
+else
+    fail "no archived spec in scratch to test pr-body against done/"
+fi
+git checkout -q "$DA_BASE"
+
 # ============================================================
 # validate: the front-matter PARSE check (v0.6.41)
 # ============================================================
@@ -3786,6 +3854,16 @@ else
     fail "verify handoff did not use tier_map.verify"
 fi
 assert_cmd_fails "new-handoff rejects a non-delegated cycle" just new-handoff "$PA_SPEC_ID" design
+
+# pr-body lists the spec's handoffs with their cycles. This scratch is not a
+# git repo: the body must still print (exit 0) and say there is no diff base.
+pa_pb_err=$(mktemp)
+pa_pb=$(just pr-body "$PA_SPEC_ID" build 2>"$pa_pb_err") || fail "plus-agents: pr-body exited non-zero outside git"
+HB_ID=$(basename "$HB" | grep -oE '^HANDOFF-[0-9]+'); HV_ID=$(basename "$HV" | grep -oE '^HANDOFF-[0-9]+')
+case "$pa_pb" in *"- **Handoff:** ${HB_ID} (build), ${HV_ID} (verify)"*) pass "plus-agents: pr-body lists the spec's handoffs with their cycles" ;; *) fail "plus-agents: pr-body handoff line wrong: $pa_pb" ;; esac
+case "$pa_pb" in *"No diff base"*) pass "pr-body says when it has no diff base" ;; *) fail "pr-body was silent about a missing diff base: $pa_pb" ;; esac
+grep -q "no diff base" "$pa_pb_err" && pass "pr-body puts its notes on stderr, not in the body" || fail "pr-body note missing from stderr"
+rm -f "$pa_pb_err"
 
 # The handoff's reflection carries the CAFE word; dash context reads it there.
 assert_contains "$HB" "Which kind of context problem was the worst one above?" "handoff template carries the context question"

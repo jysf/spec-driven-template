@@ -37,7 +37,7 @@ When done:
    (use /cost if in Claude Code).
 3. Run: just advance-cycle SPEC-001 verify
 4. Open PR from feat/spec-001-logger-module.
-5. PR description: project ID, stage ID, spec ID, decisions used,
-   constraints checked, new DEC-* files.
+5. PR description: `just pr-body SPEC-001 build`; tick the
+   constraints you checked.
 6. Mark build [x] in the timeline with PR number, cost, date.
 ```

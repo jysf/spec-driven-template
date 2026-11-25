@@ -111,9 +111,9 @@ apply to the paths touched by this task:
 - All failing tests in SPEC-XXX now passing.
 - Any new tests required to cover edge cases.
 - A PR against `main` from branch `feat/spec-XXX-<slug>`.
-- PR description referencing: this handoff ID, the spec ID, the stage
-  ID, the project ID, all referenced `DEC-*`, and any new `DEC-*`
-  created during implementation.
+- PR description from `just pr-body SPEC-XXX build`: it fills this
+  handoff ID, the spec, stage and project IDs, the referenced and new
+  `DEC-*`, and the constraints the diff touches (tick the ones you checked).
 
 ### If `cycle: verify` — the verify contract
 

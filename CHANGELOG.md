@@ -2,6 +2,46 @@
 
 All notable changes to this template. One entry per fix; newest at top.
 
+## 2026-11-25 — just pr-body writes the PR description AGENTS.md §13 asks for (v0.6.54)
+
+AGENTS.md §13 listed what a PR description must carry (project, stage, spec,
+handoff, DECs, constraints checked, new DECs), and the `one-spec-per-pr`
+constraint was marked blocking. Nothing read either one. Across the last 60
+PRs in each of 7 instances, agents typed the ids into most spec PRs on their
+own, but "constraints checked" showed up in as few as 4 of 60 (irradiance).
+No instance has a `.github` PR template, and one wouldn't help: agents open
+PRs with `gh pr create --body …`, and an explicit `--body` never loads it.
+§13 had also drifted from practice. Instances open one PR per *cycle*
+(`frame(SPEC-094)`, `build(…)`, `ship(…)`), not one per spec branch.
+
+- **`just pr-body SPEC-NNN [CYCLE] [--base REF] [--json]`** prints the
+  description as plain markdown. It fills in project and stage, the spec's
+  handoffs with their cycles (plus-agents), `references.decisions`, the DECs
+  this branch adds (DEC files the base lacks), and an unticked box for each
+  constraint whose `paths:` globs match the diff. It lists what to check; it
+  doesn't check. The diff base resolves the same way as
+  `decisions-audit --changed` (`--base`, else origin/HEAD, else main/master)
+  and includes uncommitted work. With no base it still prints and says so,
+  with notes on stderr so `$(…)` captures only the body. Archived specs in
+  `done/` resolve too, since the ship PR is the one that archives.
+- **Pass the cycle.** A build agent runs `advance-cycle … verify` before
+  opening its PR, so `task.cycle` already names the next cycle. Without an
+  argument, pr-body falls back to `task.cycle`.
+- **§13 rewritten in both variants**: one spec per PR, one cycle per PR,
+  titled `<cycle>(SPEC-NNN): <title>`, with the description generated.
+  `one-spec-per-pr` now says a PR *advances* one spec and may mention others.
+  In bragfile, 38 of 60 PR bodies mention more than one SPEC, nearly all as
+  cross-references, and the old wording called each of those a violation.
+  The build prompts, the example build prompts and the handoff template point
+  at `pr-body`.
+- `glob_to_regex` moves from `decisions-audit.sh` to `_lib.sh` (now shared),
+  alongside a new `constraint_path_globs` reader.
+- `test.sh` covers each derived field. A constraint shows only when the diff
+  touches its paths, and a DEC counts as new only when the base lacks it
+  (both checked again with `--base HEAD`). It also covers the cycle fallback,
+  `--json`, plain output, an archived spec, plus-agents handoffs, the
+  no-git path, and exit codes 1 and 2.
+
 ## 2026-11-19 — the build reflection names its context problem, and dash context counts it (v0.6.53)
 
 Every build reflection asks "What was unclear?" and "What should have been

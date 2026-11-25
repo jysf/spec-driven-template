@@ -59,7 +59,7 @@ constraints:
     rationale: "Dependencies are forever — force deliberation on runtime choices. But a hard stop-and-ask on a trivial dev/types dep drives a non-interactive build sub-agent to a workaround review must undo (DEC-004 rule 4, e.g. the @types/node stub). Sanctioning the dev-only + DEC-in-one-pass path keeps the constraint's teeth for real (runtime) deps while unblocking delegated build."
 
   - id: one-spec-per-pr
-    rule: "Each PR must reference exactly one SPEC-XXX in its description. Bundled changes are rejected."
+    rule: "Each PR advances exactly one SPEC-XXX by one cycle, named in its title (`<cycle>(SPEC-XXX): …`). It may mention other specs it unblocks or split out; it must not change two specs' work. Bundled changes are rejected."
     severity: blocking
     paths: ["**"]
     added_by: human
